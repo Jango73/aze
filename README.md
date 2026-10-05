@@ -1,4 +1,7 @@
 # Aze
+
+[![Build](https://github.com/Jango73/aze/actions/workflows/build.yml/badge.svg?branch=qt6)](https://github.com/Jango73/aze/actions/workflows/build.yml)
+
 A versioning system (just for pleasure of coding)
 
 ## Dependencies
