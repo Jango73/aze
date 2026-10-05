@@ -425,16 +425,18 @@ bool CUtils::applyThreeWayMerge(
 QString CUtils::printableUnifiedDiff(const QString& sText)
 {
     QString sReturnValue(sText);
-    QRegExp tRegExp(QString("(%[a-fA-F0-9]{2})"));
+    QRegularExpression tRegExp(QString("(%[a-fA-F0-9]{2})"));
 
-    while (tRegExp.indexIn(sReturnValue) != -1)
+    QRegularExpressionMatch tMatch = tRegExp.match(sReturnValue);
+    while (tMatch.hasMatch())
     {
         bool bOK;
-        QString sCapture = tRegExp.cap(1);
+        QString sCapture = tMatch.captured(1);
         int iChar = sCapture.right(2).toInt(&bOK, 16);
         QString sReplace = QChar(iChar);
         if (iChar == 10) sReplace = "";
         sReturnValue.replace(sCapture, sReplace);
+        tMatch = tRegExp.match(sReturnValue);
     }
 
     return sReturnValue;
@@ -446,21 +448,22 @@ QList<QPair<QString, QString> > CUtils::splitDiff(const QString& sFullDiff)
 {
     QList<QPair<QString, QString> > mReturnValue;
 
-    QRegExp tRegExp1(QString("%1\\s+[a-zA-Z0-9\\.\\/\\+-_]+\\s+[a-zA-Z0-9\\.\\/\\+-_]+\\s*\\r*\\n")
-                     .arg(CStrings::s_sDiffChunkHeader)
-                     );
-    QRegExp tRegExp2(QString("---\\s+([a-zA-Z0-9\\.\\/\\+-_]+)\\s*\\r*\\n"));
-    QRegExp tRegExp3(QString("\\+\\+\\+\\s+([a-zA-Z0-9\\.\\/\\+-_]+)\\s*\\r*\\n"));
+    QRegularExpression tRegExp1(QString("%1\\s+[a-zA-Z0-9\\.\\/\\+-_]+\\s+[a-zA-Z0-9\\.\\/\\+-_]+\\s*\\r*\\n")
+                      .arg(CStrings::s_sDiffChunkHeader)
+                      );
+    QRegularExpression tRegExp2(QString("---\\s+([a-zA-Z0-9\\.\\/\\+-_]+)\\s*\\r*\\n"));
+    QRegularExpression tRegExp3(QString("\\+\\+\\+\\s+([a-zA-Z0-9\\.\\/\\+-_]+)\\s*\\r*\\n"));
 
     // Get a list of file diffs from the full diff
-    QStringList lFileDiffs = sFullDiff.split(tRegExp1, QString::SkipEmptyParts);
+    QStringList lFileDiffs = sFullDiff.split(tRegExp1, Qt::SkipEmptyParts);
 
     // Iterate through each file diffs
     for (QString sFileDiff : lFileDiffs)
     {
-        if (tRegExp2.indexIn(sFileDiff) != -1)
+        QRegularExpressionMatch tMatch = tRegExp2.match(sFileDiff);
+        if (tMatch.hasMatch())
         {
-            QString sFileName = tRegExp2.cap(1).trimmed();
+            QString sFileName = tMatch.captured(1).trimmed();
 
             if (not sFileName.isEmpty())
             {

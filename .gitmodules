@@ -1,6 +1,7 @@
 [submodule "qt-plus"]
 	path = qt-plus
 	url = https://github.com/Jango73/qt-plus.git
+	branch = qt6
 [submodule "AzeLib/sources/dtl"]
 	path = AzeLib/sources/dtl
 	url = https://github.com/Jango73/dtl.git

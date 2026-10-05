@@ -3,8 +3,10 @@
 #include "stdlib.h"
 
 // Qt
+#include <QCoreApplication>
 #include <QFile>
 #include <QDir>
+#include <QRegularExpression>
 
 // AzeLib
 #include "CRepository.h"
@@ -123,7 +125,11 @@ CTestAze::CTestAze(const QString& sArgument0)
     : m_sArgument0(sArgument0)
     , m_iCommitIndex(0)
 {
-    m_sRootPath = QDir::currentPath();
+    // Tests manipulate and delete files: run them in an isolated folder
+    // under <repository>/tmp, never in the current working folder
+    m_sRootPath = testDirectoryPath();
+    QDir::setCurrent(m_sRootPath);
+
     m_sDataPath = "./.aze";
     m_sAuthor = "CTestAze";
     m_sBranch1 = "branch1";
@@ -165,6 +171,25 @@ void CTestAze::clearRepository()
     QDir files(m_sFilesFolderName);
     if (files.exists())
         files.removeRecursively();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+QString CTestAze::testDirectoryPath()
+{
+    // Locate the repository root from the binary folder, then use tmp/
+    QDir tFolder(QCoreApplication::applicationDirPath());
+    while (not tFolder.exists("Aze.pro") and tFolder.cdUp())
+    {
+    }
+
+    if (not tFolder.exists("Aze.pro"))
+        qFatal("CTestAze: repository root (Aze.pro) not found, tests refuse to run outside a repository checkout");
+
+    QString sTestPath = QString("%1/tmp/aze-tests").arg(tFolder.absolutePath());
+    QDir().mkpath(sTestPath);
+
+    return sTestPath;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -702,7 +727,7 @@ void CTestAze::testMerge()
 
     // Check merged file contents
     QVERIFY(readFile(sFile1Path, sFile1Content));
-    QVERIFY(QRegExp(sMB9).indexIn(sFile1Content) != -1);
+    QVERIFY(QRegularExpression(sMB9).match(sFile1Content).hasMatch());
 
     // Log
     LOG(sResult);
@@ -732,7 +757,7 @@ void CTestAze::testHeavy()
 
 void CTestAze::testFinalize()
 {
-//    clearRepository();
+    clearRepository();
 }
 
 //-------------------------------------------------------------------------------------------------

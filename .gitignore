@@ -46,3 +46,7 @@ CMakeLists.txt.user*
 *.bak
 AzeMergeTestFolder
 GitMergeTestFolder
+
+# Test repositories and scratch files (never commit test output)
+.aze
+tmp/

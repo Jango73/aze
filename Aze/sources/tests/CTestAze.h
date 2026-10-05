@@ -48,6 +48,9 @@ private:
     //! Deletes all folders and files in the test repository
     void clearRepository();
 
+    //! Returns the isolated test folder (<repository>/tmp/aze-tests), created if needed
+    QString testDirectoryPath();
+
     //!
     QMap<QString, QString> generateFiles(int iCount);
 
