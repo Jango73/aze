@@ -44,6 +44,7 @@ public:
     static const QString s_sParamIsMerge;
     static const QString s_sParamMessage;
     static const QString s_sParamName;
+    static const QString s_sParamObject;
     static const QString s_sParamParents;
     static const QString s_sParamPull;
     static const QString s_sParamPush;
@@ -93,6 +94,9 @@ public:
     static const QString s_sTextNotARepository;
     static const QString s_sTextNothingToStash;
     static const QString s_sTextNoTipCommit;
+    static const QString s_sTextObjectStoreFailed;
+    static const QString s_sTextPushNotFastForward;
+    static const QString s_sTextPushRequestInvalid;
     static const QString s_sTextStashPopFailed;
     static const QString s_sTextStashSaveFailed;
 };

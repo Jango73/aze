@@ -41,6 +41,7 @@ const QString CStrings::s_sParamInfo                            = "info";
 const QString CStrings::s_sParamIsMerge                         = "isMerge";
 const QString CStrings::s_sParamMessage                         = "message";
 const QString CStrings::s_sParamName                            = "name";
+const QString CStrings::s_sParamObject                          = "object";
 const QString CStrings::s_sParamParents                         = "parents";
 const QString CStrings::s_sParamPull                            = "pull";
 const QString CStrings::s_sParamPush                            = "push";
@@ -90,6 +91,9 @@ const QString CStrings::s_sTextNoSuchFile                       = tr("No such fi
 const QString CStrings::s_sTextNotARepository                   = tr("This is not an Aze repository.");
 const QString CStrings::s_sTextNothingToStash                   = tr("There is nothing to stash.");
 const QString CStrings::s_sTextNoTipCommit                      = tr("No tip commit.");
+const QString CStrings::s_sTextObjectStoreFailed                = tr("Could not store object %1.");
+const QString CStrings::s_sTextPushNotFastForward               = tr("Push rejected: current tip is not an ancestor of the pushed tip.");
+const QString CStrings::s_sTextPushRequestInvalid               = tr("Invalid push request.");
 const QString CStrings::s_sTextStashPopFailed                   = tr("Stash pop failed.");
 const QString CStrings::s_sTextStashSaveFailed                  = tr("Stash save failed.");
 

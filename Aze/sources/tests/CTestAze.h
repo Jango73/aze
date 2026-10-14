@@ -90,6 +90,9 @@ private slots:
     //! Tests merge error paths and conflict resolution
     void testMergeErrorsAndResolution();
 
+    //! Tests push request building and applying to another repository
+    void testRemotePush();
+
     //! Tests functionalities under heavy load
     void testHeavy();
 

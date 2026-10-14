@@ -47,13 +47,13 @@ protected:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    CXMLNode serveRequest(CWebContext& tContext, const CXMLNode& xRequest);
+    CXMLNode serveRequest(CWebContext& tContext, const CXMLNode& xRequest, Aze::CRepository* pRepository);
 
     //!
-    static CXMLNode servePull(CWebContext& tContext, const CXMLNode& xRequest);
+    static CXMLNode servePull(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
     //!
-    static CXMLNode servePush(CWebContext& tContext, const CXMLNode& xRequest);
+    static CXMLNode servePush(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
     //-------------------------------------------------------------------------------------------------
     // Properties
@@ -61,7 +61,7 @@ protected:
 
 protected:
 
-    typedef CXMLNode (*RequestServing) (CWebContext& tContext, const CXMLNode& xRequest);
+    typedef CXMLNode (*RequestServing) (Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
     CAzeServer*                     m_pServer;
     QMap<QString, RequestServing>   m_mRequestFunctionMap;

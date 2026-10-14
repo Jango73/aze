@@ -82,6 +82,9 @@ public:
     //!
     QString storeFileAsObject(const QString& sFileName);
 
+    //! Stores raw data as the object sId, returns true on success
+    bool storeObject(const QString& sId, const QByteArray& baData);
+
     //-------------------------------------------------------------------------------------------------
     // Control methods
     //-------------------------------------------------------------------------------------------------

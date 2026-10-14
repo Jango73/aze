@@ -288,6 +288,46 @@ QString CDatabase::storeFileAsObject(const QString& sFileName)
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Stores \a baData as the object \a sId. \br\br
+    Verifies content integrity, then compresses and stores the data
+    when the object does not exist yet. \br
+*/
+bool CDatabase::storeObject(const QString& sId, const QByteArray& baData)
+{
+    if (sId.isEmpty())
+        return false;
+
+    // Check content integrity
+    if (CUtils::idFromByteArray(baData) != sId)
+        return false;
+
+    QString sStoredObjectFileName = composeObjectFileName(sId);
+    QFile tOutputFile(sStoredObjectFileName);
+
+    // If it does not exist, compress it and store it in objects folder
+    if (not tOutputFile.exists())
+    {
+        if (not tOutputFile.open(QIODevice::WriteOnly))
+            return false;
+
+        QByteArray baCompressed = qCompress(baData);
+
+        if (tOutputFile.write(baCompressed) != baCompressed.count())
+        {
+            tOutputFile.close();
+            tOutputFile.remove();
+            return false;
+        }
+
+        tOutputFile.close();
+    }
+
+    return true;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 bool CDatabase::fileWithIdExists(const QString& sId)
 {
     QString sStoredObjectFileName = QString("%1/%2").arg(m_sObjectPath).arg(sId);

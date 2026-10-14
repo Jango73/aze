@@ -29,7 +29,7 @@ The repository supports branch creation. Branch deletion requires dedicated hand
     - CAzeServer
     - CAzeServerProcessor
     - CRemoteRepository
-- Status: partial. The classes exist and compile, but push and pull handlers return success without implementation.
+- Status: partial. Push path works at protocol level over HTTP+JSON: request builder with commit ids and base64 objects, object and commit storage with integrity check, branch creation and fast-forward update, success and error responses. Covered by `CTestAze::testRemotePush`. Pull handler stays a stub and client response handling stays a no-op.
 
 The repository supports local operations. Remote operations require server-side components for repository hosting and request processing.
 

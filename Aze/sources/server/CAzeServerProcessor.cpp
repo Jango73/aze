@@ -5,6 +5,7 @@
 // Aze
 #include "CUtils.h"
 #include "CStrings.h"
+#include "CRemoteRepository.h"
 
 // Application
 #include "CAzeServerProcessor.h"
@@ -22,17 +23,16 @@
     AZE Request format
 
     {
-        "branch": "<Name of branch>"
-        "request": "<Type of request>"
-        "branch": [
-        ]
-        "commit": [
-            "01ab23cd....": "<BASE64: xml commit>"
-        ]
-        "object": [
-            "01ab23cd....": "<BASE64: xml commit>"
-        ]
+    "request": "<Type of request: pull or push>"
+    "branch": "<Name of branch>"
+    "tip": "<Tip commit Id>"
     }
+    "commit": [
+        { "id": "<Commit Id>", ...commit nodes... }
+    ]
+    "object": [
+        { "id": "<Object Id>", "value": "B64:<Base64 content>" }
+    ]
 */
 
 //-------------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 
             if (repository.ok())
             {
-                sCustomResponse = serveRequest(tContext, xRequest).toJsonString();
+                sCustomResponse = serveRequest(tContext, xRequest, &repository).toJsonString();
                 sCustomResponseMIME = MIME_Content_JSON;
             }
             else
@@ -91,7 +91,7 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 
 //-------------------------------------------------------------------------------------------------
 
-CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode& xRequest)
+CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode& xRequest, Aze::CRepository* pRepository)
 {
     CXMLNode xResult;
     QString sAction = xRequest.attributes()[Aze::CStrings::s_sParamRequest];
@@ -103,7 +103,7 @@ CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode
 
         if (IS_NOT_NULL(m_mRequestFunctionMap[sAction]))
         {
-            return m_mRequestFunctionMap[sAction](tContext, xRequest);
+            return m_mRequestFunctionMap[sAction](pRepository, tContext, xRequest);
         }
     }
 
@@ -112,26 +112,9 @@ CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode
 
 //-------------------------------------------------------------------------------------------------
 
-CXMLNode CAzeServerProcessor::servePull(CWebContext& tContext, const CXMLNode& xRequest)
+CXMLNode CAzeServerProcessor::servePull(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest)
 {
-    Q_UNUSED(tContext)
-
-    CXMLNode xResult;
-
-    xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamSuccess;
-
-    QVector<Aze::CBranch*> lBranches;
-    CXMLNodeList lNodes = xRequest.getNodesByTagName(Aze::CStrings::s_sParamBranch);
-
-    // TODO: implement
-
-    return xResult;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-CXMLNode CAzeServerProcessor::servePush(CWebContext& tContext, const CXMLNode& xRequest)
-{
+    Q_UNUSED(pRepository)
     Q_UNUSED(tContext)
     Q_UNUSED(xRequest)
 
@@ -140,6 +123,30 @@ CXMLNode CAzeServerProcessor::servePush(CWebContext& tContext, const CXMLNode& x
     xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamSuccess;
 
     // TODO: implement
+
+    return xResult;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+CXMLNode CAzeServerProcessor::servePush(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest)
+{
+    Q_UNUSED(tContext)
+
+    CXMLNode xResult;
+    QString sErrorMessage;
+
+    Aze::CRemoteRepository oRemoteRepository(pRepository);
+
+    if (oRemoteRepository.applyPushRequest(xRequest, sErrorMessage))
+    {
+        xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamSuccess;
+    }
+    else
+    {
+        xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamError;
+        xResult.attributes()[Aze::CStrings::s_sParamMessage] = sErrorMessage;
+    }
 
     return xResult;
 }
