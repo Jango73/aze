@@ -13,7 +13,6 @@ qmake for Qt6 (see `README.md`). Layout:
 - `qt-plus/` (git submodule, branch `qt6`): shared Qt utility library. Check
   here first before adding helpers. Build files consumed here: `functions.pri`,
   `qt-plus-nolib-web.pri` (subset without multimedia/image/geo modules).
-- `Test/`: helper scripts (`MergeTest.sh`).
 - `Aze.pro` is the `subdirs` project (`AzeLib`, then `Aze`). There is no CMake
   build; the reference Linux build is qmake6 + make via `scripts/linux/`.
 
