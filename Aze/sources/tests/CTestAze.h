@@ -87,6 +87,9 @@ private slots:
     //! Tests merge functionality
     void testMerge();
 
+    //! Tests merge error paths and conflict resolution
+    void testMergeErrorsAndResolution();
+
     //! Tests functionalities under heavy load
     void testHeavy();
 

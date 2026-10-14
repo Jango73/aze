@@ -62,6 +62,19 @@
     CConstants::s_sSwitchLog, \
     })
 
+#define LOG_GRAPH(a) \
+    a = exec({ \
+    CConstants::s_sSwitchLog, \
+    QString("--%1").arg(CConstants::s_sSwitchGraph), \
+    })
+
+#define DELETE_BRANCH(a, b) \
+    a = exec({ \
+    CConstants::s_sSwitchDeleteBranch, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    b \
+    })
+
 #define DIFF_LAST(a) \
     a = exec({ \
     CConstants::s_sSwitchDiff, "tip~1 tip > " \
@@ -732,6 +745,126 @@ void CTestAze::testMerge()
     // Log
     LOG(sResult);
     OUT_INFO(sResult);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testMergeErrorsAndResolution()
+{
+    QString sFile1Path = "Files/MergeExt1.txt";
+    QString sFile2Path = "Files/MergeExt2.txt";
+    QString sFileContent;
+    QString sResult;
+
+    QString sBase1("base1\n");
+    QString sBase2("base2\n");
+    QString sTrunk1("base1\ntrunk1\n");
+    QString sSide1("base2\nside1\n");
+    QString sTrunk2("base2\nside1\ntrunk2\n");
+    QString sSide2("base2\nside1\nside2\n");
+    QString sResolved("base2\nside1\nresolved\n");
+
+    INIT();
+
+    // C1
+    QVERIFY(createFile(sFile1Path, sBase1));
+    QVERIFY(createFile(sFile2Path, sBase2));
+    STAGE(sFile1Path);
+    STAGE(sFile2Path);
+    COMMIT("C1");
+
+    // Merge branch with self is refused with a message
+    MERGE_BRANCH(sResult, "trunk");
+    QVERIFY(sResult == CConstants::s_sTextCannotMergeBranchWithSelf + "\n");
+
+    // Merge unknown branch is refused
+    MERGE_BRANCH(sResult, "no-such-branch");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+
+    // S1 : side branch changes second file only
+    CREATE_BRANCH("side");
+    SWITCH_TO_BRANCH("side");
+    QVERIFY(createFile(sFile2Path, sSide1));
+    STAGE(sFile2Path);
+    COMMIT("S1");
+
+    // Merge with dirty working directory is refused
+    SWITCH_TO_BRANCH("trunk");
+    QVERIFY(createFile(sFile1Path, sTrunk1));
+    MERGE_BRANCH(sResult, "side");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+    QVERIFY(createFile(sFile1Path, sBase1));
+
+    // T1 : trunk changes first file only, merge stays clean on both files
+    QVERIFY(createFile(sFile1Path, sTrunk1));
+    STAGE(sFile1Path);
+    COMMIT("T1");
+
+    MERGE_BRANCH(sResult, "side");
+    QVERIFY(sResult == "0");
+    COMMIT("M2");
+
+    QVERIFY(readFile(sFile1Path, sFileContent));
+    QVERIFY(sFileContent == sTrunk1);
+    QVERIFY(readFile(sFile2Path, sFileContent));
+    QVERIFY(sFileContent == sSide1);
+
+    // Graph shows a fork below the merge commit, proving two parents
+    LOG_GRAPH(sResult);
+    QVERIFY(sResult.contains("\\  "));
+
+    // T2 and S2 change the second file in diverging ways
+    QVERIFY(createFile(sFile2Path, sTrunk2));
+    STAGE(sFile2Path);
+    COMMIT("T2");
+
+    SWITCH_TO_BRANCH("side");
+    QVERIFY(createFile(sFile2Path, sSide2));
+    STAGE(sFile2Path);
+    COMMIT("S2");
+
+    // Merge reports conflicts, clean file is merged, conflicting file is marked
+    SWITCH_TO_BRANCH("trunk");
+    MERGE_BRANCH(sResult, "side");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_MergeHasConflicts));
+
+    QVERIFY(readFile(sFile1Path, sFileContent));
+    QVERIFY(sFileContent == sTrunk1);
+
+    QVERIFY(readFile(sFile2Path, sFileContent));
+    QVERIFY(sFileContent.contains("<<<<<<<"));
+    QVERIFY(sFileContent.contains("|||||||"));
+    QVERIFY(sFileContent.contains(">>>>>>>"));
+    QVERIFY(sFileContent.contains("trunk2"));
+    QVERIFY(sFileContent.contains("side2"));
+
+    // Resolve conflict then commit
+    QVERIFY(createFile(sFile2Path, sResolved));
+    STAGE(sFile2Path);
+    COMMIT("R1");
+
+    QVERIFY(readFile(sFile2Path, sFileContent));
+    QVERIFY(sFileContent == sResolved);
+
+    // Nothing left to merge
+    MERGE_BRANCH(sResult, "side");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+
+    // Delete merged branch, trunk history stays readable
+    DELETE_BRANCH(sResult, "side");
+    QVERIFY(sResult == "0");
+
+    SWITCH_TO_BRANCH("side");
+    LOG(sResult);
+    QVERIFY(sResult.contains("R1"));
+
+    // Delete current branch is refused
+    DELETE_BRANCH(sResult, "trunk");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotDeleteBranch));
+
+    // Delete unknown branch is refused
+    DELETE_BRANCH(sResult, "no-such-branch");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotDeleteBranch));
 }
 
 //-------------------------------------------------------------------------------------------------
