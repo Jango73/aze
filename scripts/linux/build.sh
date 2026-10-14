@@ -60,7 +60,24 @@ if [[ "${BUILD_TYPE}" == "Debug" ]]; then
   QMAKE_CONFIG="debug"
 fi
 
+if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/functions.pri" ] \
+  || [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
+  || [ ! -f "${PROJECT_ROOT_FOLDER}/AzeLib/sources/dtl/dtl/dtl.hpp" ]; then
+  echo "[build] Submodules missing, run ./scripts/linux/deps.sh first." >&2
+  exit "${EXIT_FAILURE}"
+fi
+
+if ! command -v qmake6 >/dev/null 2>&1; then
+  echo "[build] qmake6 not found, run ./scripts/linux/deps.sh first." >&2
+  exit "${EXIT_FAILURE}"
+fi
+
 mkdir -p "${BUILD_DIR}"
+
+# Sub Makefiles are only generated when missing, so regenerate them to
+# reflect submodule or project file changes while keeping object files.
+rm -f "${BUILD_DIR}/Makefile" "${BUILD_DIR}/AzeLib/Makefile" "${BUILD_DIR}/Aze/Makefile"
+
 qmake6 -o "${BUILD_DIR}/Makefile" "${PROJECT_ROOT_FOLDER}/Aze.pro" "CONFIG+=${QMAKE_CONFIG}"
 make -C "${BUILD_DIR}" -j"$(nproc)"
 

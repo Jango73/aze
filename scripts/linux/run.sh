@@ -64,15 +64,24 @@ fi
 BUILD_FOLDER="${PROJECT_ROOT_FOLDER}/build-${BUILD_TYPE,,}"
 LOG_FILE="${PROJECT_ROOT_FOLDER}/tmp/run.log"
 
-if [ ! -d "${BUILD_FOLDER}" ]; then
-  echo "[run] ${BUILD_FOLDER} not found, running build first..."
-  "${SCRIPT_FOLDER}/build.sh" -c "${BUILD_TYPE}"
-fi
-
 if [[ "${BUILD_TYPE}" == "Debug" ]]; then
   BINARY="${BUILD_FOLDER}/Aze/bin/aze-dbg"
 else
   BINARY="${BUILD_FOLDER}/Aze/bin/aze"
+fi
+
+NEEDS_BUILD=0
+
+if [ ! -f "${BINARY}" ]; then
+  echo "[run] Binary not found, running build first..."
+  NEEDS_BUILD=1
+elif [ -n "$(find "${PROJECT_ROOT_FOLDER}/Aze" "${PROJECT_ROOT_FOLDER}/AzeLib" -path "${PROJECT_ROOT_FOLDER}/build-*" -prune -o \( -name '*.pro' -o -name '*.pri' -o -name '*.cpp' -o -name '*.h' \) -newer "${BINARY}" -print -quit 2>/dev/null)" ]; then
+  echo "[run] Sources changed, running build first..."
+  NEEDS_BUILD=1
+fi
+
+if [[ "${NEEDS_BUILD}" -eq 1 ]]; then
+  "${SCRIPT_FOLDER}/build.sh" -c "${BUILD_TYPE}"
 fi
 
 if [ ! -f "${BINARY}" ]; then
