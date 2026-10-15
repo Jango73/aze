@@ -49,10 +49,25 @@ public:
     Q_FAST_PROPERTY(QString, s, currentBranchName, CurrentBranchName)
     Q_FAST_PROPERTY(QString, s, stagingCommitFileName, StagingCommitFileName)
 
-    Q_FAST_REFED_PROPERTY(CLazyPointer<CBranch>, p, currentBranch, CurrentBranch)
-    Q_FAST_REFED_PROPERTY(CLazyPointer<CCommit>, p, stagingCommit, StagingCommit)
-    Q_FAST_REFED_PROPERTY(CLazyPointer<CCommit>, p, rootCommit, RootCommit)
-    Q_FAST_REFED_PROPERTY(CLazyPointer<CCommit>, p, tipCommit, TipCommit)
+public:
+
+    //! Lazy holders for branch and commits
+    //! CLazyPointer is not copyable, so these properties expose reference accessors only (no setter)
+    CLazyPointer<CBranch>& currentBranch() { return m_pCurrentBranch; }
+    const CLazyPointer<CBranch>& currentBranch() const { return m_pCurrentBranch; }
+    CLazyPointer<CCommit>& stagingCommit() { return m_pStagingCommit; }
+    const CLazyPointer<CCommit>& stagingCommit() const { return m_pStagingCommit; }
+    CLazyPointer<CCommit>& rootCommit() { return m_pRootCommit; }
+    const CLazyPointer<CCommit>& rootCommit() const { return m_pRootCommit; }
+    CLazyPointer<CCommit>& tipCommit() { return m_pTipCommit; }
+    const CLazyPointer<CCommit>& tipCommit() const { return m_pTipCommit; }
+
+protected:
+
+    CLazyPointer<CBranch> m_pCurrentBranch;
+    CLazyPointer<CCommit> m_pStagingCommit;
+    CLazyPointer<CCommit> m_pRootCommit;
+    CLazyPointer<CCommit> m_pTipCommit;
 
     Q_FAST_REFED_PROPERTY(QStringList, l, stashList, StashList)
 
