@@ -78,6 +78,9 @@ private slots:
     //! Test stage and commit functionalities
     void testCommit();
 
+    //! Test unstage functionality
+    void testUnstage();
+
     //! Test file deletion functionality
     void testDelete();
 

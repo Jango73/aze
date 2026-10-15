@@ -80,6 +80,7 @@ const int CConstants::s_iError_CouldNotRestoreStash             = 9;
 const int CConstants::s_iError_CouldNotRevertFiles              = 10;
 const int CConstants::s_iError_CouldNotSaveStash                = 11;
 const int CConstants::s_iError_CouldNotSetCurrentBranch         = 12;
+const int CConstants::s_iError_CouldNotUnstageFiles             = 23;
 const int CConstants::s_iError_CouldNotWriteCurrentBranch       = 13;
 const int CConstants::s_iError_CouldNotWriteGeneralInformation  = 14;
 const int CConstants::s_iError_CouldNotWriteStage               = 15;

@@ -1,8 +1,8 @@
 # TODO
 
 ## Stage and unstage
-- [ ] TODO-001 - Add an `unstage` test in `CTestAze` because `stage` is covered and `unstage` has no coverage.
-- [ ] TODO-002 - Unify the error code returned by `CAzeClient::unstage` which reuses `s_iError_CouldNotAddFiles` instead of a dedicated code.
+- [x] TODO-001 - Add an `unstage` test in `CTestAze` because `stage` is covered and `unstage` has no coverage.
+- [x] TODO-002 - Unify the error code returned by `CAzeClient::unstage` which reuses `s_iError_CouldNotAddFiles` instead of a dedicated code.
 
 ## Commit and amend
 - [ ] TODO-003 - Implement `amend` in the engine with rewrite of the tip commit without creation of a new parent.

@@ -115,6 +115,7 @@ public:
     static const int s_iError_CouldNotRevertFiles;
     static const int s_iError_CouldNotSaveStash;
     static const int s_iError_CouldNotSetCurrentBranch;
+    static const int s_iError_CouldNotUnstageFiles;
     static const int s_iError_CouldNotWriteCurrentBranch;
     static const int s_iError_CouldNotWriteGeneralInformation;
     static const int s_iError_CouldNotWriteStage;

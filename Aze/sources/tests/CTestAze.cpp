@@ -52,6 +52,13 @@
     __VA_ARGS__ \
     })
 
+#define UNSTAGE(...) \
+    exec({ \
+    CConstants::s_sSwitchUnstage, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    __VA_ARGS__ \
+    })
+
 #define REMOVE(...) \
     exec({ \
     CConstants::s_sSwitchRemove, \
@@ -380,6 +387,32 @@ void CTestAze::testCommit()
 
     DIFF_LAST(sDiffContent);
     QVERIFY(sDiffContent == sD23);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testUnstage()
+{
+    QString sFile1Path = "Files/UnstageTest1.txt";
+    QString sFile2Path = "Files/UnstageTest2.txt";
+    QString sResult, sFileContent;
+    QString sC1("U1\n--");
+    QVERIFY(CConstants::s_iError_CouldNotUnstageFiles != CConstants::s_iError_CouldNotAddFiles);
+    INIT();
+    QVERIFY(createFile(sFile1Path, sC1));
+    QVERIFY(createFile(sFile2Path, sC1));
+    QVERIFY(STAGE(sFile1Path, sFile2Path) == "0");
+    QVERIFY(UNSTAGE(sFile2Path) == "0");
+    STATUS(sResult);
+    QVERIFY(sResult.contains(sFile1Path));
+    QVERIFY(not sResult.contains(sFile2Path));
+    COMMIT("U1");
+    Aze::CRepository oRepository(m_sRootPath);
+    QVERIFY(oRepository.ok());
+    QVERIFY(oRepository.tipCommit()->files().contains(sFile1Path));
+    QVERIFY(not oRepository.tipCommit()->files().contains(sFile2Path));
+    QVERIFY(readFile(sFile2Path, sFileContent));
+    QVERIFY(sFileContent == sC1);
 }
 
 //-------------------------------------------------------------------------------------------------

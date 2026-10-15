@@ -220,7 +220,7 @@ int CAzeClient::unstage()
     processWildCards();
 
     // Update the stage
-    ERROR_WHEN_FALSE(m_pRepository->unstage(m_tArguments.m_lFilesAndIds), CConstants::s_iError_CouldNotAddFiles);
+    ERROR_WHEN_FALSE(m_pRepository->unstage(m_tArguments.m_lFilesAndIds), CConstants::s_iError_CouldNotUnstageFiles);
     ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
 
     return CConstants::s_iError_None;
