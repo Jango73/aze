@@ -4,6 +4,7 @@ HEADERS += \
     sources/CCommitTreeList.h \
     sources/CEnums.h \
     sources/CError.h \
+    sources/CFileHashCache.h \
     sources/commands/CBaseCommand.h \
     sources/commands/CAmendCommand.h \
     sources/commands/CCommitCommand.h \
@@ -45,6 +46,7 @@ SOURCES += \
     sources/CCommitTreeList.cpp \
     sources/CEnums.cpp \
     sources/CError.cpp \
+    sources/CFileHashCache.cpp \
     sources/commands/CBaseCommand.cpp \
     sources/commands/CAmendCommand.cpp \
     sources/commands/CCommitCommand.cpp \

@@ -52,7 +52,7 @@
 - [ ] TODO-030 - Avoid `qFatal` in `CAzeServer` on invalid HTTPS configuration and return a clean error code.
 
 ## Index and acceleration
-- [ ] TODO-031 - Add a working folder hash cache keyed by path, size and modification time because `folderAsCommit` recomputes each identifier with `idFromByteArray`.
+- [x] TODO-031 - Add a working folder hash cache keyed by path, size and modification time because `folderAsCommit` recomputes each identifier with `idFromByteArray`.
 - [ ] TODO-032 - Fill and use `m_lCommitTreeList` in `CCommitTreeList` because only the parent map is memoized and the tree half remains unwired.
 - [ ] TODO-033 - Route `log` and ancestor search through the parent cache instead of loading each commit file.
 - [ ] TODO-034 - Persist `CCommitTreeList` in binary format as indicated by the TODO marker instead of text XML.

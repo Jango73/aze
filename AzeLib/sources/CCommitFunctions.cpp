@@ -22,6 +22,7 @@ CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool b
     , m_bSilent(bSilent)
     , m_bDebug(bDebug)
     , m_pCommitTreeList(new CCommitTreeList(pDatabase, parent, bSilent, bDebug))
+    , m_pFileHashCache(new CFileHashCache(this))
 {
 }
 
@@ -29,6 +30,7 @@ CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool b
 
 CCommitFunctions::~CCommitFunctions()
 {
+    delete m_pFileHashCache;
     delete m_pCommitTreeList;
 }
 
@@ -770,23 +772,56 @@ CError::EErrorCode CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit
 CCommit* CCommitFunctions::folderAsCommit(QObject* owner, QString sRootPath)
 {
     CCommit* pNewCommit = new CCommit(owner);
-    QStringList lFiles;
 
     if (sRootPath.isEmpty())
         sRootPath = m_pDatabase->rootPath();
 
-    // List contents of directory
+    // List contents of folder
     CDirectoryListing tDirectory;
     tDirectory.addIgnoreName(CStrings::s_sPathAzeDataRootPath);
     tDirectory.setRootPath(sRootPath);
 
-    // Add agregated files to the commit
-    // The id will be generated from the file's contents
+    // Add listed files to the commit
+    // The identifier is read from the working folder hash cache when file
+    // size and modification time are unchanged, and is computed from file
+    // content only on cache miss by CFileHashCache::identifierForFile
+    // Other modules reuse the cache the same way: resolve the identifier
+    // through the cache, then pass it to CCommit::addFile so no second
+    // computation happens
     for (const CDirectoryListingItem& sFile : tDirectory.files())
+    {
         if (not sFile.isFolder())
-            pNewCommit->addFile(m_pDatabase, sFile.relativeName());
+        {
+            QString sAbsoluteFileName = CUtils::absoluteFileName(sRootPath, sFile.relativeName());
+            QString sIdentifier = m_pFileHashCache->identifierForFile(sAbsoluteFileName);
+            pNewCommit->addFile(m_pDatabase, sFile.relativeName(), sIdentifier);
+        }
+    }
 
     return pNewCommit;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops all entries of the working folder hash cache. \br\br
+    Call this after the working folder content is replaced by commit, merge,
+    received push or branch switch (see TODO-037). \br
+*/
+void CCommitFunctions::clearFileHashCache()
+{
+    m_pFileHashCache->clear();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops the hash cache entry of a single absolute file name. \br\br
+    \a sAbsoluteFileName is the absolute file name to drop from the cache \br
+*/
+void CCommitFunctions::invalidateFileInHashCache(const QString& sAbsoluteFileName)
+{
+    m_pFileHashCache->invalidateFile(sAbsoluteFileName);
 }
 
 //-------------------------------------------------------------------------------------------------

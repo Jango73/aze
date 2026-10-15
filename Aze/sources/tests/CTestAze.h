@@ -102,6 +102,9 @@ private slots:
     //! Tests diff variants (no argument, one id, file name)
     void testDiff();
 
+    //! Tests the working folder hash cache (hits, misses and invalidation)
+    void testFileHashCache();
+
     //! Tests functionalities under heavy load
     void testHeavy();
 

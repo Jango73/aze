@@ -14,6 +14,7 @@
 // Application
 #include "CCommitTreeList.h"
 #include "CError.h"
+#include "CFileHashCache.h"
 #include "objects/CCommit.h"
 #include "objects/CFile.h"
 #include "objects/CDatabase.h"
@@ -36,6 +37,7 @@ public:
     Q_FAST_PROPERTY(bool, b, silent, Silent)
     Q_FAST_PROPERTY(bool, b, debug, Debug)
     Q_FAST_PROPERTY(CCommitTreeList* , p, commitTreeList, CommitTreeList)
+    Q_FAST_PROPERTY(CFileHashCache*, p, fileHashCache, FileHashCache)
 
 public:
 
@@ -98,6 +100,12 @@ public:
 
     //! Return a commit object that recflects the structure of a given file system folder (and its sub-folder)
     CCommit* folderAsCommit(QObject* owner = nullptr, QString sRootPath = "");
+
+    //! Drops all entries of the working folder hash cache
+    void clearFileHashCache();
+
+    //! Drops the hash cache entry of a single absolute file name
+    void invalidateFileInHashCache(const QString& sAbsoluteFileName);
 
     //-------------------------------------------------------------------------------------------------
     // Protected control methods

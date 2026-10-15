@@ -12,6 +12,7 @@
 #include "CRepository.h"
 #include "CRemoteRepository.h"
 #include "CError.h"
+#include "CFileHashCache.h"
 #include "CUtils.h"
 #include "CStrings.h"
 #include <CXMLNode.h>
@@ -1144,6 +1145,64 @@ void CTestAze::testDiff()
 
     sDiffFile2 = exec({ CConstants::s_sSwitchDiff, sFile2Path });
     QVERIFY(sDiffFile2 == sExpFile2);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testFileHashCache()
+{
+    QString sFilePath = "Files/HashCacheTest.txt";
+    QString sAbsoluteFileName = QDir(m_sRootPath).absoluteFilePath(sFilePath);
+
+    QVERIFY(QDir().mkpath("Files"));
+    QFile::remove(sAbsoluteFileName);
+
+    Aze::CFileHashCache oCache(this);
+
+    QVERIFY(createFile(sFilePath, "alpha"));
+    QString sIdentifier1 = oCache.identifierForFile(sAbsoluteFileName);
+    QVERIFY(not sIdentifier1.isEmpty());
+    QCOMPARE(sIdentifier1, Aze::CUtils::idFromFileContent(sAbsoluteFileName));
+    QCOMPARE(oCache.missCount(), qint64(1));
+    QCOMPARE(oCache.hitCount(), qint64(0));
+    QVERIFY(oCache.containsFile(sAbsoluteFileName));
+
+    // An unchanged file is served from the cache
+    QString sIdentifier2 = oCache.identifierForFile(sAbsoluteFileName);
+    QCOMPARE(sIdentifier2, sIdentifier1);
+    QCOMPARE(oCache.hitCount(), qint64(1));
+    QCOMPARE(oCache.missCount(), qint64(1));
+
+    // A modified file misses the cache and yields a new identifier
+    QVERIFY(createFile(sFilePath, "alpha-beta"));
+    QVERIFY(not oCache.containsFile(sAbsoluteFileName));
+    QString sIdentifier3 = oCache.identifierForFile(sAbsoluteFileName);
+    QVERIFY(not sIdentifier3.isEmpty());
+    QVERIFY(sIdentifier3 != sIdentifier1);
+    QCOMPARE(oCache.missCount(), qint64(2));
+
+    // Explicit invalidation forces a new read with the same result
+    oCache.invalidateFile(sAbsoluteFileName);
+    QVERIFY(not oCache.containsFile(sAbsoluteFileName));
+    QString sIdentifier4 = oCache.identifierForFile(sAbsoluteFileName);
+    QCOMPARE(sIdentifier4, sIdentifier3);
+    QCOMPARE(oCache.missCount(), qint64(3));
+
+    // Clearing drops entries but keeps counters
+    oCache.clear();
+    QCOMPARE(oCache.count(), qint64(0));
+    QCOMPARE(oCache.missCount(), qint64(3));
+    QVERIFY(not oCache.containsFile(sAbsoluteFileName));
+    QCOMPARE(oCache.identifierForFile(sAbsoluteFileName), sIdentifier3);
+    QCOMPARE(oCache.missCount(), qint64(4));
+
+    // A missing file returns empty without being cached
+    QVERIFY(deleteFile(sFilePath));
+    QVERIFY(oCache.identifierForFile(sAbsoluteFileName).isEmpty());
+    QVERIFY(not oCache.containsFile(sAbsoluteFileName));
+
+    // An empty file name returns empty
+    QVERIFY(oCache.identifierForFile("").isEmpty());
 }
 
 //-------------------------------------------------------------------------------------------------
