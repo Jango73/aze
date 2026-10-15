@@ -2,7 +2,8 @@
 QT += core xml network testlib
 
 TEMPLATE = lib
-DEFINES += "AZELIB_VERSION_STRING=\"\\\"0.0.0.alpha.1\\\"\""
+AZELIB_VERSION = $$cat($$PWD/../VERSION)
+DEFINES += "AZELIB_VERSION_STRING=\"\\\"$$AZELIB_VERSION\\\"\""
 DEFINES += AZE_LIBRARY
 
 # Dependencies

@@ -3,7 +3,8 @@ QT += core xml network testlib
 CONFIG += console
 
 TEMPLATE = app
-DEFINES += "AZE_VERSION_STRING=\"\\\"0.0.0.alpha.1\\\"\""
+AZE_VERSION = $$cat($$PWD/../VERSION)
+DEFINES += "AZE_VERSION_STRING=\"\\\"$$AZE_VERSION\\\"\""
 
 # Dependencies
 INCLUDEPATH += $$PWD/../qt-plus/source/cpp
