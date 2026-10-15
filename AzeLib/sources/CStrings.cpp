@@ -95,6 +95,7 @@ const QString CStrings::s_sTextObjectStoreFailed                = tr("Could not 
 const QString CStrings::s_sTextPushNotFastForward               = tr("Push rejected: current tip is not an ancestor of the pushed tip.");
 const QString CStrings::s_sTextPushRequestInvalid               = tr("Invalid push request.");
 const QString CStrings::s_sTextStashPopFailed                   = tr("Stash pop failed.");
-const QString CStrings::s_sTextStashSaveFailed                  = tr("Stash save failed.");
+const QString CStrings::s_sTextStashSaveFailed                 = tr("Stash save failed.");
+const QString CStrings::s_sTextStageNotEmpty                   = tr("Please commit or clear the stage before attempting a merge.");
 
 } // namespace Aze

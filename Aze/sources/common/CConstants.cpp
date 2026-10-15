@@ -95,6 +95,10 @@ const int CConstants::s_iError_NotARepository                   = 23;
 const int CConstants::s_iError_MergeHasConflicts                = 24;
 const int CConstants::s_iError_UnknownCommand                   = 25;
 const int CConstants::s_iError_UnknownSwitch                    = 26;
+const int CConstants::s_iError_UnknownBranch                    = 27;
+const int CConstants::s_iError_DirtyWorkingFolder               = 28;
+const int CConstants::s_iError_NothingToMerge                   = 29;
+const int CConstants::s_iError_StageNotEmpty                    = 30;
 
 const QString CConstants::s_sAllFilesAreClean               = tr("All files are clean on branch %1.");
 const QString CConstants::s_sStatusOfFiles                  = tr("Status of working directory files, on branch %1:");

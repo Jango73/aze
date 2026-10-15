@@ -887,9 +887,19 @@ void CTestAze::testMergeErrorsAndResolution()
     MERGE_BRANCH(sResult, "trunk");
     QVERIFY(sResult == CConstants::s_sTextCannotMergeBranchWithSelf + "\n");
 
-    // Merge unknown branch is refused
+    // Merge unknown branch is refused with a distinct code
     MERGE_BRANCH(sResult, "no-such-branch");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+    QVERIFY(sResult == QString::number(CConstants::s_iError_UnknownBranch));
+    QVERIFY(CConstants::s_iError_UnknownBranch != CConstants::s_iError_CouldNotMerge);
+
+    // Merge with a non empty stage is refused without touching merge parents
+    QVERIFY(createFile(sFile1Path, sTrunk1));
+    STAGE(sFile1Path);
+    MERGE_BRANCH(sResult, "no-such-branch");
+    QVERIFY(sResult == QString::number(CConstants::s_iError_StageNotEmpty));
+    QVERIFY(CConstants::s_iError_StageNotEmpty != CConstants::s_iError_CouldNotMerge);
+    UNSTAGE(sFile1Path);
+    QVERIFY(createFile(sFile1Path, sBase1));
 
     // S1 : side branch changes second file only
     CREATE_BRANCH("side");
@@ -898,11 +908,12 @@ void CTestAze::testMergeErrorsAndResolution()
     STAGE(sFile2Path);
     COMMIT("S1");
 
-    // Merge with dirty working directory is refused
+    // Merge with dirty working directory is refused with a distinct code
     SWITCH_TO_BRANCH("trunk");
     QVERIFY(createFile(sFile1Path, sTrunk1));
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+    QVERIFY(sResult == QString::number(CConstants::s_iError_DirtyWorkingFolder));
+    QVERIFY(CConstants::s_iError_DirtyWorkingFolder != CConstants::s_iError_CouldNotMerge);
     QVERIFY(createFile(sFile1Path, sBase1));
 
     // T1 : trunk changes first file only, merge stays clean on both files
@@ -956,9 +967,10 @@ void CTestAze::testMergeErrorsAndResolution()
     QVERIFY(readFile(sFile2Path, sFileContent));
     QVERIFY(sFileContent == sResolved);
 
-    // Nothing left to merge
+    // Nothing left to merge is refused with a distinct code
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotMerge));
+    QVERIFY(sResult == QString::number(CConstants::s_iError_NothingToMerge));
+    QVERIFY(CConstants::s_iError_NothingToMerge != CConstants::s_iError_CouldNotMerge);
 
     // Delete merged branch, trunk history stays readable
     DELETE_BRANCH(sResult, "side");

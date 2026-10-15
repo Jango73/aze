@@ -10,6 +10,7 @@
 
 // Aze
 #include "CUtils.h"
+#include "commands/CMergeCommand.h"
 
 // Application
 #include "CAzeClient.h"
@@ -395,8 +396,25 @@ int CAzeClient::merge()
     }
 
     bool bHasConflicts = false;
+    int iMergeError = Aze::CMergeCommand::eMergeOk;
 
-    ERROR_WHEN_FALSE(m_pRepository->merge(sBranchName, bHasConflicts), CConstants::s_iError_CouldNotMerge);
+    if (not m_pRepository->merge(sBranchName, bHasConflicts, &iMergeError))
+    {
+        switch (iMergeError)
+        {
+        case Aze::CMergeCommand::eMergeUnknownBranch:
+            return CConstants::s_iError_UnknownBranch;
+        case Aze::CMergeCommand::eMergeDirtyWorkingFolder:
+            return CConstants::s_iError_DirtyWorkingFolder;
+        case Aze::CMergeCommand::eMergeNothingToMerge:
+            return CConstants::s_iError_NothingToMerge;
+        case Aze::CMergeCommand::eMergeStageNotEmpty:
+            return CConstants::s_iError_StageNotEmpty;
+        default:
+            return CConstants::s_iError_CouldNotMerge;
+        }
+    }
+
     ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
 
     return bHasConflicts ? CConstants::s_iError_MergeHasConflicts : CConstants::s_iError_None;

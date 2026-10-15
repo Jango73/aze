@@ -133,7 +133,9 @@ public:
     QString diff(const QString& sFirst, const QString& sSecond);
 
     //! Merges the branch sName onto the current one
-    bool merge(const QString& sName, bool& bHasConflicts);
+    //! bHasConflicts is set when the merge reports conflicts
+    //! pMergeError optionally receives a CMergeCommand::EMergeError reason on failure
+    bool merge(const QString& sName, bool& bHasConflicts, int* pMergeError = nullptr);
 
     //! Stashes the working directory changes
     bool saveStash(const QString& sMessage);

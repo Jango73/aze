@@ -303,10 +303,20 @@ QString CRepository::diff(const QString& sFirst, const QString& sSecond)
     Merges a branch onto the current branch. \br\br
     \a sName is the branch to merge
     \a bHasConflicts will contain whether the merge has conflict files
+    \a pMergeError optionally receives a CMergeCommand::EMergeError reason on failure
 */
-bool CRepository::merge(const QString& sName, bool& bHasConflicts)
+bool CRepository::merge(const QString& sName, bool& bHasConflicts, int* pMergeError)
 {
-    return CMergeCommand(this, sName, bHasConflicts).execute();
+    CMergeCommand oCommand(this, sName, bHasConflicts);
+    bool bOk = oCommand.execute();
+
+    if (not bOk && IS_NOT_NULL(pMergeError))
+        *pMergeError = oCommand.mergeError();
+
+    if (bOk && IS_NOT_NULL(pMergeError))
+        *pMergeError = CMergeCommand::eMergeOk;
+
+    return bOk;
 }
 
 //-------------------------------------------------------------------------------------------------

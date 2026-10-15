@@ -99,6 +99,7 @@ public:
     static const QString s_sTextPushRequestInvalid;
     static const QString s_sTextStashPopFailed;
     static const QString s_sTextStashSaveFailed;
+    static const QString s_sTextStageNotEmpty;
 };
 
 }

@@ -130,6 +130,10 @@ public:
     static const int s_iError_MergeHasConflicts;
     static const int s_iError_UnknownCommand;
     static const int s_iError_UnknownSwitch;
+    static const int s_iError_UnknownBranch;
+    static const int s_iError_DirtyWorkingFolder;
+    static const int s_iError_NothingToMerge;
+    static const int s_iError_StageNotEmpty;
 
     // Text strings
     static const QString s_sAllFilesAreClean;
