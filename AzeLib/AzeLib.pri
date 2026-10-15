@@ -3,6 +3,7 @@ HEADERS += \
     sources/CCommitFunctions.h \
     sources/CCommitTreeList.h \
     sources/CEnums.h \
+    sources/CError.h \
     sources/commands/CBaseCommand.h \
     sources/commands/CAmendCommand.h \
     sources/commands/CCommitCommand.h \
@@ -43,6 +44,7 @@ SOURCES += \
     sources/CCommitFunctions.cpp \
     sources/CCommitTreeList.cpp \
     sources/CEnums.cpp \
+    sources/CError.cpp \
     sources/commands/CBaseCommand.cpp \
     sources/commands/CAmendCommand.cpp \
     sources/commands/CCommitCommand.cpp \
