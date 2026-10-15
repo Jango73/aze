@@ -16,6 +16,7 @@
 #include "CRemoteHostInfo.h"
 #include "CCommitFunctions.h"
 #include "CEnums.h"
+#include "CError.h"
 #include "CStrings.h"
 #include "objects/CBranch.h"
 #include "objects/CCommit.h"
@@ -88,40 +89,40 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //! Initializes a repository, creating mandatory folders and files
-    bool init();
+    CError::EErrorCode init();
 
     //! Creates a branch as sName
-    bool createBranch(const QString& sName);
+    CError::EErrorCode createBranch(const QString& sName);
 
     //! Deletes the branch sName
-    bool deleteBranch(const QString& sName);
+    CError::EErrorCode deleteBranch(const QString& sName);
 
     //! Sets the current branch to sName
-    bool switchToBranch(const QString& sName, bool bAllowFileDelete = false);
+    CError::EErrorCode switchToBranch(const QString& sName, bool bAllowFileDelete = false);
 
     //! Stages all files listed in lFileNames
-    bool stage(const QStringList& lFileNames);
+    CError::EErrorCode stage(const QStringList& lFileNames);
 
     //! Unstages all files listed in lFileNames
-    bool unstage(const QStringList& lFileNames);
+    CError::EErrorCode unstage(const QStringList& lFileNames);
 
     //! Removes all files listed in lFileNames
-    bool remove(const QStringList& lFileNames);
+    CError::EErrorCode remove(const QStringList& lFileNames);
 
     //! Commits all files contained in the staging commit
-    bool commit(const QString& sAuthor, const QString& sMessage);
+    CError::EErrorCode commit(const QString& sAuthor, const QString& sMessage);
 
     //! Rewrites the tip commit without creation of a new parent
-    bool amend(const QString& sAuthor, const QString& sMessage);
+    CError::EErrorCode amend(const QString& sAuthor, const QString& sMessage);
 
     //! Reverts all files listed in lFileNames
-    bool revert(const QStringList& lFileNames, bool bAllowFileDelete = false);
+    CError::EErrorCode revert(const QStringList& lFileNames, bool bAllowFileDelete = false);
 
     //! Reverts all files listed in the commit
-    bool revert(CCommit* pWorkingDirectory, bool bAllowFileDelete = false);
+    CError::EErrorCode revert(CCommit* pWorkingDirectory, bool bAllowFileDelete = false);
 
     //! Reverts all files
-    bool revert(bool bAllowFileDelete = false);
+    CError::EErrorCode revert(bool bAllowFileDelete = false);
 
     //! Returns a log
     QString log(const QStringList& lFileNames, bool bGraph = false, int iStart = 0, int iCount = 0);
@@ -134,39 +135,39 @@ public:
 
     //! Merges the branch sName onto the current one
     //! bHasConflicts is set when the merge reports conflicts
-    //! pMergeError optionally receives a CMergeCommand::EMergeError reason on failure
-    bool merge(const QString& sName, bool& bHasConflicts, int* pMergeError = nullptr);
+    //! Returns eNone, eMergeHasConflicts or the precise failure reason
+    CError::EErrorCode merge(const QString& sName, bool& bHasConflicts);
 
     //! Stashes the working directory changes
-    bool saveStash(const QString& sMessage);
+    CError::EErrorCode saveStash(const QString& sMessage);
 
     //! Restores the contents of a stash
-    bool popStash(const QString& sId);
+    CError::EErrorCode popStash(const QString& sId);
 
     //! Patches the repository with file
-    bool patch(const QString& sFilename);
+    CError::EErrorCode patch(const QString& sFilename);
 
     //! Returns the staging commit
     CCommit* getStagingCommit();
 
     //! Reads the stage commit
-    bool readGeneralInformation();
+    CError::EErrorCode readGeneralInformation();
 
     //! Writes the general information
-    bool writeGeneralInformation();
+    CError::EErrorCode writeGeneralInformation();
 
     //! Forces a reload of the current branch
     //! Needed when switching branches
     void refreshCurrentBranch();
 
     //! Writes the current branch
-    bool writeCurrentBranch();
+    CError::EErrorCode writeCurrentBranch();
 
     //! Writes the stage commit
-    bool writeStage();
+    CError::EErrorCode writeStage();
 
     //! Clears the stage commit (but does not write it)
-    bool clearStage();
+    CError::EErrorCode clearStage();
 
     //! Checks the status of tracked files
     CEnums::EFileStatus checkStatus(const QStringList& lFileNames);
@@ -188,10 +189,10 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //! Prints an error message
-    void tellError(const QString& sText);
+    void tellError(CError::EErrorCode eCode, const QString& sDetail = QString());
 
     //! Prints an info message
-    void tellInfo(const QString& sText);
+    void tellInfo(CError::EErrorCode eCode, const QString& sDetail = QString());
 
     //! Replaces symbols in sText with their actual value (if any)
     QString processKeywords(const QString& sText);

@@ -13,6 +13,7 @@
 
 // Application
 #include "CCommitTreeList.h"
+#include "CError.h"
 #include "objects/CCommit.h"
 #include "objects/CFile.h"
 #include "objects/CDatabase.h"
@@ -90,10 +91,10 @@ public:
     void diffText(QString& sOutput, const QString& sFileName, const QString& sText1, const QString& sText2);
 
     //! Applies a diff to the working directory
-    bool applyDiff(const QString& sFullDiff, bool bAddToStage = false, CCommit* pStagingCommit = nullptr);
+    CError::EErrorCode applyDiff(const QString& sFullDiff, bool bAddToStage = false, CCommit* pStagingCommit = nullptr);
 
     //! Do a 3-way merge and add (if requested) the modified files to the stage
-    bool threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipCommit, CCommit* pToTipCommit, bool bAddToStage, CCommit* pStagingCommit);
+    CError::EErrorCode threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipCommit, CCommit* pToTipCommit, bool bAddToStage, CCommit* pStagingCommit);
 
     //! Return a commit object that recflects the structure of a given file system folder (and its sub-folder)
     CCommit* folderAsCommit(QObject* owner = nullptr, QString sRootPath = "");

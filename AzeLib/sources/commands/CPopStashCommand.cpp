@@ -20,22 +20,22 @@ CPopStashCommand::CPopStashCommand(CRepository* pRepository, const QString& sId)
 
 //-------------------------------------------------------------------------------------------------
 
-bool CPopStashCommand::execute()
+CError::EErrorCode CPopStashCommand::execute()
 {
     if (m_sId.isEmpty() && m_pRepository->stashList().count() > 0)
         m_sId = m_pRepository->stashList().last();
 
     if (m_sId.isEmpty())
-        return true;
+        return CError::eNone;
 
     CStash* pStash = m_pRepository->database()->getStash(m_sId, this);
 
     if (IS_NOT_NULL(pStash) && not pStash->diff().isEmpty())
     {
         // Apply the stash
-        bool ok = m_pRepository->commitFunctions()->applyDiff(pStash->diff());
+        CError::EErrorCode eDiffCode = m_pRepository->commitFunctions()->applyDiff(pStash->diff());
 
-        if (ok)
+        if (eDiffCode == CError::eNone)
         {
             m_pRepository->database()->removeStash(m_sId);
             m_pRepository->removeStashFromList(m_sId);
@@ -45,13 +45,13 @@ bool CPopStashCommand::execute()
                 m_pRepository->stagingCommit()->addCommit(m_pRepository->database(), pStash->stage());
             }
 
-            return true;
+            return CError::eNone;
         }
         else
-            return false;
+            return eDiffCode;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

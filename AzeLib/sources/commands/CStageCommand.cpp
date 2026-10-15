@@ -20,35 +20,37 @@ CStageCommand::CStageCommand(CRepository* pRepository, const QStringList& lFileN
 
 //-------------------------------------------------------------------------------------------------
 
-bool CStageCommand::execute()
+CError::EErrorCode CStageCommand::execute()
 {
     for (QString sFileName : m_lFileNames)
     {
         QString sRelativeFileName = m_pRepository->database()->relativeFileName(sFileName);
 
-        if (not addSingleFile(sRelativeFileName))
-            return false;
+        CError::EErrorCode eCode = addSingleFile(sRelativeFileName);
+
+        if (eCode != CError::eNone)
+            return eCode;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CStageCommand::addSingleFile(QString sRelativeFileName)
+CError::EErrorCode CStageCommand::addSingleFile(QString sRelativeFileName)
 {
     // Sanity check on stage
     if (m_pRepository->stagingCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoStagingCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoStagingCommit);
+        return CError::eNoStagingCommit;
     }
 
     if (CUtils::fileExists(m_pRepository->database()->rootPath(), sRelativeFileName))
     {
         QString sId = CUtils::idFromString(sRelativeFileName);
         m_pRepository->stagingCommit()->addFile(m_pRepository->database(), sRelativeFileName, sId);
-        return true;
+        return CError::eNone;
     }
     else
     {
@@ -56,13 +58,12 @@ bool CStageCommand::addSingleFile(QString sRelativeFileName)
         if (not m_pRepository->tipCommit().isNull() && m_pRepository->tipCommit()->files().contains(sRelativeFileName))
         {
             m_pRepository->stagingCommit()->addFile(m_pRepository->database(), sRelativeFileName, "");
-            return true;
+            return CError::eNone;
         }
 
-        m_pRepository->tellError(QString("%1: %2").arg(CStrings::s_sTextNoSuchFile).arg(sRelativeFileName));
+        m_pRepository->tellError(CError::eNoSuchFile, sRelativeFileName);
+        return CError::eNoSuchFile;
     }
-
-    return false;
 }
 
 //-------------------------------------------------------------------------------------------------

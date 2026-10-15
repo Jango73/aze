@@ -66,46 +66,11 @@ const char* CConstants::s_sSwitchSslCert                   = "ssl-cert";
 const char* CConstants::s_sSwitchSslKey                    = "ssl-key";
 
 //-------------------------------------------------------------------------------------------------
-// Error codes
-
-const int CConstants::s_iError_None                             = 0;
-const int CConstants::s_iError_CouldNotAddFiles                 = 1;
-const int CConstants::s_iError_CouldNotAmend                    = 2;
-const int CConstants::s_iError_CouldNotCommit                   = 3;
-const int CConstants::s_iError_CouldNotCreateBranch             = 4;
-const int CConstants::s_iError_CouldNotDeleteBranch             = 5;
-const int CConstants::s_iError_CouldNotMerge                    = 6;
-const int CConstants::s_iError_CouldNotMoveFiles                = 7;
-const int CConstants::s_iError_CouldNotPatch                    = 8;
-const int CConstants::s_iError_CouldNotPopStash                 = 9;
-const int CConstants::s_iError_CouldNotReadStage                = 10;
-const int CConstants::s_iError_CouldNotRemoveFiles              = 11;
-const int CConstants::s_iError_CouldNotRestoreStash             = 12;
-const int CConstants::s_iError_CouldNotRevertFiles              = 13;
-const int CConstants::s_iError_CouldNotSaveStash                = 14;
-const int CConstants::s_iError_CouldNotSetCurrentBranch         = 15;
-const int CConstants::s_iError_CouldNotUnstageFiles             = 16;
-const int CConstants::s_iError_CouldNotWriteCurrentBranch       = 17;
-const int CConstants::s_iError_CouldNotWriteGeneralInformation  = 18;
-const int CConstants::s_iError_CouldNotWriteStage               = 19;
-const int CConstants::s_iError_NoBranchNameGiven                = 20;
-const int CConstants::s_iError_NoFileNameGiven                  = 21;
-const int CConstants::s_iError_NoRemoteHostNameGiven            = 22;
-const int CConstants::s_iError_NotARepository                   = 23;
-const int CConstants::s_iError_MergeHasConflicts                = 24;
-const int CConstants::s_iError_UnknownCommand                   = 25;
-const int CConstants::s_iError_UnknownSwitch                    = 26;
-const int CConstants::s_iError_UnknownBranch                    = 27;
-const int CConstants::s_iError_DirtyWorkingFolder               = 28;
-const int CConstants::s_iError_NothingToMerge                   = 29;
-const int CConstants::s_iError_StageNotEmpty                    = 30;
+// Text strings
 
 const QString CConstants::s_sAllFilesAreClean               = tr("All files are clean on branch %1.");
 const QString CConstants::s_sStatusOfFiles                  = tr("Status of working directory files, on branch %1:");
-const QString CConstants::s_sTextCannotDeleteCurrentBranch  = tr("Cannot delete the current branch. Please switch to another branch and try again.");
-const QString CConstants::s_sTextCannotMergeBranchWithSelf  = tr("Cannot merge a branch on itself.");
 const QString CConstants::s_sTextCommands                   = tr("Commands");
-const QString CConstants::s_sTextUnknownCommand             = tr("Unknown command.");
 const QString CConstants::s_sTextYouAreAlreadyOnBranch      = tr("You are already on branch %1.");
 const QString CConstants::s_sTextYouAreNowOnBranch          = tr("You are now on branch %1.");
 

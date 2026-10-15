@@ -32,20 +32,20 @@ CAmendCommand::CAmendCommand(CRepository* pRepository, const QString& sAuthor, c
     its parent identifiers, then the current branch tip is moved to the
     rewritten commit. The root identifier follows when the tip was the root.
 */
-bool CAmendCommand::execute()
+CError::EErrorCode CAmendCommand::execute()
 {
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     // Check presence of a tip commit to rewrite
     if (m_pRepository->tipCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoTipCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoTipCommit);
+        return CError::eNoTipCommit;
     }
 
     QString sOldTipId = m_pRepository->tipCommit()->id();
@@ -85,7 +85,7 @@ bool CAmendCommand::execute()
         m_pRepository->currentBranch()->setRootCommitId(sNewCommitId);
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

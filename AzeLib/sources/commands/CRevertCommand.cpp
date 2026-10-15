@@ -42,30 +42,32 @@ CRevertCommand::CRevertCommand(CRepository* pRepository, CCommit* pWorkingDirect
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRevertCommand::execute()
+CError::EErrorCode CRevertCommand::execute()
 {
     for (QString sFileName : m_lFileNames)
     {
         QString sRelativeFileName = m_pRepository->database()->relativeFileName(sFileName);
 
-        if (not revertSingleFile(sRelativeFileName))
-            return false;
+        CError::EErrorCode eCode = revertSingleFile(sRelativeFileName);
+
+        if (eCode != CError::eNone)
+            return eCode;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRevertCommand::revertSingleFile(QString sRelativeFileName)
+CError::EErrorCode CRevertCommand::revertSingleFile(QString sRelativeFileName)
 {
     bool bInStage = false;
 
     // Check presence of stage
     if (m_pRepository->stagingCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoStagingCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoStagingCommit);
+        return CError::eNoStagingCommit;
     }
 
     bInStage = m_pRepository->stagingCommit()->files().keys().contains(sRelativeFileName);
@@ -108,7 +110,7 @@ bool CRevertCommand::revertSingleFile(QString sRelativeFileName)
         }
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

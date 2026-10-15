@@ -38,7 +38,7 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    int run();
+    Aze::CError::EErrorCode run();
 
     //!
     bool isASainRepository();
@@ -54,80 +54,80 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //! Initializes a repository
-    int init();
+    Aze::CError::EErrorCode init();
 
     //! Creates a branch
-    int createBranch();
+    Aze::CError::EErrorCode createBranch();
 
     //! Deletes a branch
-    int deleteBranch();
+    Aze::CError::EErrorCode deleteBranch();
 
     //! Switches to a branch
-    int switchToBranch();
+    Aze::CError::EErrorCode switchToBranch();
 
     //! Prints repo status
-    int status();
+    Aze::CError::EErrorCode status();
 
     //! Stages files
-    int stage();
+    Aze::CError::EErrorCode stage();
 
     //! Unstages files
-    int unstage();
+    Aze::CError::EErrorCode unstage();
 
     //! Reverts files
-    int revert();
+    Aze::CError::EErrorCode revert();
 
     //! Moves some files
-    int move();
+    Aze::CError::EErrorCode move();
 
     //! Removes some files
-    int remove();
+    Aze::CError::EErrorCode remove();
 
     //! Commits the staged files
-    int commit();
+    Aze::CError::EErrorCode commit();
 
     //! Rewrites the tip commit with the staged files
-    int amend();
+    Aze::CError::EErrorCode amend();
 
     //! Reverts all files
-    int cleanUp();
+    Aze::CError::EErrorCode cleanUp();
 
     //! Show the log
-    int log();
+    Aze::CError::EErrorCode log();
 
     //! Shows a diff between two commits
-    int diff();
+    Aze::CError::EErrorCode diff();
 
     //!
-    int merge();
+    Aze::CError::EErrorCode merge();
 
     //!
-    int saveStash();
+    Aze::CError::EErrorCode saveStash();
 
     //!
-    int popStash();
+    Aze::CError::EErrorCode popStash();
 
     //!
-    int patch();
+    Aze::CError::EErrorCode patch();
 
     //!
-    int setRemoteHost();
+    Aze::CError::EErrorCode setRemoteHost();
 
     //!
-    int dump();
+    Aze::CError::EErrorCode dump();
 
     //-------------------------------------------------------------------------------------------------
     // Remote commands
     //-------------------------------------------------------------------------------------------------
 
     //!
-    int pull();
+    Aze::CError::EErrorCode pull();
 
     //!
-    int push();
+    Aze::CError::EErrorCode push();
 
     //!
-    void postNetworkRequest(CXMLNode xRequest);
+    Aze::CError::EErrorCode postNetworkRequest(CXMLNode xRequest);
 
 protected slots:
 
@@ -144,6 +144,7 @@ protected:
     Aze::CRepository*       m_pRepository;
     QNetworkAccessManager*  m_pNetworkAccessManager;
     QNetworkRequest         m_tNetworkRequest;
+    Aze::CError::EErrorCode m_eLastError;
     bool                    m_bOutputStreamIsMine;
     bool                    m_bNetworkAccessFinished;
 };

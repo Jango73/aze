@@ -72,7 +72,11 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
     if (lPosArgs.count() > 0)
     {
         QString sCommand = lPosArgs.takeFirst();
-        m_eCommand = CConstants::s_mCommands[sCommand];
+
+        if (CConstants::s_mCommands.contains(sCommand))
+            m_eCommand = CConstants::s_mCommands[sCommand];
+        else
+            m_eCommand = CConstants::eCommandUnknown;
 
         for (QString sArg : lPosArgs)
         {

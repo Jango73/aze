@@ -18,9 +18,9 @@ CBaseCommand::CBaseCommand(CRepository* pRepository)
 
 //-------------------------------------------------------------------------------------------------
 
-bool CBaseCommand::execute()
+CError::EErrorCode CBaseCommand::execute()
 {
-    return true;
+    return CError::eNone;
 }
 
 }

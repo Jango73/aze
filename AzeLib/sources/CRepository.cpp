@@ -90,21 +90,26 @@ CRepository::~CRepository()
         \li Creates the general information file
     \endlist
 */
-bool CRepository::init()
+CError::EErrorCode CRepository::init()
 {
-    if (m_pDatabase->init())
-    {
-        createBranch(CStrings::s_sDefaultBranchName);
-        setCurrentBranchName(CStrings::s_sDefaultBranchName);
+    if (not m_pDatabase->init())
+        return CError::eGeneric;
 
-        writeGeneralInformation();
+    CError::EErrorCode eCode = createBranch(CStrings::s_sDefaultBranchName);
 
-        setOk(true);
+    if (eCode != CError::eNone)
+        return eCode;
 
-        return true;
-    }
+    setCurrentBranchName(CStrings::s_sDefaultBranchName);
 
-    return false;
+    eCode = writeGeneralInformation();
+
+    if (eCode != CError::eNone)
+        return eCode;
+
+    setOk(true);
+
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -112,13 +117,13 @@ bool CRepository::init()
 /*!
     Creates a branch named \a sName.
 */
-bool CRepository::createBranch(const QString& sName)
+CError::EErrorCode CRepository::createBranch(const QString& sName)
 {
     QString sBranchFileName = m_pDatabase->composeBranchFileName(sName);
 
     if (QFile(sBranchFileName).exists())
     {
-        tellInfo(CStrings::s_sTextBranchAlreadyExists);
+        tellInfo(CError::eBranchAlreadyExists, sName);
     }
     else
     {
@@ -133,7 +138,7 @@ bool CRepository::createBranch(const QString& sName)
         pNewBranch->toNode().save(sBranchFileName);
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -141,18 +146,18 @@ bool CRepository::createBranch(const QString& sName)
 /*!
     Deletes, if it exists, the branch named \a sName.
 */
-bool CRepository::deleteBranch(const QString& sName)
+CError::EErrorCode CRepository::deleteBranch(const QString& sName)
 {
     QString sBranchFileName = m_pDatabase->composeBranchFileName(sName);
 
     if (not QFile(sBranchFileName).exists())
     {
-        tellInfo(CStrings::s_sTextBranchDoesNotExist);
-        return false;
+        tellInfo(CError::eBranchDoesNotExist, sName);
+        return CError::eBranchDoesNotExist;
     }
 
     QFile::remove(sBranchFileName);
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -161,7 +166,7 @@ bool CRepository::deleteBranch(const QString& sName)
     Switches to the branch named \a sName. \br\br
     \a bAllowFileDelete is passed to the underlying revert command
 */
-bool CRepository::switchToBranch(const QString& sName, bool bAllowFileDelete)
+CError::EErrorCode CRepository::switchToBranch(const QString& sName, bool bAllowFileDelete)
 {
     return CSwitchToBranchCommand(this, sName, bAllowFileDelete).execute();
 }
@@ -172,7 +177,7 @@ bool CRepository::switchToBranch(const QString& sName, bool bAllowFileDelete)
     Adds files to the stage. \br\br
     \a lFileNames contains the file names to stage
 */
-bool CRepository::stage(const QStringList& lFileNames)
+CError::EErrorCode CRepository::stage(const QStringList& lFileNames)
 {
     return CStageCommand(this, lFileNames).execute();
 }
@@ -183,7 +188,7 @@ bool CRepository::stage(const QStringList& lFileNames)
     Removes files from the stage. \br\br
     \a lFileNames contains the file names to unstage
 */
-bool CRepository::unstage(const QStringList& lFileNames)
+CError::EErrorCode CRepository::unstage(const QStringList& lFileNames)
 {
     return CUnstageCommand(this, lFileNames).execute();
 }
@@ -194,7 +199,7 @@ bool CRepository::unstage(const QStringList& lFileNames)
     Adds a file deletion to the stage. \br\br
     \a lFileNames contains the file names to delete
 */
-bool CRepository::remove(const QStringList& lFileNames)
+CError::EErrorCode CRepository::remove(const QStringList& lFileNames)
 {
     return CRemoveCommand(this, lFileNames).execute();
 }
@@ -206,7 +211,7 @@ bool CRepository::remove(const QStringList& lFileNames)
     \a sAuthor tells who is committing
     \a sMessage tells what we are comitting
 */
-bool CRepository::commit(const QString& sAuthor, const QString& sMessage)
+CError::EErrorCode CRepository::commit(const QString& sAuthor, const QString& sMessage)
 {
     return CCommitCommand(this, sAuthor, sMessage).execute();
 }
@@ -218,7 +223,7 @@ bool CRepository::commit(const QString& sAuthor, const QString& sMessage)
     \a sAuthor replaces the tip author when not empty
     \a sMessage replaces the tip message when not empty
 */
-bool CRepository::amend(const QString& sAuthor, const QString& sMessage)
+CError::EErrorCode CRepository::amend(const QString& sAuthor, const QString& sMessage)
 {
     return CAmendCommand(this, sAuthor, sMessage).execute();
 }
@@ -230,7 +235,7 @@ bool CRepository::amend(const QString& sAuthor, const QString& sMessage)
     \a lFileNames contains the file names to revert
     \a bAllowFileDelete allows to delete files that were not present in the last commit
 */
-bool CRepository::revert(const QStringList& lFileNames, bool bAllowFileDelete)
+CError::EErrorCode CRepository::revert(const QStringList& lFileNames, bool bAllowFileDelete)
 {
     return CRevertCommand(this, lFileNames, bAllowFileDelete).execute();
 }
@@ -242,7 +247,7 @@ bool CRepository::revert(const QStringList& lFileNames, bool bAllowFileDelete)
     \a pWorkingDirectory contains the files to revert
     \a bAllowFileDelete allows to delete files that were not present in the last commit
 */
-bool CRepository::revert(CCommit* pWorkingDirectory, bool bAllowFileDelete)
+CError::EErrorCode CRepository::revert(CCommit* pWorkingDirectory, bool bAllowFileDelete)
 {
     return CRevertCommand(this, pWorkingDirectory, bAllowFileDelete).execute();
 }
@@ -253,7 +258,7 @@ bool CRepository::revert(CCommit* pWorkingDirectory, bool bAllowFileDelete)
     Reverts files to the state they were in the last commit. \br\br
     \a bAllowFileDelete allows to delete files that were not present in the last commit
 */
-bool CRepository::revert(bool bAllowFileDelete)
+CError::EErrorCode CRepository::revert(bool bAllowFileDelete)
 {
     return CRevertCommand(this, bAllowFileDelete).execute();
 }
@@ -270,7 +275,7 @@ QString CRepository::log(const QStringList& lFileNames, bool bGraph, int iStart,
 {
     QString sReturnValue;
 
-    if (CLogCommand(this, lFileNames, &sReturnValue, bGraph, iStart, iCount).execute())
+    if (CLogCommand(this, lFileNames, &sReturnValue, bGraph, iStart, iCount).execute() == CError::eNone)
     {
         return sReturnValue;
     }
@@ -289,7 +294,7 @@ QString CRepository::diff(const QString& sFirst, const QString& sSecond)
 {
     QString sReturnValue;
 
-    if (CDiffCommand(this, sFirst, sSecond, &sReturnValue).execute())
+    if (CDiffCommand(this, sFirst, sSecond, &sReturnValue).execute() == CError::eNone)
     {
         return sReturnValue;
     }
@@ -303,39 +308,34 @@ QString CRepository::diff(const QString& sFirst, const QString& sSecond)
     Merges a branch onto the current branch. \br\br
     \a sName is the branch to merge
     \a bHasConflicts will contain whether the merge has conflict files
-    \a pMergeError optionally receives a CMergeCommand::EMergeError reason on failure
 */
-bool CRepository::merge(const QString& sName, bool& bHasConflicts, int* pMergeError)
+CError::EErrorCode CRepository::merge(const QString& sName, bool& bHasConflicts)
 {
     CMergeCommand oCommand(this, sName, bHasConflicts);
-    bool bOk = oCommand.execute();
+    CError::EErrorCode eCode = oCommand.execute();
 
-    if (not bOk && IS_NOT_NULL(pMergeError))
-        *pMergeError = oCommand.mergeError();
+    bHasConflicts = (eCode == CError::eMergeHasConflicts);
 
-    if (bOk && IS_NOT_NULL(pMergeError))
-        *pMergeError = CMergeCommand::eMergeOk;
-
-    return bOk;
+    return eCode;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::saveStash(const QString& sMessage)
+CError::EErrorCode CRepository::saveStash(const QString& sMessage)
 {
     return CSaveStashCommand(this, sMessage).execute();
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::popStash(const QString& sId)
+CError::EErrorCode CRepository::popStash(const QString& sId)
 {
     return CPopStashCommand(this, sId).execute();
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::patch(const QString& sFilename)
+CError::EErrorCode CRepository::patch(const QString& sFilename)
 {
     return CPatchCommand(this, sFilename).execute();
 }
@@ -353,7 +353,7 @@ QList<CFile> CRepository::fileStatus(const QStringList& lFileNames)
 /*!
     Reads the general information file.
 */
-bool CRepository::readGeneralInformation()
+CError::EErrorCode CRepository::readGeneralInformation()
 {
     CXMLNode xInfo = CXMLNode::load(m_pDatabase->generalInformationFileName());
 
@@ -374,7 +374,7 @@ bool CRepository::readGeneralInformation()
         m_lStashList << xStash.attributes()[CStrings::s_sParamId];
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -382,7 +382,7 @@ bool CRepository::readGeneralInformation()
 /*!
     Writes the general information file.
 */
-bool CRepository::writeGeneralInformation()
+CError::EErrorCode CRepository::writeGeneralInformation()
 {
     CXMLNode xInfo(CStrings::s_sParamInfo);
 
@@ -409,7 +409,7 @@ bool CRepository::writeGeneralInformation()
 
     xInfo.save(m_pDatabase->generalInformationFileName());
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -422,39 +422,39 @@ void CRepository::refreshCurrentBranch()
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::writeCurrentBranch()
+CError::EErrorCode CRepository::writeCurrentBranch()
 {
     if (not m_pCurrentBranch.isNull())
         m_pCurrentBranch->toNode().save(m_pDatabase->composeBranchFileName(m_sCurrentBranchName));
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::writeStage()
+CError::EErrorCode CRepository::writeStage()
 {
     if (not m_pStagingCommit.isNull())
     {
         m_pStagingCommit->toFile(m_sStagingCommitFileName);
-        return true;
+        return CError::eNone;
     }
 
-    return false;
+    return CError::eNoStagingCommit;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRepository::clearStage()
+CError::EErrorCode CRepository::clearStage()
 {
     if (not m_pStagingCommit.isNull())
     {
         m_pStagingCommit.set(new CCommit(this));
 
-        return true;
+        return CError::eNone;
     }
 
-    return false;
+    return CError::eNoStagingCommit;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -509,21 +509,21 @@ void CRepository::setRemoteHostName(const QString& sName)
 
 //-------------------------------------------------------------------------------------------------
 
-void CRepository::tellError(const QString& sText)
+void CRepository::tellError(CError::EErrorCode eCode, const QString& sDetail)
 {
     if (!m_bSilent)
     {
-        OUT_ERROR(sText);
+        OUT_ERROR(CError::message(eCode, sDetail));
     }
 }
 
 //-------------------------------------------------------------------------------------------------
 
-void CRepository::tellInfo(const QString& sText)
+void CRepository::tellInfo(CError::EErrorCode eCode, const QString& sDetail)
 {
     if (!m_bSilent)
     {
-        OUT_INFO(sText);
+        OUT_INFO(CError::message(eCode, sDetail));
     }
 }
 

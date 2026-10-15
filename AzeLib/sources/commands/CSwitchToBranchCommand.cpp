@@ -23,29 +23,29 @@ CSwitchToBranchCommand::CSwitchToBranchCommand(CRepository* pRepository, const Q
 
 //-------------------------------------------------------------------------------------------------
 
-bool CSwitchToBranchCommand::execute()
+CError::EErrorCode CSwitchToBranchCommand::execute()
 {
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     QString sFileName = m_pRepository->database()->composeBranchFileName(m_sBranchName);
 
     if (not QFile(sFileName).exists())
-        return false;
+        return CError::eUnknownBranch;
 
     // Save stash : diffs between last commit and working directory
     CSaveStashCommand stash(m_pRepository, "");
     stash.setCalledInternally(true);
-    bool bStashSaved = stash.execute();
+    CError::EErrorCode eStashCode = stash.execute();
 
-    if (not bStashSaved)
+    if (eStashCode != CError::eNone)
     {
-        m_pRepository->tellError(CStrings::s_sTextStashSaveFailed);
-        return false;
+        m_pRepository->tellError(CError::eStashSaveFailed);
+        return CError::eStashSaveFailed;
     }
 
     // Make the branch switch
@@ -61,15 +61,15 @@ bool CSwitchToBranchCommand::execute()
         m_pRepository->revert(pToCommit, m_bAllowFileDelete);
     }
 
-    bool bStashPopped = CPopStashCommand(m_pRepository, "").execute();
+    CError::EErrorCode ePopCode = CPopStashCommand(m_pRepository, "").execute();
 
-    if (not bStashPopped)
+    if (ePopCode != CError::eNone)
     {
-        m_pRepository->tellError(CStrings::s_sTextStashPopFailed);
-        return false;
+        m_pRepository->tellError(CError::eStashPopFailed);
+        return CError::eStashPopFailed;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

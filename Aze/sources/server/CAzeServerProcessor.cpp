@@ -74,18 +74,24 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
             if (repository.ok())
             {
                 sCustomResponse = serveRequest(tContext, xRequest, &repository).toJsonString();
-                sCustomResponseMIME = MIME_Content_JSON;
             }
             else
             {
-                CXMLNode xResult;
-                xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamError;
+                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, sRepositoryPath).toJsonString();
             }
+
+            sCustomResponseMIME = MIME_Content_JSON;
+        }
+        else
+        {
+            sCustomResponse = Aze::CError::toResultNode(Aze::CError::eInvalidResponse).toJsonString();
+            sCustomResponseMIME = MIME_Content_JSON;
         }
     }
     else
     {
-        // CDynamicHTTPServer::getContent(tContext, sHead, sBody, sCustomResponse, sCustomResponseMIME);
+        sCustomResponse = Aze::CError::toResultNode(Aze::CError::eEmptyRequest).toJsonString();
+        sCustomResponseMIME = MIME_Content_JSON;
     }
 }
 
@@ -93,21 +99,20 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 
 CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode& xRequest, Aze::CRepository* pRepository)
 {
-    CXMLNode xResult;
     QString sAction = xRequest.attributes()[Aze::CStrings::s_sParamRequest];
 
-    if (not sAction.isEmpty())
-    {
-        // Get the IP
+    if (sAction.isEmpty())
+        return Aze::CError::toResultNode(Aze::CError::eEmptyRequest);
+
+    // Get the IP
 //        QString sIP = tContext.m_sPeer;
 
-        if (IS_NOT_NULL(m_mRequestFunctionMap[sAction]))
-        {
-            return m_mRequestFunctionMap[sAction](pRepository, tContext, xRequest);
-        }
+    if (IS_NOT_NULL(m_mRequestFunctionMap[sAction]))
+    {
+        return m_mRequestFunctionMap[sAction](pRepository, tContext, xRequest);
     }
 
-    return xResult;
+    return Aze::CError::toResultNode(Aze::CError::eUnknownAction, sAction);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -118,13 +123,8 @@ CXMLNode CAzeServerProcessor::servePull(Aze::CRepository* pRepository, CWebConte
     Q_UNUSED(tContext)
     Q_UNUSED(xRequest)
 
-    CXMLNode xResult;
-
-    xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamSuccess;
-
-    // TODO: implement
-
-    return xResult;
+    // TODO: implement pull payload handling (TODO-018, TODO-019, TODO-020)
+    return Aze::CError::toResultNode(Aze::CError::eNone);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -133,22 +133,13 @@ CXMLNode CAzeServerProcessor::servePush(Aze::CRepository* pRepository, CWebConte
 {
     Q_UNUSED(tContext)
 
-    CXMLNode xResult;
-    QString sErrorMessage;
+    QString sDetail;
 
     Aze::CRemoteRepository oRemoteRepository(pRepository);
 
-    if (oRemoteRepository.applyPushRequest(xRequest, sErrorMessage))
-    {
-        xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamSuccess;
-    }
-    else
-    {
-        xResult.attributes()[Aze::CStrings::s_sParamResult] = Aze::CStrings::s_sParamError;
-        xResult.attributes()[Aze::CStrings::s_sParamMessage] = sErrorMessage;
-    }
+    Aze::CError::EErrorCode eCode = oRemoteRepository.applyPushRequest(xRequest, sDetail);
 
-    return xResult;
+    return Aze::CError::toResultNode(eCode, sDetail);
 }
 
 //-------------------------------------------------------------------------------------------------

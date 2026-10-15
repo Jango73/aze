@@ -22,7 +22,7 @@ CDiffCommand::CDiffCommand(CRepository* pRepository, const QString& sFirst, cons
 
 //-------------------------------------------------------------------------------------------------
 
-bool CDiffCommand::execute()
+CError::EErrorCode CDiffCommand::execute()
 {
     QString sObject1 = m_sFirst;
     QString sObject2 = m_sSecond;
@@ -33,14 +33,14 @@ bool CDiffCommand::execute()
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     if (m_pRepository->tipCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoTipCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoTipCommit);
+        return CError::eNoTipCommit;
     }
 
     if (sObject1.isEmpty() && sObject2.isEmpty())
@@ -94,7 +94,7 @@ bool CDiffCommand::execute()
         else if (not sObject1.isEmpty() && sObject2.isEmpty())
         {
             if (m_pRepository->stagingCommit().isNull())
-                return false;
+                return CError::eNoStagingCommit;
 
             pCommit1 = m_pRepository->database()->getCommit(sObject1, this);
             pCommit2 = m_pRepository->commitFunctions()->folderAsCommit(this);
@@ -102,7 +102,7 @@ bool CDiffCommand::execute()
         else if (sObject1.isEmpty() && not sObject2.isEmpty())
         {
             if (m_pRepository->stagingCommit().isNull())
-                return false;
+                return CError::eNoStagingCommit;
 
             pCommit1 = m_pRepository->database()->getCommit(sObject2, this);
             pCommit2 = m_pRepository->commitFunctions()->folderAsCommit(this);
@@ -120,14 +120,14 @@ bool CDiffCommand::execute()
 
         if (not QFile(sFileName2).exists())
         {
-            m_pRepository->tellError(CStrings::s_sTextNoSuchFile);
-            return false;
+            m_pRepository->tellError(CError::eNoSuchFile, sFileName);
+            return CError::eNoSuchFile;
         }
 
         QString sId2 = m_pRepository->tipCommit()->files()[sObject1];
 
         if (sId2.isEmpty())
-            return false;
+            return CError::eNoSuchFile;
 
         QString sText1 = m_pRepository->tipCommit()->fileContent(m_pRepository->database(), sFileName);
         QString sText2 = CUtils::getTextFileContent(sFileName2);
@@ -135,7 +135,7 @@ bool CDiffCommand::execute()
         m_pRepository->commitFunctions()->diffText(*m_pResult, sFileName, sText1, sText2);
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

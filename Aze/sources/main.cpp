@@ -21,5 +21,5 @@ int main(int argc, char *argv[])
         return CAzeServer(argc, argv).exec();
     }
 
-    return CAzeClient(argc, argv).run();
+    return Aze::CError::toExitCode(CAzeClient(argc, argv).run());
 }

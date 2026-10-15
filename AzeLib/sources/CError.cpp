@@ -130,7 +130,7 @@ CXMLNode CError::toResultNode(EErrorCode eCode, const QString& sDetail)
     }
 
     xResult.attributes()[CStrings::s_sParamResult] = CStrings::s_sParamError;
-    xResult.attributes()[QStringLiteral("code")] = QString::number(toExitCode(eCode));
+    xResult.attributes()[CStrings::s_sParamCode] = QString::number(toExitCode(eCode));
     xResult.attributes()[CStrings::s_sParamMessage] = message(eCode, sDetail);
 
     return xResult;
@@ -156,7 +156,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
         return eInvalidResponse;
 
     bool bOk = false;
-    int iCode = xNode.attributes().value(QStringLiteral("code")).toInt(&bOk);
+    int iCode = xNode.attributes().value(CStrings::s_sParamCode).toInt(&bOk);
 
     if (bOk == false)
         return eGeneric;

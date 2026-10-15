@@ -36,22 +36,22 @@ CLogCommand::CLogCommand(
 
 //-------------------------------------------------------------------------------------------------
 
-bool CLogCommand::execute()
+CError::EErrorCode CLogCommand::execute()
 {
     bool bGetAllLog = m_iCount == 0;
 
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     // Check presence of tip commit
     if (m_pRepository->tipCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoTipCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoTipCommit);
+        return CError::eNoTipCommit;
     }
 
     // Keep track of shown commits
@@ -148,7 +148,7 @@ bool CLogCommand::execute()
 
     m_vBranches.clear();
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

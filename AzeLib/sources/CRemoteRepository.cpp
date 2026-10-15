@@ -104,9 +104,9 @@ CXMLNode CRemoteRepository::getPushRequest()
 /*!
     Applies \a xRequest as a push to the local repository. \br\br
     Stores received objects and commits, then updates the pushed branch.
-    Sets \a sErrorMessage and returns false when the request is invalid. \br
+    Sets \a sDetail and returns the failure reason when the request is invalid. \br
 */
-bool CRemoteRepository::applyPushRequest(const CXMLNode& xRequest, QString& sErrorMessage)
+CError::EErrorCode CRemoteRepository::applyPushRequest(const CXMLNode& xRequest, QString& sDetail)
 {
     QString sBranchName = xRequest.attributes()[CStrings::s_sParamBranch];
     QString sTipId = xRequest.attributes()[CStrings::s_sParamTip];
@@ -115,27 +115,33 @@ bool CRemoteRepository::applyPushRequest(const CXMLNode& xRequest, QString& sErr
             || sBranchName.isEmpty()
             || sTipId.isEmpty())
     {
-        sErrorMessage = CStrings::s_sTextPushRequestInvalid;
-        return false;
+        sDetail = CError::message(CError::ePushRequestInvalid);
+        return CError::ePushRequestInvalid;
     }
 
-    if (not storeRequestObjects(xRequest, sErrorMessage))
-        return false;
+    CError::EErrorCode eCode = storeRequestObjects(xRequest, sDetail);
 
-    QStringList lCommitIds = storeRequestCommits(xRequest, sErrorMessage);
+    if (eCode != CError::eNone)
+        return eCode;
+
+    QStringList lCommitIds;
+    eCode = storeRequestCommits(xRequest, lCommitIds, sDetail);
+
+    if (eCode != CError::eNone)
+        return eCode;
 
     if (lCommitIds.isEmpty() || not lCommitIds.contains(sTipId))
     {
-        sErrorMessage = CStrings::s_sTextPushRequestInvalid;
-        return false;
+        sDetail = CError::message(CError::ePushRequestInvalid);
+        return CError::ePushRequestInvalid;
     }
 
-    return updateBranchFromPush(sBranchName, sTipId, lCommitIds, sErrorMessage);
+    return updateBranchFromPush(sBranchName, sTipId, lCommitIds, sDetail);
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRemoteRepository::storeRequestObjects(const CXMLNode& xRequest, QString& sErrorMessage)
+CError::EErrorCode CRemoteRepository::storeRequestObjects(const CXMLNode& xRequest, QString& sDetail)
 {
     CXMLNodeList lObjects = xRequest.getNodesByTagName(CStrings::s_sParamObject);
 
@@ -146,8 +152,8 @@ bool CRemoteRepository::storeRequestObjects(const CXMLNode& xRequest, QString& s
 
         if (sObjectId.isEmpty() || not sContent.startsWith(CStrings::s_sBase64Marker))
         {
-            sErrorMessage = CStrings::s_sTextPushRequestInvalid;
-            return false;
+            sDetail = CError::message(CError::ePushRequestInvalid);
+            return CError::ePushRequestInvalid;
         }
 
         sContent.remove(0, CStrings::s_sBase64Marker.length());
@@ -155,20 +161,18 @@ bool CRemoteRepository::storeRequestObjects(const CXMLNode& xRequest, QString& s
 
         if (not m_pLocalRepository->database()->storeObject(sObjectId, baData))
         {
-            sErrorMessage = CStrings::s_sTextObjectStoreFailed.arg(sObjectId);
-            return false;
+            sDetail = sObjectId;
+            return CError::eObjectStoreFailed;
         }
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-QStringList CRemoteRepository::storeRequestCommits(const CXMLNode& xRequest, QString& sErrorMessage)
+CError::EErrorCode CRemoteRepository::storeRequestCommits(const CXMLNode& xRequest, QStringList& lCommitIds, QString& sDetail)
 {
-    QStringList lCommitIds;
-
     CXMLNodeList lCommits = xRequest.getNodesByTagName(CStrings::s_sParamCommit);
 
     for (CXMLNode xCommit : lCommits)
@@ -177,8 +181,8 @@ QStringList CRemoteRepository::storeRequestCommits(const CXMLNode& xRequest, QSt
 
         if (sCommitId.isEmpty())
         {
-            sErrorMessage = CStrings::s_sTextPushRequestInvalid;
-            return QStringList();
+            sDetail = CError::message(CError::ePushRequestInvalid);
+            return CError::ePushRequestInvalid;
         }
 
         CCommit* pCommit = CCommit::fromNode(xCommit, this, sCommitId);
@@ -187,20 +191,20 @@ QStringList CRemoteRepository::storeRequestCommits(const CXMLNode& xRequest, QSt
 
         if (sStoredId.isEmpty())
         {
-            sErrorMessage = CStrings::s_sTextPushRequestInvalid;
-            return QStringList();
+            sDetail = CError::message(CError::ePushRequestInvalid);
+            return CError::ePushRequestInvalid;
         }
 
         if (not lCommitIds.contains(sStoredId))
             lCommitIds << sStoredId;
     }
 
-    return lCommitIds;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const QString& sTipId, const QStringList& lCommitIds, QString& sErrorMessage)
+CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail)
 {
     CDatabase* pDatabase = m_pLocalRepository->database();
     QString sBranchFileName = pDatabase->composeBranchFileName(sBranchName);
@@ -216,9 +220,9 @@ bool CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const Q
                 && pBranch->tipCommitId() != sTipId
                 && not lCommitIds.contains(pBranch->tipCommitId()))
         {
-            sErrorMessage = CStrings::s_sTextPushNotFastForward;
+            sDetail = CError::message(CError::ePushNotFastForward);
             delete pBranch;
-            return false;
+            return CError::ePushNotFastForward;
         }
     }
     else
@@ -249,7 +253,7 @@ bool CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const Q
     pBranch->toNode().save(sBranchFileName);
     delete pBranch;
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

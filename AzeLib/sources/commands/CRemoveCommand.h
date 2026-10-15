@@ -28,10 +28,10 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    virtual bool execute() override;
+    virtual CError::EErrorCode execute() override;
 
     //!
-    bool removeSingleFile(QString sRelativeFileName);
+    CError::EErrorCode removeSingleFile(QString sRelativeFileName);
 
     //-------------------------------------------------------------------------------------------------
     // Properties

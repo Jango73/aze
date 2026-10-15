@@ -5,11 +5,14 @@
 #include <QObject>
 #include <QtGlobal>
 
+// AzeLib
+#include "CError.h"
+
 //-------------------------------------------------------------------------------------------------
 
-#define ERROR_WHEN_FALSE(a,b)           if ((a) == false) return b
+#define RETURN_WHEN_FALSE(a, eCode) if ((a) == false) return (eCode)
 
-#define ERROR_WHEN_FALSE_PRINT(a,b,c)   if ((a) == false) { OUT_ERROR(b); return c; }
+#define RETURN_WHEN_ERROR(eCall, eCode) { Aze::CError::EErrorCode eErrorCode = (eCall); if (eErrorCode != Aze::CError::eNone) return (eCode); }
 
 //-------------------------------------------------------------------------------------------------
 
@@ -47,6 +50,7 @@ public:
         eCommandStage,
         eCommandSwitchToBranch,
         eCommandUnstage,
+        eCommandUnknown,
     };
 
     static const char* s_sContextMain;
@@ -102,46 +106,10 @@ public:
     static const char* s_sSwitchSslCert;
     static const char* s_sSwitchSslKey;
 
-    // Error codes
-    static const int s_iError_None;
-    static const int s_iError_CouldNotAddFiles;
-    static const int s_iError_CouldNotAmend;
-    static const int s_iError_CouldNotCommit;
-    static const int s_iError_CouldNotCreateBranch;
-    static const int s_iError_CouldNotDeleteBranch;
-    static const int s_iError_CouldNotMerge;
-    static const int s_iError_CouldNotMoveFiles;
-    static const int s_iError_CouldNotPatch;
-    static const int s_iError_CouldNotPopStash;
-    static const int s_iError_CouldNotReadStage;
-    static const int s_iError_CouldNotRemoveFiles;
-    static const int s_iError_CouldNotRestoreStash;
-    static const int s_iError_CouldNotRevertFiles;
-    static const int s_iError_CouldNotSaveStash;
-    static const int s_iError_CouldNotSetCurrentBranch;
-    static const int s_iError_CouldNotUnstageFiles;
-    static const int s_iError_CouldNotWriteCurrentBranch;
-    static const int s_iError_CouldNotWriteGeneralInformation;
-    static const int s_iError_CouldNotWriteStage;
-    static const int s_iError_NoBranchNameGiven;
-    static const int s_iError_NoFileNameGiven;
-    static const int s_iError_NoRemoteHostNameGiven;
-    static const int s_iError_NotARepository;
-    static const int s_iError_MergeHasConflicts;
-    static const int s_iError_UnknownCommand;
-    static const int s_iError_UnknownSwitch;
-    static const int s_iError_UnknownBranch;
-    static const int s_iError_DirtyWorkingFolder;
-    static const int s_iError_NothingToMerge;
-    static const int s_iError_StageNotEmpty;
-
     // Text strings
     static const QString s_sAllFilesAreClean;
     static const QString s_sStatusOfFiles;
-    static const QString s_sTextCannotDeleteCurrentBranch;
-    static const QString s_sTextCannotMergeBranchWithSelf;
     static const QString s_sTextCommands;
-    static const QString s_sTextUnknownCommand;
     static const QString s_sTextYouAreAlreadyOnBranch;
     static const QString s_sTextYouAreNowOnBranch;
 

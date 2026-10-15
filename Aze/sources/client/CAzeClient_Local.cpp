@@ -10,94 +10,93 @@
 
 // Aze
 #include "CUtils.h"
-#include "commands/CMergeCommand.h"
 
 // Application
 #include "CAzeClient.h"
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::init()
+Aze::CError::EErrorCode CAzeClient::init()
 {
-    return m_pRepository->init() ? 0 : 1;
+    return m_pRepository->init();
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::createBranch()
+Aze::CError::EErrorCode CAzeClient::createBranch()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoBranchNameGiven);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoBranchNameGiven);
 
     // Create the branch
-    ERROR_WHEN_FALSE(m_pRepository->createBranch(m_tArguments.m_lFilesAndIds[0]), CConstants::s_iError_CouldNotCreateBranch);
+    RETURN_WHEN_ERROR(m_pRepository->createBranch(m_tArguments.m_lFilesAndIds[0]), Aze::CError::eCouldNotCreateBranch);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::deleteBranch()
+Aze::CError::EErrorCode CAzeClient::deleteBranch()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    ERROR_WHEN_FALSE_PRINT(
-                m_tArguments.m_lFilesAndIds.count() > 0,
-                CConstants::s_sTextCannotDeleteCurrentBranch,
-                CConstants::s_iError_NoBranchNameGiven
-                );
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoBranchNameGiven));
+        return Aze::CError::eNoBranchNameGiven;
+    }
 
     QString sBranchName = m_tArguments.m_lFilesAndIds[0];
 
-    ERROR_WHEN_FALSE_PRINT(
-                sBranchName != m_pRepository->currentBranchName(),
-                CConstants::s_sTextCannotDeleteCurrentBranch,
-                CConstants::s_iError_CouldNotDeleteBranch
-                );
+    if (sBranchName == m_pRepository->currentBranchName())
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eCannotDeleteCurrentBranch));
+        return Aze::CError::eCouldNotDeleteBranch;
+    }
 
     // Delete the branch
-    ERROR_WHEN_FALSE(m_pRepository->deleteBranch(sBranchName), CConstants::s_iError_CouldNotDeleteBranch);
+    RETURN_WHEN_ERROR(m_pRepository->deleteBranch(sBranchName), Aze::CError::eCouldNotDeleteBranch);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::switchToBranch()
+Aze::CError::EErrorCode CAzeClient::switchToBranch()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoBranchNameGiven);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoBranchNameGiven);
 
     bool bAllowFileDelete = m_tArguments.m_tParser.isSet(m_tArguments.m_oAllowFileDelete);
 
     QString sBranchName = m_tArguments.m_lFilesAndIds[0];
 
-    ERROR_WHEN_FALSE_PRINT(
-                sBranchName != m_pRepository->currentBranchName(),
-                QString(CConstants::s_sTextYouAreAlreadyOnBranch).arg(sBranchName),
-                CConstants::s_iError_None
-                );
+    if (sBranchName == m_pRepository->currentBranchName())
+    {
+        (*m_pOutStream) << QString(CConstants::s_sTextYouAreAlreadyOnBranch).arg(sBranchName) << "\n";
+        return Aze::CError::eNone;
+    }
 
-    ERROR_WHEN_FALSE(m_pRepository->switchToBranch(sBranchName, bAllowFileDelete), CConstants::s_iError_CouldNotSetCurrentBranch);
+    RETURN_WHEN_ERROR(m_pRepository->switchToBranch(sBranchName, bAllowFileDelete), Aze::CError::eCouldNotSetCurrentBranch);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeCurrentBranch(), CConstants::s_iError_CouldNotWriteCurrentBranch);
+    RETURN_WHEN_ERROR(m_pRepository->writeCurrentBranch(), Aze::CError::eCouldNotWriteCurrentBranch);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeGeneralInformation(), CConstants::s_iError_CouldNotWriteGeneralInformation);
+    RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
     (*m_pOutStream) << QString(CConstants::s_sTextYouAreNowOnBranch).arg(sBranchName) << "\n";
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::status()
+Aze::CError::EErrorCode CAzeClient::status()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QMap<Aze::CEnums::EFileStatus, bool> bVisibility;
 
@@ -180,177 +179,177 @@ int CAzeClient::status()
 
     (*m_pOutStream) << sOutput;
 
-    return 0;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::stage()
+Aze::CError::EErrorCode CAzeClient::stage()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    ERROR_WHEN_FALSE_PRINT(
-                m_tArguments.m_lFilesAndIds.count() > 0,
-                Aze::CStrings::s_sTextNoFileSpecified,
-                CConstants::s_iError_NoFileNameGiven
-                );
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoFileNameGiven));
+        return Aze::CError::eNoFileNameGiven;
+    }
 
     processWildCards();
 
     // Update the stage
-    ERROR_WHEN_FALSE(m_pRepository->stage(m_tArguments.m_lFilesAndIds), CConstants::s_iError_CouldNotAddFiles);
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->stage(m_tArguments.m_lFilesAndIds), Aze::CError::eCouldNotAddFiles);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::unstage()
+Aze::CError::EErrorCode CAzeClient::unstage()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    ERROR_WHEN_FALSE_PRINT(
-                m_tArguments.m_lFilesAndIds.count() > 0,
-                Aze::CStrings::s_sTextNoFileSpecified,
-                CConstants::s_iError_NoFileNameGiven
-                );
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoFileNameGiven));
+        return Aze::CError::eNoFileNameGiven;
+    }
 
     processWildCards();
 
     // Update the stage
-    ERROR_WHEN_FALSE(m_pRepository->unstage(m_tArguments.m_lFilesAndIds), CConstants::s_iError_CouldNotUnstageFiles);
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->unstage(m_tArguments.m_lFilesAndIds), Aze::CError::eCouldNotUnstageFiles);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::revert()
+Aze::CError::EErrorCode CAzeClient::revert()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     bool bAllowFileDelete = m_tArguments.m_tParser.isSet(m_tArguments.m_oAllowFileDelete);
 
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoFileNameGiven);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoFileNameGiven);
 
     processWildCards();
 
     // Revert specified files
-    ERROR_WHEN_FALSE(m_pRepository->revert(m_tArguments.m_lFilesAndIds, bAllowFileDelete), CConstants::s_iError_CouldNotRevertFiles);
+    RETURN_WHEN_ERROR(m_pRepository->revert(m_tArguments.m_lFilesAndIds, bAllowFileDelete), Aze::CError::eCouldNotRevertFiles);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::move()
+Aze::CError::EErrorCode CAzeClient::move()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     // Move the specified files
     // TODO
 
     // Update the stage
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::remove()
+Aze::CError::EErrorCode CAzeClient::remove()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoFileNameGiven);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoFileNameGiven);
 
     processWildCards();
 
     // Remove the specified files
-    ERROR_WHEN_FALSE(m_pRepository->remove(m_tArguments.m_lFilesAndIds), CConstants::s_iError_CouldNotRemoveFiles);
+    RETURN_WHEN_ERROR(m_pRepository->remove(m_tArguments.m_lFilesAndIds), Aze::CError::eCouldNotRemoveFiles);
 
     // Update the stage
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::commit()
+Aze::CError::EErrorCode CAzeClient::commit()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QString sAuthor = m_tArguments.m_tParser.value(m_tArguments.m_oAuthor);
     QString sMessage = m_tArguments.m_tParser.value(m_tArguments.m_oMessage);
 
     // Commit
-    ERROR_WHEN_FALSE(m_pRepository->commit(sAuthor, sMessage), CConstants::s_iError_CouldNotCommit);
-    ERROR_WHEN_FALSE(m_pRepository->writeCurrentBranch(), CConstants::s_iError_CouldNotWriteCurrentBranch);
+    RETURN_WHEN_ERROR(m_pRepository->commit(sAuthor, sMessage), Aze::CError::eCouldNotCommit);
+    RETURN_WHEN_ERROR(m_pRepository->writeCurrentBranch(), Aze::CError::eCouldNotWriteCurrentBranch);
 
     // Clear the stage file
-    ERROR_WHEN_FALSE(m_pRepository->clearStage(), CConstants::s_iError_CouldNotWriteStage);
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->clearStage(), Aze::CError::eCouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::amend()
+Aze::CError::EErrorCode CAzeClient::amend()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QString sAuthor = m_tArguments.m_tParser.value(m_tArguments.m_oAuthor);
     QString sMessage = m_tArguments.m_tParser.value(m_tArguments.m_oMessage);
 
     // Rewrite the tip commit
-    ERROR_WHEN_FALSE(m_pRepository->amend(sAuthor, sMessage), CConstants::s_iError_CouldNotAmend);
-    ERROR_WHEN_FALSE(m_pRepository->writeCurrentBranch(), CConstants::s_iError_CouldNotWriteCurrentBranch);
+    RETURN_WHEN_ERROR(m_pRepository->amend(sAuthor, sMessage), Aze::CError::eCouldNotAmend);
+    RETURN_WHEN_ERROR(m_pRepository->writeCurrentBranch(), Aze::CError::eCouldNotWriteCurrentBranch);
 
     // Clear the stage file
-    ERROR_WHEN_FALSE(m_pRepository->clearStage(), CConstants::s_iError_CouldNotWriteStage);
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->clearStage(), Aze::CError::eCouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::cleanUp()
+Aze::CError::EErrorCode CAzeClient::cleanUp()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     // Clear the stage file
-    ERROR_WHEN_FALSE(m_pRepository->clearStage(), CConstants::s_iError_CouldNotWriteStage);
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->clearStage(), Aze::CError::eCouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
     // Revert all files
     m_tArguments.m_lFilesAndIds.clear();
     m_tArguments.m_lFilesAndIds << "*";
     processWildCards();
 
-    ERROR_WHEN_FALSE(m_pRepository->revert(m_tArguments.m_lFilesAndIds, true), CConstants::s_iError_CouldNotRevertFiles);
+    RETURN_WHEN_ERROR(m_pRepository->revert(m_tArguments.m_lFilesAndIds, true), Aze::CError::eCouldNotRevertFiles);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::log()
+Aze::CError::EErrorCode CAzeClient::log()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     bool bGraph = m_tArguments.m_tParser.isSet(m_tArguments.m_oGraph);
     int iStart = m_tArguments.m_tParser.value(m_tArguments.m_oStart).toInt();
@@ -359,15 +358,15 @@ int CAzeClient::log()
     (*m_pOutStream) << m_pRepository->log(m_tArguments.m_lFilesAndIds, bGraph, iStart, iCount);
     m_pOutStream->flush();
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::diff()
+Aze::CError::EErrorCode CAzeClient::diff()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QString sFirst = m_tArguments.m_lFilesAndIds.isEmpty() ? "" : m_tArguments.m_lFilesAndIds.takeFirst();
     QString sSecond = m_tArguments.m_lFilesAndIds.isEmpty() ? "" : m_tArguments.m_lFilesAndIds.takeFirst();
@@ -375,130 +374,116 @@ int CAzeClient::diff()
     (*m_pOutStream) << Aze::CUtils::printableUnifiedDiff(m_pRepository->diff(sFirst, sSecond));
     m_pOutStream->flush();
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::merge()
+Aze::CError::EErrorCode CAzeClient::merge()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoBranchNameGiven);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoBranchNameGiven);
 
     QString sBranchName = m_tArguments.m_lFilesAndIds.takeFirst();
 
     if (sBranchName == m_pRepository->currentBranchName())
     {
-        (*m_pOutStream) << CConstants::s_sTextCannotMergeBranchWithSelf << "\n";
+        (*m_pOutStream) << Aze::CError::message(Aze::CError::eCannotMergeSelf) << "\n";
         m_pOutStream->flush();
-        return CConstants::s_iError_CouldNotMerge;
+        return Aze::CError::eCannotMergeSelf;
     }
 
     bool bHasConflicts = false;
-    int iMergeError = Aze::CMergeCommand::eMergeOk;
+    Aze::CError::EErrorCode eMergeCode = m_pRepository->merge(sBranchName, bHasConflicts);
 
-    if (not m_pRepository->merge(sBranchName, bHasConflicts, &iMergeError))
-    {
-        switch (iMergeError)
-        {
-        case Aze::CMergeCommand::eMergeUnknownBranch:
-            return CConstants::s_iError_UnknownBranch;
-        case Aze::CMergeCommand::eMergeDirtyWorkingFolder:
-            return CConstants::s_iError_DirtyWorkingFolder;
-        case Aze::CMergeCommand::eMergeNothingToMerge:
-            return CConstants::s_iError_NothingToMerge;
-        case Aze::CMergeCommand::eMergeStageNotEmpty:
-            return CConstants::s_iError_StageNotEmpty;
-        default:
-            return CConstants::s_iError_CouldNotMerge;
-        }
-    }
+    if (eMergeCode != Aze::CError::eNone && eMergeCode != Aze::CError::eMergeHasConflicts)
+        return eMergeCode;
 
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    return bHasConflicts ? CConstants::s_iError_MergeHasConflicts : CConstants::s_iError_None;
+    return bHasConflicts ? Aze::CError::eMergeHasConflicts : Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::saveStash()
+Aze::CError::EErrorCode CAzeClient::saveStash()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QString sStashName;
     if (m_tArguments.m_lFilesAndIds.count() > 0)
         sStashName = m_tArguments.m_lFilesAndIds.takeFirst();
 
-    ERROR_WHEN_FALSE(m_pRepository->saveStash(sStashName), CConstants::s_iError_CouldNotSaveStash);
+    RETURN_WHEN_ERROR(m_pRepository->saveStash(sStashName), Aze::CError::eCouldNotSaveStash);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeGeneralInformation(), CConstants::s_iError_CouldNotWriteGeneralInformation);
+    RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::popStash()
+Aze::CError::EErrorCode CAzeClient::popStash()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     QString sStashId;
     if (m_tArguments.m_lFilesAndIds.count() > 0)
         sStashId = m_tArguments.m_lFilesAndIds.takeFirst();
 
-    ERROR_WHEN_FALSE(m_pRepository->popStash(sStashId), CConstants::s_iError_CouldNotRestoreStash);
+    RETURN_WHEN_ERROR(m_pRepository->popStash(sStashId), Aze::CError::eCouldNotRestoreStash);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeGeneralInformation(), CConstants::s_iError_CouldNotWriteGeneralInformation);
+    RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::patch()
+Aze::CError::EErrorCode CAzeClient::patch()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     for (QString sFilename : m_tArguments.m_lFilesAndIds)
     {
-        ERROR_WHEN_FALSE(m_pRepository->patch(sFilename), CConstants::s_iError_CouldNotPatch);
+        RETURN_WHEN_ERROR(m_pRepository->patch(sFilename), Aze::CError::eCouldNotPatch);
     }
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::setRemoteHost()
+Aze::CError::EErrorCode CAzeClient::setRemoteHost()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    ERROR_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, CConstants::s_iError_NoRemoteHostNameGiven);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoRemoteHostNameGiven);
 
     QString sRemoteHostName = m_tArguments.m_lFilesAndIds.takeFirst();
 
     m_pRepository->setRemoteHostName(sRemoteHostName);
 
-    ERROR_WHEN_FALSE(m_pRepository->writeGeneralInformation(), CConstants::s_iError_CouldNotWriteGeneralInformation);
+    RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::dump()
+Aze::CError::EErrorCode CAzeClient::dump()
 {
     // Repository sanity check
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     for (QString sId : m_tArguments.m_lFilesAndIds)
     {
@@ -506,7 +491,7 @@ int CAzeClient::dump()
         m_pOutStream->flush();
     }
 
-    return CConstants::s_iError_None;
+    return Aze::CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

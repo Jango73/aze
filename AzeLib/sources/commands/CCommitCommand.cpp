@@ -20,20 +20,20 @@ CCommitCommand::CCommitCommand(CRepository* pRepository, const QString& sAuthor,
 
 //-------------------------------------------------------------------------------------------------
 
-bool CCommitCommand::execute()
+CError::EErrorCode CCommitCommand::execute()
 {
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     // Check presence and relevancy of staging commmit
     if (m_pRepository->stagingCommit().isNull() || m_pRepository->stagingCommit()->files().count() == 0)
     {
-        m_pRepository->tellError(CStrings::s_sTextCommitEmpty);
-        return false;
+        m_pRepository->tellError(CError::eCommitEmpty);
+        return CError::eCommitEmpty;
     }
 
     // Create a new commit object
@@ -74,7 +74,7 @@ bool CCommitCommand::execute()
         m_pRepository->currentBranch()->setRootCommitId(sNewCommitId);
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

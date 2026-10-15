@@ -36,10 +36,10 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    virtual bool execute() override;
+    virtual CError::EErrorCode execute() override;
 
     //!
-    bool revertSingleFile(QString sRelativeFileName);
+    CError::EErrorCode revertSingleFile(QString sRelativeFileName);
 
     //-------------------------------------------------------------------------------------------------
     // Properties

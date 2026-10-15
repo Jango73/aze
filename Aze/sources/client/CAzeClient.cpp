@@ -32,6 +32,7 @@ CAzeClient::CAzeClient(int argc, char *argv[], QTextStream* pOutStream)
                         m_tArguments.m_tParser.isSet(m_tArguments.m_oDebug)
                         ))
     , m_pNetworkAccessManager(new QNetworkAccessManager(this))
+    , m_eLastError(Aze::CError::eNone)
     , m_bOutputStreamIsMine(false)
     , m_bNetworkAccessFinished(false)
 {
@@ -58,7 +59,7 @@ CAzeClient::~CAzeClient()
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::run()
+Aze::CError::EErrorCode CAzeClient::run()
 {
     switch (m_tArguments.m_eCommand)
     {
@@ -66,7 +67,13 @@ int CAzeClient::run()
     case CConstants::eCommandHelp:
     {
         m_tArguments.showHelp(m_pOutStream);
-        return CConstants::s_iError_None;
+        return Aze::CError::eNone;
+    }
+
+    case CConstants::eCommandUnknown:
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eUnknownCommand));
+        return Aze::CError::eUnknownCommand;
     }
 
     // Local commands
@@ -97,9 +104,9 @@ int CAzeClient::run()
     case CConstants::eCommandPush:           return push();
     }
 
-    OUT_ERROR(CConstants::s_sTextUnknownCommand);
+    OUT_ERROR(Aze::CError::message(Aze::CError::eUnknownCommand));
 
-    return 0;
+    return Aze::CError::eUnknownCommand;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -108,7 +115,7 @@ bool CAzeClient::isASainRepository()
 {
     if (not m_pRepository->ok())
     {
-        OUT_ERROR(Aze::CStrings::s_sTextNotARepository);
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNotARepository));
 
         return false;
     }

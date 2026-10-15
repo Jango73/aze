@@ -11,6 +11,7 @@
 // AzeLib
 #include "CRepository.h"
 #include "CRemoteRepository.h"
+#include "CError.h"
 #include "CUtils.h"
 #include "CStrings.h"
 #include <CXMLNode.h>
@@ -158,6 +159,13 @@
     CConstants::s_sSwitchShowStatus, \
     QString("--%1").arg(SILENT_OR_DEBUG) \
     })
+
+//-------------------------------------------------------------------------------------------------
+
+static QString expectedCode(Aze::CError::EErrorCode eCode)
+{
+    return QString::number(Aze::CError::toExitCode(eCode));
+}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -351,7 +359,7 @@ QString CTestAze::exec(const QStringList& lInputArguments)
     }
 
     // Instantiate and run aze
-    int iErrorCode = CAzeClient(argc, argv, &sOutput).run();
+    Aze::CError::EErrorCode eCode = CAzeClient(argc, argv, &sOutput).run();
 
     for (index = 0; index < argc; index++)
         delete [] argv[index];
@@ -361,7 +369,7 @@ QString CTestAze::exec(const QStringList& lInputArguments)
     // If output is empty, return the error code
     if (baOutput.count() == 0)
     {
-        return QString::number(iErrorCode);
+        return QString::number(Aze::CError::toExitCode(eCode));
     }
 
     return baOutput;
@@ -415,12 +423,12 @@ void CTestAze::testUnstage()
     QString sFile2Path = "Files/UnstageTest2.txt";
     QString sResult, sFileContent;
     QString sC1("U1\n--");
-    QVERIFY(CConstants::s_iError_CouldNotUnstageFiles != CConstants::s_iError_CouldNotAddFiles);
+    QVERIFY(Aze::CError::eCouldNotUnstageFiles != Aze::CError::eCouldNotAddFiles);
     INIT();
     QVERIFY(createFile(sFile1Path, sC1));
     QVERIFY(createFile(sFile2Path, sC1));
-    QVERIFY(STAGE(sFile1Path, sFile2Path) == "0");
-    QVERIFY(UNSTAGE(sFile2Path) == "0");
+    QVERIFY(STAGE(sFile1Path, sFile2Path) == expectedCode(Aze::CError::eNone));
+    QVERIFY(UNSTAGE(sFile2Path) == expectedCode(Aze::CError::eNone));
     STATUS(sResult);
     QVERIFY(sResult.contains(sFile1Path));
     QVERIFY(not sResult.contains(sFile2Path));
@@ -449,11 +457,11 @@ void CTestAze::testAmend()
     INIT();
 
     QVERIFY(createFile(sFilePath, sC1));
-    QVERIFY(STAGE(sFilePath) == "0");
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
     COMMIT("A1");
 
     QVERIFY(createFile(sFilePath, sC2));
-    QVERIFY(STAGE(sFilePath) == "0");
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
     COMMIT("A2");
 
     Aze::CRepository oBeforeRepository(m_sRootPath);
@@ -464,8 +472,8 @@ void CTestAze::testAmend()
     QVERIFY(lParentsBefore.count() == 1);
 
     QVERIFY(createFile(sFilePath, sC2Amended));
-    QVERIFY(STAGE(sFilePath) == "0");
-    QVERIFY(AMEND(sAmendedMessage, sAmendAuthor) == "0");
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
+    QVERIFY(AMEND(sAmendedMessage, sAmendAuthor) == expectedCode(Aze::CError::eNone));
 
     Aze::CRepository oAmendedRepository(m_sRootPath);
     QVERIFY(oAmendedRepository.ok());
@@ -480,7 +488,7 @@ void CTestAze::testAmend()
     LOG(sResult);
     QVERIFY(sResult.contains(sAmendedMessage));
 
-    QVERIFY(AMEND_MESSAGE_ONLY(sFinalMessage) == "0");
+    QVERIFY(AMEND_MESSAGE_ONLY(sFinalMessage) == expectedCode(Aze::CError::eNone));
 
     Aze::CRepository oFinalRepository(m_sRootPath);
     QVERIFY(oFinalRepository.ok());
@@ -572,7 +580,7 @@ void CTestAze::testPatch()
     QVERIFY(createFile(sFile1Path, sC1));
     QVERIFY(createFile(sFile2Path, sC1));
     PATCH(sResult, sPatchPath);
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
 
     QVERIFY(readFile(sFile1Path, sFileContent));
     QVERIFY(sFileContent == sC2);
@@ -581,7 +589,7 @@ void CTestAze::testPatch()
 
     QVERIFY(createFile(sFile1Path, sC3));
     PATCH(sResult, sPatchPath);
-    QVERIFY(sResult != "0");
+    QVERIFY(sResult != expectedCode(Aze::CError::eNone));
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -714,7 +722,7 @@ void CTestAze::testMerge()
 
     // Merge B on A
     MERGE_BRANCH(sResult, "B");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MA4");
 
     // Check merged file contents
@@ -723,7 +731,7 @@ void CTestAze::testMerge()
 
     // Merge C on A
     MERGE_BRANCH(sResult, "C");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MA5");
 
     // Check merged file contents
@@ -759,7 +767,7 @@ void CTestAze::testMerge()
 
     // Merge B on A
     MERGE_BRANCH(sResult, "B");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MA6");
 
     // Check merged file contents
@@ -771,7 +779,7 @@ void CTestAze::testMerge()
 
     // Merge A on C
     MERGE_BRANCH(sResult, "A");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MC4");
 
     // Check merged file contents
@@ -798,7 +806,7 @@ void CTestAze::testMerge()
 
     // Merge B on A
     MERGE_BRANCH(sResult, "B");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MA7");
 
     // Check merged file contents
@@ -807,7 +815,7 @@ void CTestAze::testMerge()
 
     // Merge C on A
     MERGE_BRANCH(sResult, "C");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MA8");
 
     // Check merged file contents
@@ -819,7 +827,7 @@ void CTestAze::testMerge()
 
     // Merge A on B
     MERGE_BRANCH(sResult, "A");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("MB7");
 
     // Check merged file contents
@@ -846,7 +854,7 @@ void CTestAze::testMerge()
 
     // Merge C on B : conflict
     MERGE_BRANCH(sResult, "C");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_MergeHasConflicts));
+    QVERIFY(sResult == expectedCode(Aze::CError::eMergeHasConflicts));
 
     // Check merged file contents
     QVERIFY(readFile(sFile1Path, sFile1Content));
@@ -885,19 +893,19 @@ void CTestAze::testMergeErrorsAndResolution()
 
     // Merge branch with self is refused with a message
     MERGE_BRANCH(sResult, "trunk");
-    QVERIFY(sResult == CConstants::s_sTextCannotMergeBranchWithSelf + "\n");
+    QVERIFY(sResult == Aze::CError::message(Aze::CError::eCannotMergeSelf) + "\n");
 
     // Merge unknown branch is refused with a distinct code
     MERGE_BRANCH(sResult, "no-such-branch");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_UnknownBranch));
-    QVERIFY(CConstants::s_iError_UnknownBranch != CConstants::s_iError_CouldNotMerge);
+    QVERIFY(sResult == expectedCode(Aze::CError::eUnknownBranch));
+    QVERIFY(Aze::CError::eUnknownBranch != Aze::CError::eCouldNotMerge);
 
     // Merge with a non empty stage is refused without touching merge parents
     QVERIFY(createFile(sFile1Path, sTrunk1));
     STAGE(sFile1Path);
     MERGE_BRANCH(sResult, "no-such-branch");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_StageNotEmpty));
-    QVERIFY(CConstants::s_iError_StageNotEmpty != CConstants::s_iError_CouldNotMerge);
+    QVERIFY(sResult == expectedCode(Aze::CError::eStageNotEmpty));
+    QVERIFY(Aze::CError::eStageNotEmpty != Aze::CError::eCouldNotMerge);
     UNSTAGE(sFile1Path);
     QVERIFY(createFile(sFile1Path, sBase1));
 
@@ -912,8 +920,8 @@ void CTestAze::testMergeErrorsAndResolution()
     SWITCH_TO_BRANCH("trunk");
     QVERIFY(createFile(sFile1Path, sTrunk1));
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_DirtyWorkingFolder));
-    QVERIFY(CConstants::s_iError_DirtyWorkingFolder != CConstants::s_iError_CouldNotMerge);
+    QVERIFY(sResult == expectedCode(Aze::CError::eDirtyWorkingFolder));
+    QVERIFY(Aze::CError::eDirtyWorkingFolder != Aze::CError::eCouldNotMerge);
     QVERIFY(createFile(sFile1Path, sBase1));
 
     // T1 : trunk changes first file only, merge stays clean on both files
@@ -922,7 +930,7 @@ void CTestAze::testMergeErrorsAndResolution()
     COMMIT("T1");
 
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
     COMMIT("M2");
 
     QVERIFY(readFile(sFile1Path, sFileContent));
@@ -947,7 +955,7 @@ void CTestAze::testMergeErrorsAndResolution()
     // Merge reports conflicts, clean file is merged, conflicting file is marked
     SWITCH_TO_BRANCH("trunk");
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_MergeHasConflicts));
+    QVERIFY(sResult == expectedCode(Aze::CError::eMergeHasConflicts));
 
     QVERIFY(readFile(sFile1Path, sFileContent));
     QVERIFY(sFileContent == sTrunk1);
@@ -969,12 +977,12 @@ void CTestAze::testMergeErrorsAndResolution()
 
     // Nothing left to merge is refused with a distinct code
     MERGE_BRANCH(sResult, "side");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_NothingToMerge));
-    QVERIFY(CConstants::s_iError_NothingToMerge != CConstants::s_iError_CouldNotMerge);
+    QVERIFY(sResult == expectedCode(Aze::CError::eNothingToMerge));
+    QVERIFY(Aze::CError::eNothingToMerge != Aze::CError::eCouldNotMerge);
 
     // Delete merged branch, trunk history stays readable
     DELETE_BRANCH(sResult, "side");
-    QVERIFY(sResult == "0");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
 
     SWITCH_TO_BRANCH("side");
     LOG(sResult);
@@ -982,11 +990,11 @@ void CTestAze::testMergeErrorsAndResolution()
 
     // Delete current branch is refused
     DELETE_BRANCH(sResult, "trunk");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotDeleteBranch));
+    QVERIFY(sResult == expectedCode(Aze::CError::eCouldNotDeleteBranch));
 
     // Delete unknown branch is refused
     DELETE_BRANCH(sResult, "no-such-branch");
-    QVERIFY(sResult == QString::number(CConstants::s_iError_CouldNotDeleteBranch));
+    QVERIFY(sResult == expectedCode(Aze::CError::eCouldNotDeleteBranch));
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1028,12 +1036,13 @@ void CTestAze::testRemotePush()
     QVERIFY(QDir().mkpath(sRemotePath));
 
     Aze::CRepository oTargetRepository(sRemotePath);
-    QVERIFY(oTargetRepository.init());
+    QVERIFY(oTargetRepository.init() == Aze::CError::eNone);
 
     // Apply the push request
     Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
-    QString sErrorMessage;
-    QVERIFY2(oTargetRemote.applyPushRequest(xReceived, sErrorMessage), qPrintable(sErrorMessage));
+    QString sDetail;
+    Aze::CError::EErrorCode ePushCode = oTargetRemote.applyPushRequest(xReceived, sDetail);
+    QVERIFY2(ePushCode == Aze::CError::eNone, qPrintable(Aze::CError::message(ePushCode, sDetail)));
 
     // Check the pushed branch tip from a fresh repository instance
     Aze::CRepository oCheckRepository(sRemotePath);
@@ -1046,12 +1055,25 @@ void CTestAze::testRemotePush()
     delete pTipCommit;
 
     // Pushing the same tip again succeeds
-    QVERIFY(oTargetRemote.applyPushRequest(xReceived, sErrorMessage));
+    QVERIFY(oTargetRemote.applyPushRequest(xReceived, sDetail) == Aze::CError::eNone);
+
+    // Pushing a rewritten tip that does not contain the target tip is refused
+    Aze::CRepository oAmendedRepository(m_sRootPath);
+    QVERIFY(oAmendedRepository.amend("CTestAze", "Rewritten") == Aze::CError::eNone);
+    QVERIFY(oAmendedRepository.writeCurrentBranch() == Aze::CError::eNone);
+
+    // Use a fresh instance so the rewritten tip is read back from the branch file
+    Aze::CRepository oRewrittenRepository(m_sRootPath);
+    Aze::CRemoteRepository oAmendedRemote(&oRewrittenRepository);
+    CXMLNode xRewritten = oAmendedRemote.getPushRequest();
+    QVERIFY(xRewritten.attributes()[Aze::CStrings::s_sParamTip] != oSourceRepository.tipCommit()->id());
+    CXMLNode xRewrittenReceived = CXMLNode::parseJSON(xRewritten.toJsonString());
+    QVERIFY(oTargetRemote.applyPushRequest(xRewrittenReceived, sDetail) == Aze::CError::ePushNotFastForward);
 
     // Push with an unknown tip is refused
     CXMLNode xBadRequest = CXMLNode::parseJSON(xRequest.toJsonString());
     xBadRequest.attributes()[Aze::CStrings::s_sParamTip] = "00";
-    QVERIFY(not oTargetRemote.applyPushRequest(xBadRequest, sErrorMessage));
+    QVERIFY(oTargetRemote.applyPushRequest(xBadRequest, sDetail) == Aze::CError::ePushRequestInvalid);
 
     QVERIFY(QDir(sRemotePath).removeRecursively());
 }

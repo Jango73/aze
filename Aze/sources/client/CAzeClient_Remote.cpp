@@ -30,34 +30,33 @@ static void msleep(unsigned long msecs)
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::pull()
+Aze::CError::EErrorCode CAzeClient::pull()
 {
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPullRequest();
 
-    postNetworkRequest(xRequest);
-
-    return CConstants::s_iError_None;
+    return postNetworkRequest(xRequest);
 }
 
 //-------------------------------------------------------------------------------------------------
 
-int CAzeClient::push()
+Aze::CError::EErrorCode CAzeClient::push()
 {
-    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
     CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPushRequest();
 
-    postNetworkRequest(xRequest);
-
-    return CConstants::s_iError_None;
+    return postNetworkRequest(xRequest);
 }
 
 //-------------------------------------------------------------------------------------------------
 
-void CAzeClient::postNetworkRequest(CXMLNode xRequest)
+Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
 {
+    m_eLastError = Aze::CError::eNone;
+    m_bNetworkAccessFinished = false;
+
     if (IS_NOT_NULL(m_pRepository))
     {
         setupRemoteHost(m_pRepository->remoteHostInfo()->name());
@@ -70,6 +69,8 @@ void CAzeClient::postNetworkRequest(CXMLNode xRequest)
         msleep(10);
         QCoreApplication::processEvents();
     }
+
+    return m_eLastError;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -80,13 +81,11 @@ void CAzeClient::onNetworkAccessFinished(QNetworkReply* pReply)
     {
         CXMLNode xResponse = CXMLNode::parseJSON(QString(pReply->readAll()));
 
-        if (xResponse.attributes()[Aze::CStrings::s_sParamResult] == Aze::CStrings::s_sParamSuccess)
-        {
-            QString s;
-        }
+        m_eLastError = Aze::CError::fromResultNode(xResponse);
     }
     else
     {
+        m_eLastError = Aze::CError::eNetworkError;
     }
 
     m_bNetworkAccessFinished = true;

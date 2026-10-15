@@ -23,21 +23,21 @@ CStatusCommand::CStatusCommand(CRepository* pRepository, const QStringList& lFil
 
 //-------------------------------------------------------------------------------------------------
 
-bool CStatusCommand::execute()
+CError::EErrorCode CStatusCommand::execute()
 {
     QHash<QString, int> lProcessedFiles;
 
     if (IS_NULL(m_pFileStatus))
-        return false;
+        return CError::eGeneric;
 
     if (IS_NULL(m_pGeneralStatus))
-        return false;
+        return CError::eGeneric;
 
     // Sanity check on stage
     if (m_pRepository->stagingCommit().isNull())
     {
-        m_pRepository->tellError(CStrings::s_sTextNoStagingCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoStagingCommit);
+        return CError::eNoStagingCommit;
     }
 
     // Set default status
@@ -141,7 +141,7 @@ bool CStatusCommand::execute()
         }
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

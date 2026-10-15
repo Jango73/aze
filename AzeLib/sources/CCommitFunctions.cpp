@@ -501,7 +501,7 @@ void CCommitFunctions::diffText(QString& sOutput, const QString& sFileName, cons
 
 //-------------------------------------------------------------------------------------------------
 
-bool CCommitFunctions::applyDiff(const QString& sFullDiff, bool bAddToStage, CCommit* pStagingCommit)
+CError::EErrorCode CCommitFunctions::applyDiff(const QString& sFullDiff, bool bAddToStage, CCommit* pStagingCommit)
 {
     // Keep track of merged files
     QDictionary mProcessedFiles;
@@ -543,9 +543,9 @@ bool CCommitFunctions::applyDiff(const QString& sFullDiff, bool bAddToStage, CCo
         {
             if (not m_bSilent)
             {
-                OUT_ERROR(QString(CStrings::s_sTextCouldNotApplyPatch).arg(sFileName));
+                OUT_ERROR(CError::message(CError::eCouldNotApplyPatch, sFileName));
             }
-            return false;
+            return CError::eCouldNotApplyPatch;
         }
 
         CUtils::putTextFileContent(sFullTargetName, sNewContent);
@@ -575,21 +575,21 @@ bool CCommitFunctions::applyDiff(const QString& sFullDiff, bool bAddToStage, CCo
             {
                 if (not m_bSilent)
                 {
-                    OUT_ERROR(QString("Could not move file %1.").arg(sFullSourceName));
+                    OUT_ERROR(CError::message(CError::eCouldNotMoveFiles, sFullSourceName));
                 }
-                return false;
+                return CError::eCouldNotMoveFiles;
             }
 
             mMovedFiles << sFullSourceName;
         }
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipCommit, CCommit* pToTipCommit, bool bAddToStage, CCommit* pStagingCommit)
+CError::EErrorCode CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipCommit, CCommit* pToTipCommit, bool bAddToStage, CCommit* pStagingCommit)
 {
     bool bHasConflicts = false;
     QString sFromDiff;
@@ -601,9 +601,11 @@ bool CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipComm
     diffCommits(sToDiff, pBaseCommit, pToTipCommit, QStringList(), 0, 0);
 
     // Bail out if diff is empty
+    // An empty merge is reported as conflicts to preserve the historical
+    // bHasConflicts semantics of the caller
     if (sFromDiff.isEmpty() && sToDiff.isEmpty())
     {
-        return false;
+        return CError::eMergeHasConflicts;
     }
 
     // Keep track of merged files
@@ -760,7 +762,7 @@ bool CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipComm
         }
     }
 
-    return not bHasConflicts;
+    return bHasConflicts ? CError::eMergeHasConflicts : CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------

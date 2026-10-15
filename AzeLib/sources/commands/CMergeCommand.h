@@ -17,16 +17,6 @@ class AZE_SHARED_EXPORT CMergeCommand : public CBaseCommand
 
 public:
 
-    enum EMergeError
-    {
-        eMergeOk = 0,
-        eMergeGeneric,
-        eMergeUnknownBranch,
-        eMergeDirtyWorkingFolder,
-        eMergeNothingToMerge,
-        eMergeStageNotEmpty
-    };
-
     //-------------------------------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------------------------------
@@ -38,10 +28,7 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    virtual bool execute() override;
-
-    //!
-    int mergeError() const { return m_iMergeError; }
+    virtual CError::EErrorCode execute() override;
 
     //-------------------------------------------------------------------------------------------------
     // Properties
@@ -51,7 +38,6 @@ protected:
 
     QString     m_sFromBranch;
     bool&       m_bHasConflicts;
-    int         m_iMergeError;
 };
 
 }

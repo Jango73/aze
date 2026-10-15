@@ -20,30 +20,32 @@ CUnstageCommand::CUnstageCommand(CRepository* pRepository, const QStringList& lF
 
 //-------------------------------------------------------------------------------------------------
 
-bool CUnstageCommand::execute()
+CError::EErrorCode CUnstageCommand::execute()
 {
     for (QString sFileName : m_lFileNames)
     {
         QString sRelativeFileName = m_pRepository->database()->relativeFileName(sFileName);
 
-        if (not unstageSingleFile(sRelativeFileName))
-            return false;
+        CError::EErrorCode eCode = unstageSingleFile(sRelativeFileName);
+
+        if (eCode != CError::eNone)
+            return eCode;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CUnstageCommand::unstageSingleFile(QString sRelativeFileName)
+CError::EErrorCode CUnstageCommand::unstageSingleFile(QString sRelativeFileName)
 {
     if (not m_pRepository->stagingCommit().isNull())
     {
         m_pRepository->stagingCommit()->removeFile(sRelativeFileName);
-        return true;
+        return CError::eNone;
     }
 
-    return false;
+    return CError::eNoStagingCommit;
 }
 
 //-------------------------------------------------------------------------------------------------

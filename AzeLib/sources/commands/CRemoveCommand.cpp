@@ -20,22 +20,24 @@ CRemoveCommand::CRemoveCommand(CRepository* pRepository, const QStringList& lFil
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRemoveCommand::execute()
+CError::EErrorCode CRemoveCommand::execute()
 {
     for (QString sFileName : m_lFileNames)
     {
         QString sRelativeFileName = m_pRepository->database()->relativeFileName(sFileName);
 
-        if (not removeSingleFile(sRelativeFileName))
-            return false;
+        CError::EErrorCode eCode = removeSingleFile(sRelativeFileName);
+
+        if (eCode != CError::eNone)
+            return eCode;
     }
 
-    return true;
+    return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool CRemoveCommand::removeSingleFile(QString sRelativeFileName)
+CError::EErrorCode CRemoveCommand::removeSingleFile(QString sRelativeFileName)
 {
     // Sanity check on stage
     if (not m_pRepository->stagingCommit().isNull())
@@ -52,20 +54,22 @@ bool CRemoveCommand::removeSingleFile(QString sRelativeFileName)
             if (file.remove())
             {
                 m_pRepository->stagingCommit()->addFile(m_pRepository->database(), sRelativeFileName, "");
-                return true;
+                return CError::eNone;
             }
             else
             {
-                m_pRepository->tellError(QString("%1: %2").arg(CStrings::s_sTextNoSuchFile).arg(sRelativeFileName));
+                m_pRepository->tellError(CError::eNoSuchFile, sRelativeFileName);
+                return CError::eNoSuchFile;
             }
         }
         else
         {
-            m_pRepository->tellError(QString("%1: %2").arg(CStrings::s_sTextNoSuchFile).arg(sRelativeFileName));
+            m_pRepository->tellError(CError::eNoSuchFile, sRelativeFileName);
+            return CError::eNoSuchFile;
         }
     }
 
-    return false;
+    return CError::eNoStagingCommit;
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -15,7 +15,6 @@ CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranc
     : CBaseCommand(pRepository)
     , m_sFromBranch(sFromBranch)
     , m_bHasConflicts(bHasConflicts)
-    , m_iMergeError(eMergeOk)
 {
     m_bHasConflicts = false;
 }
@@ -25,50 +24,45 @@ CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranc
 /*!
     Merges the branch \a m_sFromBranch onto the current branch. \br\br
     Refuses a non empty stage to avoid overwriting merge parents. \br
-    Stores the failure reason in \a m_iMergeError for mapping to distinct client error codes. \br
+    Returns the precise failure reason as a CError::EErrorCode. \br
 */
-bool CMergeCommand::execute()
+CError::EErrorCode CMergeCommand::execute()
 {
-    m_iMergeError = eMergeOk;
+    m_bHasConflicts = false;
 
     // Check validity of arguments
     if (m_sFromBranch.isEmpty())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextNoCurrentBranch);
-        return false;
+        m_pRepository->tellError(CError::eNoBranchNameGiven);
+        return CError::eNoBranchNameGiven;
     }
 
     // Check presence of current branch
     if (m_pRepository->currentBranch().isNull())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextBranchNameEmpty);
-        return false;
+        m_pRepository->tellError(CError::eNoCurrentBranch);
+        return CError::eNoCurrentBranch;
     }
 
     // Check presence of stage
     if (m_pRepository->stagingCommit().isNull())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextNoStagingCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoStagingCommit);
+        return CError::eNoStagingCommit;
     }
 
     // Refuse a non empty stage, merge parents would overwrite staged files
     if (m_pRepository->stagingCommit()->files().count() > 0)
     {
-        m_iMergeError = eMergeStageNotEmpty;
-        m_pRepository->tellError(CStrings::s_sTextStageNotEmpty);
-        return false;
+        m_pRepository->tellError(CError::eStageNotEmpty);
+        return CError::eStageNotEmpty;
     }
 
     // Check presence of current branch tip commit
     if (m_pRepository->tipCommit().isNull())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextNoTipCommit);
-        return false;
+        m_pRepository->tellError(CError::eNoTipCommit);
+        return CError::eNoTipCommit;
     }
 
     CCommit* pToTipCommit = m_pRepository->tipCommit().get();
@@ -77,17 +71,15 @@ bool CMergeCommand::execute()
     // Check presence of 'from' branch tip commit
     if (IS_NULL(pFromBranch) || pFromBranch->tipCommitId().isEmpty())
     {
-        m_iMergeError = eMergeUnknownBranch;
-        m_pRepository->tellError(CStrings::s_sTextNoSuchBranch);
-        return false;
+        m_pRepository->tellError(CError::eUnknownBranch, m_sFromBranch);
+        return CError::eUnknownBranch;
     }
 
     // Check if trying to merge a commit on itself (yes it may happen...)
     if (pFromBranch->tipCommitId() == m_pRepository->tipCommit()->id())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextCannotMergeSameCommits);
-        return false;
+        m_pRepository->tellError(CError::eCannotMergeSelf);
+        return CError::eCannotMergeSelf;
     }
 
     CCommit* pFromTipCommit = m_pRepository->database()->getCommit(pFromBranch->tipCommitId(), this);
@@ -95,9 +87,8 @@ bool CMergeCommand::execute()
     // Check validity of 'from' branch tip commit
     if (IS_NULL(pFromTipCommit))
     {
-        m_iMergeError = eMergeUnknownBranch;
-        m_pRepository->tellError(CStrings::s_sTextNoSuchBranch);
-        return false;
+        m_pRepository->tellError(CError::eUnknownBranch, m_sFromBranch);
+        return CError::eUnknownBranch;
     }
 
     // Get the common commit chains of the two commits
@@ -112,17 +103,15 @@ bool CMergeCommand::execute()
     // Check presence of common ancestor
     if (sCommonAncestorId.isEmpty())
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextNoCommonAncestor);
-        return false;
+        m_pRepository->tellError(CError::eNoCommonAncestor);
+        return CError::eNoCommonAncestor;
     }
 
     // Check relevancy of 'from' commit
     if (sCommonAncestorId == pFromTipCommit->id())
     {
-        m_iMergeError = eMergeNothingToMerge;
-        m_pRepository->tellError(CStrings::s_sTextNoCommitToMerge);
-        return false;
+        m_pRepository->tellError(CError::eNothingToMerge);
+        return CError::eNothingToMerge;
     }
 
     // Check status of working directory
@@ -130,21 +119,24 @@ bool CMergeCommand::execute()
 
     if (m_pRepository->status() != CEnums::eClean)
     {
-        m_iMergeError = eMergeDirtyWorkingFolder;
-        m_pRepository->tellError(CStrings::s_sTextMergeWorkingDirectoryNotClean);
-        return false;
+        m_pRepository->tellError(CError::eDirtyWorkingFolder);
+        return CError::eDirtyWorkingFolder;
     }
 
     CCommit* pCommonAncestor = CCommit::fromId(m_pRepository->database(), sCommonAncestorId, this);
     if (IS_NULL(pCommonAncestor))
     {
-        m_iMergeError = eMergeGeneric;
-        m_pRepository->tellError(CStrings::s_sTextNoCommonAncestor);
-        return false;
+        m_pRepository->tellError(CError::eNoCommonAncestor);
+        return CError::eNoCommonAncestor;
     }
 
     // Do the actual 3-way merge
-    m_bHasConflicts = not m_pRepository->commitFunctions()->threeWayMerge(pCommonAncestor, pFromTipCommit, pToTipCommit, true, m_pRepository->stagingCommit().get());
+    CError::EErrorCode eMergeCode = m_pRepository->commitFunctions()->threeWayMerge(pCommonAncestor, pFromTipCommit, pToTipCommit, true, m_pRepository->stagingCommit().get());
+
+    if (eMergeCode != CError::eNone && eMergeCode != CError::eMergeHasConflicts)
+        return eMergeCode;
+
+    m_bHasConflicts = (eMergeCode == CError::eMergeHasConflicts);
 
     // Set merge information in staging commit
     // Only the 'from' commit is added as a parent here, the other will be added by commit command
@@ -157,7 +149,7 @@ bool CMergeCommand::execute()
                 .arg(m_pRepository->currentBranchName())
                 );
 
-    return true;
+    return eMergeCode;
 }
 
 //-------------------------------------------------------------------------------------------------

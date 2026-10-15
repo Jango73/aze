@@ -20,15 +20,15 @@ CPatchCommand::CPatchCommand(CRepository* pRepository, const QString& sFilename)
 
 //-------------------------------------------------------------------------------------------------
 
-bool CPatchCommand::execute()
+CError::EErrorCode CPatchCommand::execute()
 {
     if (m_sFilename.isEmpty())
-        return false;
+        return CError::eNoFileNameGiven;
 
     QString sDiff = CUtils::getTextFileContent(m_sFilename);
 
     if (sDiff.isEmpty())
-        return false;
+        return CError::eCouldNotPatch;
 
     // Apply the patchs
     return m_pRepository->commitFunctions()->applyDiff(sDiff);
