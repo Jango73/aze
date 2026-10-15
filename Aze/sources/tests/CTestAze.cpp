@@ -45,6 +45,24 @@
     m_sAuthor \
     })
 
+#define AMEND(a, b) \
+    exec({ \
+    CConstants::s_sSwitchAmend, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    QString("--%1").arg(CConstants::s_sSwitchMessage), \
+    a, \
+    QString("--%1").arg(CConstants::s_sSwitchAuthor), \
+    b \
+    })
+
+#define AMEND_MESSAGE_ONLY(a) \
+    exec({ \
+    CConstants::s_sSwitchAmend, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    QString("--%1").arg(CConstants::s_sSwitchMessage), \
+    a \
+    })
+
 #define STAGE(...) \
     exec({ \
     CConstants::s_sSwitchStage, \
@@ -413,6 +431,63 @@ void CTestAze::testUnstage()
     QVERIFY(not oRepository.tipCommit()->files().contains(sFile2Path));
     QVERIFY(readFile(sFile2Path, sFileContent));
     QVERIFY(sFileContent == sC1);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testAmend()
+{
+    QString sFilePath = "Files/AmendTest.txt";
+    QString sResult, sFileContent;
+    QString sC1("A1\n--");
+    QString sC2("A2\n--");
+    QString sC2Amended("A2-amended\n--");
+    QString sAmendedMessage("A2-amended");
+    QString sFinalMessage("A2-final");
+    QString sAmendAuthor("AmendAuthor");
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sC1));
+    QVERIFY(STAGE(sFilePath) == "0");
+    COMMIT("A1");
+
+    QVERIFY(createFile(sFilePath, sC2));
+    QVERIFY(STAGE(sFilePath) == "0");
+    COMMIT("A2");
+
+    Aze::CRepository oBeforeRepository(m_sRootPath);
+    QVERIFY(oBeforeRepository.ok());
+    QString sTipBefore = oBeforeRepository.tipCommit()->id();
+    QStringList lParentsBefore = oBeforeRepository.tipCommit()->parents();
+    QVERIFY(not sTipBefore.isEmpty());
+    QVERIFY(lParentsBefore.count() == 1);
+
+    QVERIFY(createFile(sFilePath, sC2Amended));
+    QVERIFY(STAGE(sFilePath) == "0");
+    QVERIFY(AMEND(sAmendedMessage, sAmendAuthor) == "0");
+
+    Aze::CRepository oAmendedRepository(m_sRootPath);
+    QVERIFY(oAmendedRepository.ok());
+    QString sTipAfter = oAmendedRepository.tipCommit()->id();
+    QVERIFY(sTipAfter != sTipBefore);
+    QVERIFY(oAmendedRepository.tipCommit()->parents() == lParentsBefore);
+    QCOMPARE(oAmendedRepository.tipCommit()->message(), sAmendedMessage);
+    QCOMPARE(oAmendedRepository.tipCommit()->author(), sAmendAuthor);
+    QVERIFY(readFile(sFilePath, sFileContent));
+    QVERIFY(sFileContent == sC2Amended);
+
+    LOG(sResult);
+    QVERIFY(sResult.contains(sAmendedMessage));
+
+    QVERIFY(AMEND_MESSAGE_ONLY(sFinalMessage) == "0");
+
+    Aze::CRepository oFinalRepository(m_sRootPath);
+    QVERIFY(oFinalRepository.ok());
+    QVERIFY(oFinalRepository.tipCommit()->id() != sTipAfter);
+    QVERIFY(oFinalRepository.tipCommit()->parents() == lParentsBefore);
+    QCOMPARE(oFinalRepository.tipCommit()->message(), sFinalMessage);
+    QCOMPARE(oFinalRepository.tipCommit()->author(), sAmendAuthor);
 }
 
 //-------------------------------------------------------------------------------------------------

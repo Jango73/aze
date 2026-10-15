@@ -81,6 +81,9 @@ private slots:
     //! Test unstage functionality
     void testUnstage();
 
+    //! Test amend functionality
+    void testAmend();
+
     //! Test file deletion functionality
     void testDelete();
 

@@ -86,6 +86,9 @@ public:
     //! Commits the staged files
     int commit();
 
+    //! Rewrites the tip commit with the staged files
+    int amend();
+
     //! Reverts all files
     int cleanUp();
 

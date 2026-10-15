@@ -11,6 +11,7 @@ const char* CConstants::s_sContextMain                      = "main";
 
 // Command switches
 
+const char* CConstants::s_sSwitchAmend                      = "amend";
 const char* CConstants::s_sSwitchCleanUp                    = "clean-up";
 const char* CConstants::s_sSwitchCommit                     = "commit";
 const char* CConstants::s_sSwitchCreateBranch               = "create-branch";
@@ -69,28 +70,31 @@ const char* CConstants::s_sSwitchSslKey                    = "ssl-key";
 
 const int CConstants::s_iError_None                             = 0;
 const int CConstants::s_iError_CouldNotAddFiles                 = 1;
-const int CConstants::s_iError_CouldNotCreateBranch             = 2;
-const int CConstants::s_iError_CouldNotDeleteBranch             = 3;
-const int CConstants::s_iError_CouldNotMerge                    = 4;
-const int CConstants::s_iError_CouldNotMoveFiles                = 5;
-const int CConstants::s_iError_CouldNotPatch                    = 6;
-const int CConstants::s_iError_CouldNotReadStage                = 7;
-const int CConstants::s_iError_CouldNotRemoveFiles              = 8;
-const int CConstants::s_iError_CouldNotRestoreStash             = 9;
-const int CConstants::s_iError_CouldNotRevertFiles              = 10;
-const int CConstants::s_iError_CouldNotSaveStash                = 11;
-const int CConstants::s_iError_CouldNotSetCurrentBranch         = 12;
-const int CConstants::s_iError_CouldNotUnstageFiles             = 23;
-const int CConstants::s_iError_CouldNotWriteCurrentBranch       = 13;
-const int CConstants::s_iError_CouldNotWriteGeneralInformation  = 14;
-const int CConstants::s_iError_CouldNotWriteStage               = 15;
-const int CConstants::s_iError_NoBranchNameGiven                = 16;
-const int CConstants::s_iError_NoFileNameGiven                  = 17;
-const int CConstants::s_iError_NoRemoteHostNameGiven            = 18;
-const int CConstants::s_iError_NotARepository                   = 19;
-const int CConstants::s_iError_MergeHasConflicts                = 20;
-const int CConstants::s_iError_UnknownCommand                   = 21;
-const int CConstants::s_iError_UnknownSwitch                    = 22;
+const int CConstants::s_iError_CouldNotAmend                    = 2;
+const int CConstants::s_iError_CouldNotCommit                   = 3;
+const int CConstants::s_iError_CouldNotCreateBranch             = 4;
+const int CConstants::s_iError_CouldNotDeleteBranch             = 5;
+const int CConstants::s_iError_CouldNotMerge                    = 6;
+const int CConstants::s_iError_CouldNotMoveFiles                = 7;
+const int CConstants::s_iError_CouldNotPatch                    = 8;
+const int CConstants::s_iError_CouldNotPopStash                 = 9;
+const int CConstants::s_iError_CouldNotReadStage                = 10;
+const int CConstants::s_iError_CouldNotRemoveFiles              = 11;
+const int CConstants::s_iError_CouldNotRestoreStash             = 12;
+const int CConstants::s_iError_CouldNotRevertFiles              = 13;
+const int CConstants::s_iError_CouldNotSaveStash                = 14;
+const int CConstants::s_iError_CouldNotSetCurrentBranch         = 15;
+const int CConstants::s_iError_CouldNotUnstageFiles             = 16;
+const int CConstants::s_iError_CouldNotWriteCurrentBranch       = 17;
+const int CConstants::s_iError_CouldNotWriteGeneralInformation  = 18;
+const int CConstants::s_iError_CouldNotWriteStage               = 19;
+const int CConstants::s_iError_NoBranchNameGiven                = 20;
+const int CConstants::s_iError_NoFileNameGiven                  = 21;
+const int CConstants::s_iError_NoRemoteHostNameGiven            = 22;
+const int CConstants::s_iError_NotARepository                   = 23;
+const int CConstants::s_iError_MergeHasConflicts                = 24;
+const int CConstants::s_iError_UnknownCommand                   = 25;
+const int CConstants::s_iError_UnknownSwitch                    = 26;
 
 const QString CConstants::s_sAllFilesAreClean               = tr("All files are clean on branch %1.");
 const QString CConstants::s_sStatusOfFiles                  = tr("Status of working directory files, on branch %1:");
@@ -115,6 +119,7 @@ QMap<QString, QString> CConstants::s_mHelp;
 
 void CConstants::initCommandMap()
 {
+    s_mCommands[CConstants::s_sSwitchAmend]               = CConstants::eCommandAmend;
     s_mCommands[CConstants::s_sSwitchCleanUp]           = CConstants::eCommandCleanUp;
     s_mCommands[CConstants::s_sSwitchCommit]            = CConstants::eCommandCommit;
     s_mCommands[CConstants::s_sSwitchCreateBranch]      = CConstants::eCommandCreateBranch;
@@ -140,6 +145,7 @@ void CConstants::initCommandMap()
     s_mCommands[CConstants::s_sSwitchUnstage]           = CConstants::eCommandUnstage;
     s_mCommands[CConstants::s_sSwitchVoid]              = CConstants::eCommandNone;
 
+    s_mHelp[CConstants::s_sSwitchAmend]                 = tr("Rewrites the tip commit with the staged files.");
     s_mHelp[CConstants::s_sSwitchCleanUp]               = tr("Clears the stage and reverts all files. Warning: loose files are deleted.");
     s_mHelp[CConstants::s_sSwitchCommit]                = tr("Creates a commit from the stage.");
     s_mHelp[CConstants::s_sSwitchCreateBranch]          = tr("Creates a branch.");

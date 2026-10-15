@@ -111,6 +111,9 @@ public:
     //! Commits all files contained in the staging commit
     bool commit(const QString& sAuthor, const QString& sMessage);
 
+    //! Rewrites the tip commit without creation of a new parent
+    bool amend(const QString& sAuthor, const QString& sMessage);
+
     //! Reverts all files listed in lFileNames
     bool revert(const QStringList& lFileNames, bool bAllowFileDelete = false);
 

@@ -7,6 +7,7 @@
 #include "CRepository.h"
 #include "CUtils.h"
 
+#include "commands/CAmendCommand.h"
 #include "commands/CCommitCommand.h"
 #include "commands/CDiffCommand.h"
 #include "commands/CLogCommand.h"
@@ -208,6 +209,18 @@ bool CRepository::remove(const QStringList& lFileNames)
 bool CRepository::commit(const QString& sAuthor, const QString& sMessage)
 {
     return CCommitCommand(this, sAuthor, sMessage).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Rewrites the tip commit without creation of a new parent. \br\br
+    \a sAuthor replaces the tip author when not empty
+    \a sMessage replaces the tip message when not empty
+*/
+bool CRepository::amend(const QString& sAuthor, const QString& sMessage)
+{
+    return CAmendCommand(this, sAuthor, sMessage).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

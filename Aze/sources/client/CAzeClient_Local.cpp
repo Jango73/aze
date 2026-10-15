@@ -292,7 +292,28 @@ int CAzeClient::commit()
     QString sMessage = m_tArguments.m_tParser.value(m_tArguments.m_oMessage);
 
     // Commit
-    ERROR_WHEN_FALSE(m_pRepository->commit(sAuthor, sMessage), CConstants::s_iError_CouldNotRemoveFiles);
+    ERROR_WHEN_FALSE(m_pRepository->commit(sAuthor, sMessage), CConstants::s_iError_CouldNotCommit);
+    ERROR_WHEN_FALSE(m_pRepository->writeCurrentBranch(), CConstants::s_iError_CouldNotWriteCurrentBranch);
+
+    // Clear the stage file
+    ERROR_WHEN_FALSE(m_pRepository->clearStage(), CConstants::s_iError_CouldNotWriteStage);
+    ERROR_WHEN_FALSE(m_pRepository->writeStage(), CConstants::s_iError_CouldNotWriteStage);
+
+    return CConstants::s_iError_None;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+int CAzeClient::amend()
+{
+    // Repository sanity check
+    ERROR_WHEN_FALSE(isASainRepository(), CConstants::s_iError_NotARepository);
+
+    QString sAuthor = m_tArguments.m_tParser.value(m_tArguments.m_oAuthor);
+    QString sMessage = m_tArguments.m_tParser.value(m_tArguments.m_oMessage);
+
+    // Rewrite the tip commit
+    ERROR_WHEN_FALSE(m_pRepository->amend(sAuthor, sMessage), CConstants::s_iError_CouldNotAmend);
     ERROR_WHEN_FALSE(m_pRepository->writeCurrentBranch(), CConstants::s_iError_CouldNotWriteCurrentBranch);
 
     // Clear the stage file

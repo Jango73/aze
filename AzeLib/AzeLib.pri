@@ -4,6 +4,7 @@ HEADERS += \
     sources/CCommitTreeList.h \
     sources/CEnums.h \
     sources/commands/CBaseCommand.h \
+    sources/commands/CAmendCommand.h \
     sources/commands/CCommitCommand.h \
     sources/commands/CDiffCommand.h \
     sources/commands/CLogCommand.h \
@@ -43,6 +44,7 @@ SOURCES += \
     sources/CCommitTreeList.cpp \
     sources/CEnums.cpp \
     sources/commands/CBaseCommand.cpp \
+    sources/commands/CAmendCommand.cpp \
     sources/commands/CCommitCommand.cpp \
     sources/commands/CDiffCommand.cpp \
     sources/commands/CLogCommand.cpp \

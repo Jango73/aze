@@ -5,10 +5,10 @@
 - [x] TODO-002 - Unify the error code returned by `CAzeClient::unstage` which reuses `s_iError_CouldNotAddFiles` instead of a dedicated code.
 
 ## Commit and amend
-- [ ] TODO-003 - Implement `amend` in the engine with rewrite of the tip commit without creation of a new parent.
-- [ ] TODO-004 - Expose `amend` in `CAzeClient`, `CConstants` and the argument parser with author and message options.
-- [ ] TODO-005 - Add an `amend` test which verifies parent identifier preservation and message update.
-- [ ] TODO-006 - Fix `CAzeClient::commit` which returns `s_iError_CouldNotRemoveFiles` on commit failure.
+- [x] TODO-003 - Implement `amend` in the engine with rewrite of the tip commit without creation of a new parent.
+- [x] TODO-004 - Expose `amend` in `CAzeClient`, `CConstants` and the argument parser with author and message options.
+- [x] TODO-005 - Add an `amend` test which verifies parent identifier preservation and message update.
+- [x] TODO-006 - Fix `CAzeClient::commit` which returns `s_iError_CouldNotRemoveFiles` on commit failure.
 
 ## Branch creation and deletion
 - [ ] TODO-007 - Propagate `create-branch` to the server because creation remains local without a dedicated route.

@@ -23,6 +23,7 @@ public:
     enum ECommand
     {
         eCommandNone,
+        eCommandAmend,
         eCommandCleanUp,
         eCommandCommit,
         eCommandCreateBranch,
@@ -51,6 +52,7 @@ public:
     static const char* s_sContextMain;
 
     // Command switches
+    static const char* s_sSwitchAmend;
     static const char* s_sSwitchCleanUp;
     static const char* s_sSwitchCommit;
     static const char* s_sSwitchCreateBranch;
@@ -103,6 +105,8 @@ public:
     // Error codes
     static const int s_iError_None;
     static const int s_iError_CouldNotAddFiles;
+    static const int s_iError_CouldNotAmend;
+    static const int s_iError_CouldNotCommit;
     static const int s_iError_CouldNotCreateBranch;
     static const int s_iError_CouldNotDeleteBranch;
     static const int s_iError_CouldNotMerge;

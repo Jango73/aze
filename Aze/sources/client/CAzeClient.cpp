@@ -70,6 +70,7 @@ int CAzeClient::run()
     }
 
     // Local commands
+    case CConstants::eCommandAmend:               return amend();
     case CConstants::eCommandCleanUp:           return cleanUp();
     case CConstants::eCommandCommit:            return commit();
     case CConstants::eCommandCreateBranch:      return createBranch();
