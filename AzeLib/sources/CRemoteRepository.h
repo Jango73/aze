@@ -70,7 +70,8 @@ protected:
     CError::EErrorCode storeRequestCommits(const CXMLNode& xRequest, QStringList& lCommitIds, QString& sDetail);
 
     //! Updates a branch from pushed commits
-    CError::EErrorCode updateBranchFromPush(const QString& sBranchName, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail);
+    //! sRequestedRootId carries the source branch root so a created branch keeps the branch point
+    CError::EErrorCode updateBranchFromPush(const QString& sBranchName, const QString& sRequestedRootId, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail);
 };
 
 }

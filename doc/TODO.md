@@ -11,7 +11,7 @@
 - [x] TODO-006 - Fix `CAzeClient::commit` which returns `s_iError_CouldNotRemoveFiles` on commit failure.
 
 ## Branch creation, deletion and merge
-- [ ] TODO-007 - Propagate `create-branch` to the server because creation remains local without a dedicated route.
+- [x] TODO-007 - Propagate `create-branch` through `push` because the push request carries branch, root and tip and creates the missing branch on the server.
 - [ ] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
 - [ ] TODO-009 - Refuse deletion of an unmerged branch or an unknown branch in the engine or the client with a distinct error code.
 - [ ] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
@@ -45,7 +45,7 @@
 - [ ] TODO-025 - Add a `clone` test which verifies branches, branch tip and file content after cloning.
 
 ## General server
-- [ ] TODO-026 - Route `create-branch`, `delete-branch` and `clone` requests in `CAzeServerProcessor` which handles only `pull` and `push`.
+- [ ] TODO-026 - Route `delete-branch` and `clone` requests in `CAzeServerProcessor` which handles only `pull` and `push`.
 - [ ] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
 - [ ] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
 - [ ] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.

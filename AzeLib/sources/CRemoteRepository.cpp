@@ -51,6 +51,11 @@ CXMLNode CRemoteRepository::getPushRequest()
     xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
     xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
 
+    if (not m_pLocalRepository->currentBranch().isNull())
+    {
+        xRequest.attributes()[CStrings::s_sParamRoot] = m_pLocalRepository->currentBranch()->rootCommitId();
+    }
+
     if (m_pLocalRepository->tipCommit().isNull())
         return xRequest;
 
@@ -109,6 +114,7 @@ CXMLNode CRemoteRepository::getPushRequest()
 CError::EErrorCode CRemoteRepository::applyPushRequest(const CXMLNode& xRequest, QString& sDetail)
 {
     QString sBranchName = xRequest.attributes()[CStrings::s_sParamBranch];
+    QString sRootId = xRequest.attributes()[CStrings::s_sParamRoot];
     QString sTipId = xRequest.attributes()[CStrings::s_sParamTip];
 
     if (xRequest.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamPush
@@ -136,7 +142,7 @@ CError::EErrorCode CRemoteRepository::applyPushRequest(const CXMLNode& xRequest,
         return CError::ePushRequestInvalid;
     }
 
-    return updateBranchFromPush(sBranchName, sTipId, lCommitIds, sDetail);
+    return updateBranchFromPush(sBranchName, sRootId, sTipId, lCommitIds, sDetail);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -204,7 +210,7 @@ CError::EErrorCode CRemoteRepository::storeRequestCommits(const CXMLNode& xReque
 
 //-------------------------------------------------------------------------------------------------
 
-CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail)
+CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranchName, const QString& sRequestedRootId, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail)
 {
     CDatabase* pDatabase = m_pLocalRepository->database();
     QString sBranchFileName = pDatabase->composeBranchFileName(sBranchName);
@@ -224,6 +230,11 @@ CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranc
             delete pBranch;
             return CError::ePushNotFastForward;
         }
+
+        if (pBranch->rootCommitId().isEmpty() && not sRequestedRootId.isEmpty())
+        {
+            pBranch->setRootCommitId(sRequestedRootId);
+        }
     }
     else
     {
@@ -233,20 +244,27 @@ CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranc
         pBranch->setAuthor(pTipCommit->author());
         delete pTipCommit;
 
-        // Find the root commit, oldest pushed commit without parents
-        QString sRootId = sTipId;
-
-        for (int iIndex = lCommitIds.count() - 1; iIndex >= 0; --iIndex)
+        if (not sRequestedRootId.isEmpty())
         {
-            CCommit* pCommit = pDatabase->getCommit(lCommitIds[iIndex], this);
-
-            if (pCommit->parents().isEmpty())
-                sRootId = pCommit->id();
-
-            delete pCommit;
+            pBranch->setRootCommitId(sRequestedRootId);
         }
+        else
+        {
+            // Fallback for requests without a root, oldest pushed commit without parents
+            QString sRootId = sTipId;
 
-        pBranch->setRootCommitId(sRootId);
+            for (int iIndex = lCommitIds.count() - 1; iIndex >= 0; --iIndex)
+            {
+                CCommit* pCommit = pDatabase->getCommit(lCommitIds[iIndex], this);
+
+                if (pCommit->parents().isEmpty())
+                    sRootId = pCommit->id();
+
+                delete pCommit;
+            }
+
+            pBranch->setRootCommitId(sRootId);
+        }
     }
 
     pBranch->setTipCommitId(sTipId);

@@ -25,6 +25,7 @@
     {
     "request": "<Type of request: pull or push>"
     "branch": "<Name of branch>"
+    "root": "<Root commit Id of the pushed branch>"
     "tip": "<Tip commit Id>"
     }
     "commit": [
