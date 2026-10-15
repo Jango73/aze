@@ -1,0 +1,55 @@
+# TODO
+
+## Stage and unstage
+- [ ] TODO-001 - Add an `unstage` test in `CTestAze` because `stage` is covered and `unstage` has no coverage.
+- [ ] TODO-002 - Unify the error code returned by `CAzeClient::unstage` which reuses `s_iError_CouldNotAddFiles` instead of a dedicated code.
+
+## Commit and amend
+- [ ] TODO-003 - Implement `amend` in the engine with rewrite of the tip commit without creation of a new parent.
+- [ ] TODO-004 - Expose `amend` in `CAzeClient`, `CConstants` and the argument parser with author and message options.
+- [ ] TODO-005 - Add an `amend` test which verifies parent identifier preservation and message update.
+- [ ] TODO-006 - Fix `CAzeClient::commit` which returns `s_iError_CouldNotRemoveFiles` on commit failure.
+
+## Branch creation and deletion
+- [ ] TODO-007 - Propagate `create-branch` to the server because creation remains local without a dedicated route.
+- [ ] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
+- [ ] TODO-009 - Refuse deletion of an unmerged branch or an unknown branch in the engine or the client with a distinct error code.
+- [ ] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
+- [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
+
+## Push client and server
+- [ ] TODO-012 - Store and apply the server response in `CAzeClient::onNetworkAccessFinished` which ignores success and errors.
+- [ ] TODO-013 - Reset `m_bNetworkAccessFinished` before each network request because the second push or pull operation blocks or returns without waiting.
+- [ ] TODO-014 - Replace the busy wait in `CAzeClient::postNetworkRequest` with asynchronous handling without `processEvents`.
+- [ ] TODO-015 - Return the error response in `CAzeServerProcessor::getContent` because the built error node is never assigned to the response.
+- [ ] TODO-016 - Remove the unused `CRepository::getPushRequest` declaration without a definition in `CRepository.cpp`.
+- [ ] TODO-017 - Add an HTTP test for `servePush` because only the engine is covered by `testRemotePush` without server or command line interface.
+
+## Pull client and server
+- [ ] TODO-018 - Implement `applyPullRequest` and `getPullResponse` in `CRemoteRepository` because only `getPullRequest` exists without commit and object payload.
+- [ ] TODO-019 - Implement `CAzeServerProcessor::servePull` which returns an empty success without reading the requested repository.
+- [ ] TODO-020 - Store received commits and objects in `CAzeClient::pull` and update the local branch with fast forward or merge.
+- [ ] TODO-021 - Include the requested branch and the tip identifier in the pull request instead of dumping all local branches.
+- [ ] TODO-022 - Add an end to end pull test which verifies content convergence after push then pull.
+
+## Clone
+- [ ] TODO-023 - Implement `clone` in the engine with creation of the `.aze` folder and copy of branches, commits and objects from the server response.
+- [ ] TODO-024 - Expose `clone` in `CAzeClient`, `CAzeServerProcessor` and `CConstants` with handling of an empty or missing target folder.
+- [ ] TODO-025 - Add a `clone` test which verifies branches, branch tip and file content after cloning.
+
+## General server
+- [ ] TODO-026 - Route `create-branch`, `delete-branch` and `clone` requests in `CAzeServerProcessor` which handles only `pull` and `push`.
+- [ ] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
+- [ ] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
+- [ ] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.
+- [ ] TODO-030 - Avoid `qFatal` in `CAzeServer` on invalid HTTPS configuration and return a clean error code.
+
+## Index and acceleration
+- [ ] TODO-031 - Add a working folder hash cache keyed by path, size and modification time because `folderAsCommit` recomputes each identifier with `idFromByteArray`.
+- [ ] TODO-032 - Fill and use `m_lCommitTreeList` in `CCommitTreeList` because only the parent map is memoized and the tree half remains unwired.
+- [ ] TODO-033 - Route `log` and ancestor search through the parent cache instead of loading each commit file.
+- [ ] TODO-034 - Persist `CCommitTreeList` in binary format as indicated by the TODO marker instead of text XML.
+- [ ] TODO-035 - Save the cache only when `dirty` is true because the destructor writes the file on each destruction.
+- [ ] TODO-036 - Copy `m_mCommitParentList` and flags in the assignment operator and copy constructor of `CCommitTreeList`.
+- [ ] TODO-037 - Invalidate the commit cache and the working folder cache after commit, merge, received push and branch switch.
+- [ ] TODO-038 - Handle files missing left or right in `threeWayMerge` as indicated by the TODO marker in `CCommitFunctions`.
