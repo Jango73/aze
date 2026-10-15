@@ -12,7 +12,7 @@
 
 ## Branch creation, deletion and merge
 - [x] TODO-007 - Propagate `create-branch` through `push` because the push request carries branch, root and tip and creates the missing branch on the server.
-- [ ] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
+- [x] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
 - [ ] TODO-009 - Refuse deletion of an unmerged branch or an unknown branch in the engine or the client with a distinct error code.
 - [ ] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
 - [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.

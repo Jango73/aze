@@ -988,13 +988,15 @@ void CTestAze::testMergeErrorsAndResolution()
     LOG(sResult);
     QVERIFY(sResult.contains("R1"));
 
-    // Delete current branch is refused
+    // Delete current branch is refused with a distinct code
     DELETE_BRANCH(sResult, "trunk");
-    QVERIFY(sResult == expectedCode(Aze::CError::eCouldNotDeleteBranch));
+    QVERIFY(sResult == expectedCode(Aze::CError::eCannotDeleteCurrentBranch));
+    QVERIFY(Aze::CError::eCannotDeleteCurrentBranch != Aze::CError::eCouldNotDeleteBranch);
 
-    // Delete unknown branch is refused
+    // Delete unknown branch is refused with a distinct code
     DELETE_BRANCH(sResult, "no-such-branch");
-    QVERIFY(sResult == expectedCode(Aze::CError::eCouldNotDeleteBranch));
+    QVERIFY(sResult == expectedCode(Aze::CError::eBranchDoesNotExist));
+    QVERIFY(Aze::CError::eBranchDoesNotExist != Aze::CError::eCouldNotDeleteBranch);
 }
 
 //-------------------------------------------------------------------------------------------------

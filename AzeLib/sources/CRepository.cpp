@@ -144,19 +144,32 @@ CError::EErrorCode CRepository::createBranch(const QString& sName)
 //-------------------------------------------------------------------------------------------------
 
 /*!
-    Deletes, if it exists, the branch named \a sName.
+    Deletes, if it exists, the branch named \a sName. \br\br
+    Refuses the current branch to avoid leaving the repository without a branch. \br
+    Returns eCannotDeleteCurrentBranch, eBranchDoesNotExist or eCouldNotDeleteBranch on failure. \br
 */
 CError::EErrorCode CRepository::deleteBranch(const QString& sName)
 {
+    if (sName == m_sCurrentBranchName)
+    {
+        tellError(CError::eCannotDeleteCurrentBranch, sName);
+        return CError::eCannotDeleteCurrentBranch;
+    }
+
     QString sBranchFileName = m_pDatabase->composeBranchFileName(sName);
 
     if (not QFile(sBranchFileName).exists())
     {
-        tellInfo(CError::eBranchDoesNotExist, sName);
+        tellError(CError::eBranchDoesNotExist, sName);
         return CError::eBranchDoesNotExist;
     }
 
-    QFile::remove(sBranchFileName);
+    if (not QFile::remove(sBranchFileName))
+    {
+        tellError(CError::eCouldNotDeleteBranch, sName);
+        return CError::eCouldNotDeleteBranch;
+    }
+
     return CError::eNone;
 }
 

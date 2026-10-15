@@ -50,16 +50,8 @@ Aze::CError::EErrorCode CAzeClient::deleteBranch()
 
     QString sBranchName = m_tArguments.m_lFilesAndIds[0];
 
-    if (sBranchName == m_pRepository->currentBranchName())
-    {
-        OUT_ERROR(Aze::CError::message(Aze::CError::eCannotDeleteCurrentBranch));
-        return Aze::CError::eCouldNotDeleteBranch;
-    }
-
-    // Delete the branch
-    RETURN_WHEN_ERROR(m_pRepository->deleteBranch(sBranchName), Aze::CError::eCouldNotDeleteBranch);
-
-    return Aze::CError::eNone;
+    // Delete the branch, engine refuses the current branch with a distinct code
+    return m_pRepository->deleteBranch(sBranchName);
 }
 
 //-------------------------------------------------------------------------------------------------
