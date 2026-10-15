@@ -143,6 +143,10 @@ Shows a diff between two commits or files.
 ```
     aze diff [<id-1>] [<id-2>]
 ```
+* without argument : shows a diff between the tip commit and the working folder.
+* with one commit id : shows a diff between that commit and the working folder.
+* with two commit ids : shows a diff between those two commits.
+* with a file name : shows a diff between the tip commit version and the working folder version of that file.
 
 ### `aze create-branch`
 Creates a branch.

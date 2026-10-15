@@ -1082,6 +1082,72 @@ void CTestAze::testRemotePush()
 
 //-------------------------------------------------------------------------------------------------
 
+void CTestAze::testDiff()
+{
+    QString sFile1Path = "Files/DiffTest1.txt";
+    QString sFile2Path = "Files/DiffTest2.txt";
+    QString sDiffNoArg;
+    QString sDiffTip;
+    QString sDiffTipPrev;
+    QString sDiffFile1;
+    QString sDiffFile2;
+
+    QString sL1("L1\n--");
+    QString sL2("L2\n--");
+    QString sL3("L3\n--");
+    QString sM1("M1\n--");
+    QString sM2("M2\n--");
+
+    QString sExpFile1 = Aze::CUtils::fileDiffHeader(sFile1Path, sFile1Path) + "@@ -1,2 +1,2 @@\n-L2\n+L3\n --\n";
+    QString sExpFile2 = Aze::CUtils::fileDiffHeader(sFile2Path, sFile2Path) + "@@ -1,2 +1,2 @@\n-M1\n+M2\n --\n";
+    QString sExpNoArg = sExpFile1 + sExpFile2;
+    QString sExpTipPrevFile1 = Aze::CUtils::fileDiffHeader(sFile1Path, sFile1Path) + "@@ -1,2 +1,2 @@\n-L1\n+L3\n --\n";
+    QString sExpTipPrev = sExpTipPrevFile1 + sExpFile2;
+
+    INIT();
+
+    // C1
+    QVERIFY(createFile(sFile1Path, sL1));
+    QVERIFY(createFile(sFile2Path, sM1));
+    STAGE(sFile1Path);
+    STAGE(sFile2Path);
+    COMMIT("D1");
+
+    // C2 : only first file changes
+    QVERIFY(createFile(sFile1Path, sL2));
+    STAGE(sFile1Path);
+    COMMIT("D2");
+
+    // Clean working folder : every diff variant is empty
+    QVERIFY(exec({ CConstants::s_sSwitchDiff }) == expectedCode(Aze::CError::eNone));
+    QVERIFY(exec({ CConstants::s_sSwitchDiff, "tip" }) == expectedCode(Aze::CError::eNone));
+    QVERIFY(exec({ CConstants::s_sSwitchDiff, sFile1Path }) == expectedCode(Aze::CError::eNone));
+
+    // Dirty working folder, without staging
+    QVERIFY(createFile(sFile1Path, sL3));
+    QVERIFY(createFile(sFile2Path, sM2));
+
+    // No argument : tip against working folder
+    sDiffNoArg = exec({ CConstants::s_sSwitchDiff });
+    QVERIFY(sDiffNoArg == sExpNoArg);
+
+    // One commit id : that commit against working folder
+    sDiffTip = exec({ CConstants::s_sSwitchDiff, "tip" });
+    QVERIFY(sDiffTip == sExpNoArg);
+
+    sDiffTipPrev = exec({ CConstants::s_sSwitchDiff, "tip~1" });
+    QVERIFY(sDiffTipPrev == sExpTipPrev);
+
+    // One file name : tip version against working folder version of that file
+    sDiffFile1 = exec({ CConstants::s_sSwitchDiff, sFile1Path });
+    QVERIFY(sDiffFile1 == sExpFile1);
+
+    sDiffFile2 = exec({ CConstants::s_sSwitchDiff, sFile2Path });
+    QVERIFY(sDiffFile2 == sExpFile2);
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void CTestAze::testHeavy()
 {
 //     INIT();
