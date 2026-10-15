@@ -25,7 +25,19 @@ A versioning system (just for pleasure of coding)
 
 ## Running tests
 
-Run the app with command "run-tests"
+Run the local CI (same steps as the GitHub workflow):
+```
+    ./scripts/linux/ci-local.sh
+```
+
+## Running the server
+
+Launch the server with HTTPS enabled by default (self-signed dev
+certificate is generated in `tmp/certs` when missing):
+```
+    ./scripts/linux/serve.sh
+```
+Pass `--http-only` for plain HTTP without TLS.
 
 ## Concepts
 

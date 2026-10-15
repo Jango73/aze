@@ -20,7 +20,10 @@
 
 CAzeServerArguments::CAzeServerArguments(QCoreApplication& app)
     : QObject(nullptr)
-    , m_oPort(QStringList() << CConstants::s_sSwitchPort << "p", TRT("Listening port."), TRT(CConstants::s_sSwitchPort), QString::number(DEFAULT_HTTP_PORT))
+    , m_oHttpPort(QStringList() << CConstants::s_sSwitchPort << "p", TRT("HTTP listening port."), TRT(CConstants::s_sSwitchPort), QString::number(DEFAULT_HTTP_PORT))
+    , m_oHttpsPort(QStringList() << CConstants::s_sSwitchHttpsPort, TRT("HTTPS listening port (0 disables HTTPS)."), TRT(CConstants::s_sSwitchHttpsPort), QString::number(0))
+    , m_oSslCert(QStringList() << CConstants::s_sSwitchSslCert, TRT("SSL certificate file in PEM format."), TRT(CConstants::s_sSwitchSslCert), QString())
+    , m_oSslKey(QStringList() << CConstants::s_sSwitchSslKey, TRT("SSL private key file in PEM format."), TRT(CConstants::s_sSwitchSslKey), QString())
 {
     CConstants::initCommandMap();
 
@@ -29,7 +32,7 @@ CAzeServerArguments::CAzeServerArguments(QCoreApplication& app)
     QCoreApplication::setApplicationVersion(AZE_VERSION_STRING);
 
     // Set option array
-    m_tParser.addOptions({ m_oPort });
+    m_tParser.addOptions({ m_oHttpPort, m_oHttpsPort, m_oSslCert, m_oSslKey });
 
     // Finalize option array
     m_tParser.addHelpOption();

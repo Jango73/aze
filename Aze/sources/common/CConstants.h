@@ -96,6 +96,9 @@ public:
 
     // Server switches
     static const char* s_sSwitchPort;
+    static const char* s_sSwitchHttpsPort;
+    static const char* s_sSwitchSslCert;
+    static const char* s_sSwitchSslKey;
 
     // Error codes
     static const int s_iError_None;

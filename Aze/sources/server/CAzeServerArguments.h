@@ -18,7 +18,10 @@ public:
     CAzeServerArguments(QCoreApplication& app);
 
     QCommandLineParser      m_tParser;
-    QCommandLineOption      m_oPort;
+    QCommandLineOption      m_oHttpPort;
+    QCommandLineOption      m_oHttpsPort;
+    QCommandLineOption      m_oSslCert;
+    QCommandLineOption      m_oSslKey;
 };
 
 //-------------------------------------------------------------------------------------------------

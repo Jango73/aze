@@ -60,6 +60,9 @@ const char* CConstants::s_sSwitchVoid                       = "";
 // Server switches
 
 const char* CConstants::s_sSwitchPort                       = "port";
+const char* CConstants::s_sSwitchHttpsPort                 = "https-port";
+const char* CConstants::s_sSwitchSslCert                   = "ssl-cert";
+const char* CConstants::s_sSwitchSslKey                    = "ssl-key";
 
 //-------------------------------------------------------------------------------------------------
 // Error codes

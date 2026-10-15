@@ -10,7 +10,7 @@ qmake for Qt6 (see `README.md`). Layout:
 - `AzeLib/` (library): reusable versioning engine (`CRepository`, `CUtils`,
   `CCommitFunctions`, ...), plus `sources/google` (diff-match-patch) and the
   `dtl` git submodule (`AzeLib/sources/dtl`, branch `dev/conflict`).
-- `qt-plus/` (git submodule, branch `qt6`): shared Qt utility library. Check
+- `qt-plus/` (git submodule, branch `master`): shared Qt utility library. Check
   here first before adding helpers. Build files consumed here: `functions.pri`,
   `qt-plus-nolib-web.pri` (subset without multimedia/image/geo modules).
 - `Aze.pro` is the `subdirs` project (`AzeLib`, then `Aze`). There is no CMake
@@ -82,10 +82,15 @@ the commit message: lines follow each other directly.
 - Build (shadow): `./scripts/linux/build.sh [--debug|--release]`
   (`qmake6 Aze.pro CONFIG+=<debug|release>` in `build-<debug|release>`, then `make`).
   Builds `AzeLib` (`libaze[d].so`), then `Aze` (`aze[d]`).
+- Local CI: `./scripts/linux/ci-local.sh [--debug|--release]`
+  (local mirror of the GitHub CI: builds, then runs the unit tests via
+  `aze run-tests`, logs to `tmp/ci-local.log`). This is the only supported
+  way to run the tests. They run isolated in `tmp/aze-tests/` whatever the
+  current folder is.
+- Serve: `./scripts/linux/serve.sh [--debug|--release] [--http-only]`
+  (launches `aze serve` with HTTP+HTTPS by default, plain HTTP only with
+  `--http-only`, logs to `tmp/serve.log`).
 - Clean: `./scripts/linux/clean.sh [--debug|--release|--all]`
-- Run: `./scripts/linux/run.sh [--debug|--release] [-- <args>]`
-  (logs to `tmp/run.log`), e.g. `... -- run-tests` for the unit tests, which
-  run isolated in `tmp/aze-tests/` whatever the current folder is.
 
 ## Tool Execution Policy
 - `tmp/` at the repo root is the folder for temporary/scratch files. It is

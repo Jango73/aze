@@ -18,8 +18,5 @@ jobs:
       - name: Install dependencies
         run: ./scripts/linux/deps.sh
 
-      - name: Build Aze
-        run: ./scripts/linux/build.sh --release
-
-      - name: Run tests
-        run: ./scripts/linux/run.sh --release -- run-tests
+      - name: Local CI check (build + tests)
+        run: ./scripts/linux/ci-local.sh
