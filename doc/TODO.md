@@ -10,12 +10,19 @@
 - [x] TODO-005 - Add an `amend` test which verifies parent identifier preservation and message update.
 - [x] TODO-006 - Fix `CAzeClient::commit` which returns `s_iError_CouldNotRemoveFiles` on commit failure.
 
-## Branch creation and deletion
+## Branch creation, deletion and merge
 - [ ] TODO-007 - Propagate `create-branch` to the server because creation remains local without a dedicated route.
 - [ ] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
 - [ ] TODO-009 - Refuse deletion of an unmerged branch or an unknown branch in the engine or the client with a distinct error code.
 - [ ] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
 - [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
+- [ ] TODO-039 - Add the missing `merge` help text in `CConstants::initCommandMap` because every other branch command is documented there.
+- [ ] TODO-040 - Remove or repair the dead `CTwoWayMergeCommand.cpp` which redefines `CMergeCommand` with a stale two-argument constructor and is excluded from `AzeLib.pri`.
+- [ ] TODO-041 - Unify the self-merge guard in the engine because `CAzeClient::merge` refuses it by branch name while `CMergeCommand` refuses it by tip identifier with a different message.
+- [ ] TODO-042 - Return distinct error codes for merge failures (unknown branch, dirty working folder, nothing to merge) instead of reusing `s_iError_CouldNotMerge` on every path.
+- [ ] TODO-043 - Refuse `merge` when the stage is not empty because `CMergeCommand` overwrites merge parents without checking staged files.
+- [ ] TODO-044 - Handle fast forward in `CMergeCommand` when the current tip is an ancestor of the merged branch instead of creating a merge commit with two parents.
+- [ ] TODO-045 - Extend the conflict resolution test to verify both parents after resolving and committing because `testMergeErrorsAndResolution` checks file content only.
 
 ## Push client and server
 - [ ] TODO-012 - Store and apply the server response in `CAzeClient::onNetworkAccessFinished` which ignores success and errors.
