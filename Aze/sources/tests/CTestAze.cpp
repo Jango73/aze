@@ -916,9 +916,10 @@ void CTestAze::testMergeErrorsAndResolution()
     STAGE(sFile2Path);
     COMMIT("C1");
 
-    // Merge branch with self is refused with a message
+    // Merge branch with self is refused with a distinct code
     MERGE_BRANCH(sResult, "trunk");
-    QVERIFY(sResult == Aze::CError::message(Aze::CError::eCannotMergeSelf) + "\n");
+    QVERIFY(sResult == expectedCode(Aze::CError::eCannotMergeSelf));
+    QVERIFY(Aze::CError::eCannotMergeSelf != Aze::CError::eCouldNotMerge);
 
     // Merge unknown branch is refused with a distinct code
     MERGE_BRANCH(sResult, "no-such-branch");

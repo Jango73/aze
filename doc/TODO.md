@@ -19,7 +19,7 @@
 - [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
 - [x] TODO-039 - Add the missing `merge` help text in `CConstants::initCommandMap` because every other branch command is documented there.
 - [x] TODO-040 - Remove or repair the dead `CTwoWayMergeCommand.cpp` which redefines `CMergeCommand` with a stale two-argument constructor and is excluded from `AzeLib.pri`.
-- [ ] TODO-041 - Unify the self-merge guard in the engine because `CAzeClient::merge` refuses it by branch name while `CMergeCommand` refuses it by tip identifier with a different message.
+- [x] TODO-041 - Unify the self-merge guard in the engine because `CAzeClient::merge` refuses it by branch name while `CMergeCommand` refuses it by tip identifier with a different message.
 - [x] TODO-042 - Return distinct error codes for merge failures (unknown branch, dirty working folder, nothing to merge) instead of reusing `s_iError_CouldNotMerge` on every path.
 - [x] TODO-043 - Refuse `merge` when the stage is not empty because `CMergeCommand` overwrites merge parents without checking staged files.
 - [x] TODO-044 - Handle fast forward in `CMergeCommand` when the current tip is an ancestor of the merged branch instead of creating a merge commit with two parents.

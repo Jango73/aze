@@ -26,6 +26,7 @@ CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranc
 
 /*!
     Merges the branch \a m_sFromBranch onto the current branch. \br\br
+    Refuses a merge onto itself by branch name or by tip identifier. \br
     Refuses a non empty stage to avoid overwriting merge parents. \br
     Fast forwards the current branch when its tip is an ancestor of the
     merged branch instead of creating a merge commit with two parents,
@@ -48,6 +49,13 @@ CError::EErrorCode CMergeCommand::execute()
     {
         m_pRepository->tellError(CError::eNoCurrentBranch);
         return CError::eNoCurrentBranch;
+    }
+
+    // Refuse a merge onto itself by branch name
+    if (m_sFromBranch == m_pRepository->currentBranchName())
+    {
+        m_pRepository->tellError(CError::eCannotMergeSelf);
+        return CError::eCannotMergeSelf;
     }
 
     // Check presence of stage
@@ -81,7 +89,8 @@ CError::EErrorCode CMergeCommand::execute()
         return CError::eUnknownBranch;
     }
 
-    // Check if trying to merge a commit on itself (yes it may happen...)
+    // Refuse a merge onto itself by tip identifier
+    // Covers branches with distinct names pointing onto the same commit
     if (pFromBranch->tipCommitId() == m_pRepository->tipCommit()->id())
     {
         m_pRepository->tellError(CError::eCannotMergeSelf);

@@ -387,13 +387,7 @@ Aze::CError::EErrorCode CAzeClient::merge()
 
     QString sBranchName = m_tArguments.m_lFilesAndIds.takeFirst();
 
-    if (sBranchName == m_pRepository->currentBranchName())
-    {
-        (*m_pOutStream) << Aze::CError::message(Aze::CError::eCannotMergeSelf) << "\n";
-        m_pOutStream->flush();
-        return Aze::CError::eCannotMergeSelf;
-    }
-
+    // Merge the branch, the engine refuses a merge onto itself with a distinct code
     bool bHasConflicts = false;
     bool bAllowFastForward = not m_tArguments.m_tParser.isSet(m_tArguments.m_oNoFastForward);
     Aze::CError::EErrorCode eMergeCode = m_pRepository->merge(sBranchName, bHasConflicts, bAllowFastForward);
