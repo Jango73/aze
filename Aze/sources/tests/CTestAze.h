@@ -105,6 +105,12 @@ private slots:
     //! Tests delete-branch request applying through the server layer
     void testServeDeleteBranch();
 
+    //! Tests repository path confinement under the server base folder
+    void testServePathIsolation();
+
+    //! Tests bearer token extraction and comparison for server authentication
+    void testServeAuth();
+
     //! Tests pull convergence after push then pull
     void testPull();
 

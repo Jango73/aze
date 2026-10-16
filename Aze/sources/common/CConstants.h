@@ -110,6 +110,7 @@ public:
     static const char* s_sSwitchHttpsPort;
     static const char* s_sSwitchSslCert;
     static const char* s_sSwitchSslKey;
+    static const char* s_sSwitchAuthToken;
 
     // Text strings
     static const QString s_sAllFilesAreClean;

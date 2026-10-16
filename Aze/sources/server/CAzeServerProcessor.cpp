@@ -1,6 +1,8 @@
 
 // Qt
 #include <QDebug>
+#include <QDir>
+#include <QFileInfo>
 
 // Aze
 #include "CUtils.h"
@@ -74,12 +76,27 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
     {
         if (tContext.m_sContentType == MIME_Content_JSON)
         {
-            CXMLNode xRequest = CXMLNode::parseJSON(QString(tContext.m_baPostContent));
+            // Refuse unauthenticated callers before touching the file system
+            const QString sExpectedToken = m_pServer->authToken();
 
-            // Compose repository name
-            QString sRepositoryPath = QString("%1/%2")
-                    .arg(m_pServer->repositoriesBasePath())
-                    .arg(tContext.m_lPath.join(Aze::CStrings::s_sPathSep));
+            if (not sExpectedToken.isEmpty() && not tokensMatch(sExpectedToken, authorizationBearerToken(tContext.m_mRequestHeaders)))
+            {
+                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotAuthorized).toJsonString();
+                sCustomResponseMIME = MIME_Content_JSON;
+                return;
+            }
+
+            // Confine the requested repository under the base folder
+            QString sRepositoryPath;
+
+            if (not resolveRepositoryPath(m_pServer->repositoriesBasePath(), tContext.m_lPath, sRepositoryPath))
+            {
+                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, tContext.m_lPath.join(Aze::CStrings::s_sPathSep)).toJsonString();
+                sCustomResponseMIME = MIME_Content_JSON;
+                return;
+            }
+
+            CXMLNode xRequest = CXMLNode::parseJSON(QString(tContext.m_baPostContent));
 
             Aze::CRepository repository(sRepositoryPath);
 
@@ -89,7 +106,7 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
             }
             else
             {
-                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, sRepositoryPath).toJsonString();
+                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, tContext.m_lPath.join(Aze::CStrings::s_sPathSep)).toJsonString();
             }
 
             sCustomResponseMIME = MIME_Content_JSON;
@@ -106,6 +123,101 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
         sCustomResponseMIME = MIME_Content_JSON;
     }
 }
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Extracts the bearer token from generic request headers in \a mHeaders. \br\br
+    The header name match is case-insensitive and the \c Bearer scheme prefix is stripped.
+    Returns an empty string when no authorization header is present.
+*/
+QString CAzeServerProcessor::authorizationBearerToken(const QMap<QString, QString>& mHeaders)
+{
+    QString sValue;
+
+    for (auto iHeader = mHeaders.constBegin(); iHeader != mHeaders.constEnd(); iHeader++)
+    {
+        if (iHeader.key().compare(QStringLiteral("Authorization"), Qt::CaseInsensitive) == 0)
+        {
+            sValue = iHeader.value().trimmed();
+            break;
+        }
+    }
+
+    if (sValue.startsWith(QStringLiteral("Bearer "), Qt::CaseInsensitive))
+        return sValue.mid(7).trimmed();
+
+    return sValue;
+}
+
+/************************************************************************/
+
+/*!
+    Compares \a sExpected with \a sProvided without early exit on content. \br\br
+    Returns false when the sizes differ or when the expected token is empty.
+*/
+bool CAzeServerProcessor::tokensMatch(const QString& sExpected, const QString& sProvided)
+{
+    const QByteArray aExpected = sExpected.toUtf8();
+    const QByteArray aProvided = sProvided.toUtf8();
+
+    if (aExpected.isEmpty() || aExpected.size() != aProvided.size())
+        return false;
+
+    int iDiff = 0;
+
+    for (int iIndex = 0; iIndex < aExpected.size(); iIndex++)
+        iDiff |= (aExpected[iIndex] ^ aProvided[iIndex]);
+
+    return iDiff == 0;
+}
+
+/************************************************************************/
+
+/*!
+    Resolves \a lSegments under \a sBasePath into \a sResolvedPath. \br\br
+    Rejects empty segments, current and parent folder markers and drive
+    specifications, then verifies the cleaned path stays under the base
+    folder, including canonical resolution against symbolic links when the
+    folders exist on disk. Returns false on any traversal attempt.
+*/
+bool CAzeServerProcessor::resolveRepositoryPath(const QString& sBasePath, const QStringList& lSegments, QString& sResolvedPath)
+{
+    if (lSegments.isEmpty())
+        return false;
+
+    for (const QString& sSegment : lSegments)
+    {
+        if (sSegment.isEmpty() || sSegment == QStringLiteral(".") || sSegment == QStringLiteral(".."))
+            return false;
+
+        if (sSegment.contains(QLatin1Char('/')) || sSegment.contains(QLatin1Char('\\')) || sSegment.contains(QLatin1Char(':')))
+            return false;
+    }
+
+    const QString sBaseAbsolute = QDir::cleanPath(QDir(sBasePath).absolutePath());
+    const QString sCandidate = QDir::cleanPath(sBaseAbsolute + QLatin1Char('/') + lSegments.join(QLatin1Char('/')));
+
+    if (sCandidate != sBaseAbsolute && not sCandidate.startsWith(sBaseAbsolute + QLatin1Char('/')))
+        return false;
+
+    const QString sCanonicalBase = QFileInfo(sBaseAbsolute).canonicalFilePath();
+    const QString sCanonicalCandidate = QFileInfo(sCandidate).canonicalFilePath();
+
+    if (not sCanonicalBase.isEmpty() && not sCanonicalCandidate.isEmpty())
+    {
+        if (sCanonicalCandidate != sCanonicalBase && not sCanonicalCandidate.startsWith(sCanonicalBase + QLatin1Char('/')))
+            return false;
+
+        sResolvedPath = sCanonicalCandidate;
+        return true;
+    }
+
+    sResolvedPath = sCandidate;
+    return true;
+}
+
+/************************************************************************/
 
 //-------------------------------------------------------------------------------------------------
 

@@ -49,6 +49,15 @@ protected:
     //!
     CXMLNode serveRequest(CWebContext& tContext, const CXMLNode& xRequest, Aze::CRepository* pRepository);
 
+    //! Extracts the bearer token from generic request headers
+    static QString authorizationBearerToken(const QMap<QString, QString>& mHeaders);
+
+    //! Compares two tokens without early exit on content
+    static bool tokensMatch(const QString& sExpected, const QString& sProvided);
+
+    //! Resolves request path segments under sBasePath, returns false on traversal attempt
+    static bool resolveRepositoryPath(const QString& sBasePath, const QStringList& lSegments, QString& sResolvedPath);
+
     //!
     static CXMLNode servePull(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 

@@ -124,6 +124,16 @@ Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
             setupRemoteHost(sRemoteHostName);
     }
 
+    // Send the bearer token when one is configured, the command line
+    // switch takes precedence over the AZE_AUTH_TOKEN environment variable
+    QString sAuthToken = m_tArguments.m_tParser.value(m_tArguments.m_oAuthToken);
+
+    if (sAuthToken.isEmpty())
+        sAuthToken = QString::fromLocal8Bit(qgetenv("AZE_AUTH_TOKEN"));
+
+    if (not sAuthToken.isEmpty())
+        m_tNetworkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(sAuthToken).toUtf8());
+
     m_pNetworkAccessManager->post(m_tNetworkRequest, xRequest.toJsonString().simplified().toUtf8());
 
     while (not m_bNetworkAccessFinished)

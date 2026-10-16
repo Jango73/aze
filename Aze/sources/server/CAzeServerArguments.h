@@ -22,6 +22,7 @@ public:
     QCommandLineOption      m_oHttpsPort;
     QCommandLineOption      m_oSslCert;
     QCommandLineOption      m_oSslKey;
+    QCommandLineOption      m_oAuthToken;
 };
 
 //-------------------------------------------------------------------------------------------------

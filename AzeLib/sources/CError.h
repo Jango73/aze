@@ -84,7 +84,8 @@ public:
         eCannotDeleteUnmergedBranch           = 0x39,
         ePullRequestInvalid                   = 0x3A,
         eDeleteBranchRequestInvalid           = 0x3B,
-        eInvalidHttpsConfiguration            = 0x3C
+        eInvalidHttpsConfiguration            = 0x3C,
+        eNotAuthorized                        = 0x3D
     };
 
     Q_ENUM(EErrorCode)

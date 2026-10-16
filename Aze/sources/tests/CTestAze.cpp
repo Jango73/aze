@@ -31,6 +31,9 @@ class CServePushProbe : public CAzeServerProcessor
 public:
     using CAzeServerProcessor::servePush;
     using CAzeServerProcessor::serveDeleteBranch;
+    using CAzeServerProcessor::authorizationBearerToken;
+    using CAzeServerProcessor::tokensMatch;
+    using CAzeServerProcessor::resolveRepositoryPath;
 };
 
 // For debug info on tests, swap next two lines
@@ -1364,6 +1367,65 @@ void CTestAze::testServeDeleteBranch()
         QVERIFY(oCheckRepository.ok());
         QVERIFY(not QFile(oCheckRepository.database()->composeBranchFileName("unmerged")).exists());
     }
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testServePathIsolation()
+{
+    const QString sBase = QDir(m_sRootPath).absolutePath();
+    QString sResolved;
+
+    // A plain repository name stays under the base folder
+    QVERIFY(CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "repo", sResolved));
+    QCOMPARE(sResolved, QDir::cleanPath(sBase + "/repo"));
+
+    // Nested folders under the base folder are accepted
+    QVERIFY(CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "group" << "repo", sResolved));
+    QCOMPARE(sResolved, QDir::cleanPath(sBase + "/group/repo"));
+
+    // Parent folder markers are refused wherever they appear
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "..", sResolved));
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "repo" << ".." << "other", sResolved));
+
+    // Current folder markers and empty segments are refused
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << ".", sResolved));
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "", sResolved));
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList(), sResolved));
+
+    // Embedded separators and drive specifications are refused
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a/b", sResolved));
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a\\b", sResolved));
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "C:", sResolved));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testServeAuth()
+{
+    // Bearer scheme prefix is stripped, header name match is case-insensitive
+    QMap<QString, QString> mBearer;
+    mBearer["Authorization"] = "Bearer s3cret";
+    QCOMPARE(CServePushProbe::authorizationBearerToken(mBearer), QString("s3cret"));
+
+    QMap<QString, QString> mLower;
+    mLower["authorization"] = "Bearer s3cret";
+    QCOMPARE(CServePushProbe::authorizationBearerToken(mLower), QString("s3cret"));
+
+    // A raw token without scheme is accepted as-is
+    QMap<QString, QString> mRaw;
+    mRaw["Authorization"] = "s3cret";
+    QCOMPARE(CServePushProbe::authorizationBearerToken(mRaw), QString("s3cret"));
+
+    // A missing header yields an empty token
+    QCOMPARE(CServePushProbe::authorizationBearerToken(QMap<QString, QString>()), QString());
+
+    // Comparison accepts the expected token only
+    QVERIFY(CServePushProbe::tokensMatch("s3cret", "s3cret"));
+    QVERIFY(not CServePushProbe::tokensMatch("s3cret", "wrong"));
+    QVERIFY(not CServePushProbe::tokensMatch("s3cret", "s3cret-longer"));
+    QVERIFY(not CServePushProbe::tokensMatch("s3cret", QString()));
+    QVERIFY(not CServePushProbe::tokensMatch(QString(), QString()));
 }
 
 //-------------------------------------------------------------------------------------------------
