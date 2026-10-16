@@ -99,6 +99,9 @@ private slots:
     //! Tests push request building and applying to another repository
     void testRemotePush();
 
+    //! Tests push request applying through the server layer
+    void testServePush();
+
     //! Tests pull convergence after push then pull
     void testPull();
 

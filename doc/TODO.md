@@ -31,7 +31,7 @@
 - [ ] TODO-014 - Replace the busy wait in `CAzeClient::postNetworkRequest` with asynchronous handling without `processEvents`.
 - [x] TODO-015 - Return the error response in `CAzeServerProcessor::getContent` because the built error node is never assigned to the response.
 - [x] TODO-016 - Remove the unused `CRepository::getPushRequest` declaration without a definition in `CRepository.cpp`.
-- [ ] TODO-017 - Add an HTTP test for `servePush` because only the engine is covered by `testRemotePush` without server or command line interface.
+- [x] TODO-017 - Add an HTTP test for `servePush` because only the engine is covered by `testRemotePush` without server or command line interface.
 
 ## Pull client and server
 - [x] TODO-018 - Implement `applyPullResponse` and `getPullResponse` in `CRemoteRepository` because only `getPullRequest` exists without commit and object payload.

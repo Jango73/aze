@@ -20,7 +20,16 @@
 // Application
 #include "../client/CAzeClient.h"
 #include "../common/CConstants.h"
+#include "../server/CAzeServerProcessor.h"
 #include "CTestAze.h"
+
+// Exposes the protected server handler to the test without touching
+// production headers: servePush is static, so no server instance is needed.
+class CServePushProbe : public CAzeServerProcessor
+{
+public:
+    using CAzeServerProcessor::servePush;
+};
 
 // For debug info on tests, swap next two lines
 #define SILENT_OR_DEBUG CConstants::s_sSwitchSilent
@@ -1145,6 +1154,104 @@ void CTestAze::testRemotePush()
     CXMLNode xBadRequest = CXMLNode::parseJSON(xRequest.toJsonString());
     xBadRequest.attributes()[Aze::CStrings::s_sParamTip] = "00";
     QVERIFY(oTargetRemote.applyPushRequest(xBadRequest, sDetail) == Aze::CError::ePushRequestInvalid);
+
+    QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testServePush()
+{
+    QString sFilePath = "Files/ServePush.txt";
+    QString sContent("Served push content.");
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sContent));
+    STAGE(sFilePath);
+    COMMIT("P1");
+
+    // Build a push request from this repository
+    Aze::CRepository oSourceRepository(m_sRootPath);
+    QVERIFY(oSourceRepository.ok());
+
+    Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+    CXMLNode xRequest = oSourceRemote.getPushRequest();
+    QVERIFY(xRequest.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamPush);
+
+    // Simulate the HTTP wire with a JSON round-trip of the POST body
+    CXMLNode xReceived = CXMLNode::parseJSON(xRequest.toJsonString());
+    QVERIFY(xReceived.attributes()[Aze::CStrings::s_sParamTip] == oSourceRepository.tipCommit()->id());
+
+    // Prepare an empty target repository outside of the source folder
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sRemotePath = oParent.absoluteFilePath("aze-tests-remote");
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    Aze::CRepository oTargetRepository(sRemotePath);
+    QVERIFY(oTargetRepository.init() == Aze::CError::eNone);
+
+    // Apply the push request through the server layer
+    CWebContext tContext;
+    CXMLNode xResponse = CServePushProbe::servePush(&oTargetRepository, tContext, xReceived);
+
+    // Simulate the HTTP wire back with a JSON round-trip of the response body
+    CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+    QVERIFY(Aze::CError::fromResultNode(xDelivered) == Aze::CError::eNone);
+
+    // Check the pushed branch tip from a fresh repository instance
+    Aze::CRepository oCheckRepository(sRemotePath);
+    QVERIFY(oCheckRepository.ok());
+    QCOMPARE(oCheckRepository.tipCommit()->id(), oSourceRepository.tipCommit()->id());
+
+    // Check file content round-trips through transferred objects
+    Aze::CCommit* pTipCommit = oCheckRepository.database()->getCommit(oCheckRepository.tipCommit()->id(), this);
+    QCOMPARE(QString(pTipCommit->fileContent(oCheckRepository.database(), sFilePath)), sContent);
+    delete pTipCommit;
+
+    // Pushing the same tip again through the server succeeds
+    {
+        Aze::CRepository oFreshTarget(sRemotePath);
+        QVERIFY(oFreshTarget.ok());
+        CXMLNode xAgain = CServePushProbe::servePush(&oFreshTarget, tContext, xReceived);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xAgain.toJsonString())) == Aze::CError::eNone);
+    }
+
+    // Pushing a rewritten tip that does not contain the target tip is refused
+    Aze::CRepository oAmendedRepository(m_sRootPath);
+    QVERIFY(oAmendedRepository.amend("CTestAze", "Rewritten") == Aze::CError::eNone);
+    QVERIFY(oAmendedRepository.writeCurrentBranch() == Aze::CError::eNone);
+
+    // Use a fresh instance so the rewritten tip is read back from the branch file
+    Aze::CRepository oRewrittenRepository(m_sRootPath);
+    Aze::CRemoteRepository oAmendedRemote(&oRewrittenRepository);
+    CXMLNode xRewritten = oAmendedRemote.getPushRequest();
+    QVERIFY(xRewritten.attributes()[Aze::CStrings::s_sParamTip] != oSourceRepository.tipCommit()->id());
+    CXMLNode xRewrittenReceived = CXMLNode::parseJSON(xRewritten.toJsonString());
+
+    {
+        Aze::CRepository oFreshTarget(sRemotePath);
+        QVERIFY(oFreshTarget.ok());
+        CXMLNode xRejected = CServePushProbe::servePush(&oFreshTarget, tContext, xRewrittenReceived);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xRejected.toJsonString())) == Aze::CError::ePushNotFastForward);
+    }
+
+    // Push with an unknown tip is refused
+    CXMLNode xBadRequest = CXMLNode::parseJSON(xRequest.toJsonString());
+    xBadRequest.attributes()[Aze::CStrings::s_sParamTip] = "00";
+
+    {
+        Aze::CRepository oFreshTarget(sRemotePath);
+        QVERIFY(oFreshTarget.ok());
+        CXMLNode xBadResponse = CServePushProbe::servePush(&oFreshTarget, tContext, xBadRequest);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xBadResponse.toJsonString())) == Aze::CError::ePushRequestInvalid);
+    }
 
     QVERIFY(QDir(sRemotePath).removeRecursively());
 }
