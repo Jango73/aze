@@ -31,7 +31,12 @@ CError::EErrorCode CPatchCommand::execute()
         return CError::eCouldNotPatch;
 
     // Apply the patchs
-    return m_pRepository->commitFunctions()->applyDiff(sDiff);
+    CError::EErrorCode eCode = m_pRepository->commitFunctions()->applyDiff(sDiff);
+
+    if (eCode == CError::eNone)
+        m_pRepository->invalidateWorkingFolderCache();
+
+    return eCode;
 }
 
 //-------------------------------------------------------------------------------------------------

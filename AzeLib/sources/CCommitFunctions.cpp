@@ -707,6 +707,8 @@ CError::EErrorCode CCommitFunctions::applyDiff(const QString& sFullDiff, bool bA
         }
     }
 
+    m_pFileHashCache->clear();
+
     return CError::eNone;
 }
 
@@ -870,6 +872,8 @@ CError::EErrorCode CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit
         }
     }
 
+    m_pFileHashCache->clear();
+
     // Warn about conflict files
     if (bHasConflicts && not m_bSilent)
     {
@@ -927,7 +931,7 @@ CCommit* CCommitFunctions::folderAsCommit(QObject* owner, QString sRootPath)
 /*!
     Drops all entries of the working folder hash cache. \br\br
     Call this after the working folder content is replaced by commit, merge,
-    received push or branch switch (see TODO-037). \br
+    received push or branch switch. \br
 */
 void CCommitFunctions::clearFileHashCache()
 {

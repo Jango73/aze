@@ -167,6 +167,12 @@ CError::EErrorCode CPushCommand::updateBranch()
     pBranch->toNode().save(sBranchFileName);
     delete pBranch;
 
+    if (m_sBranchName == m_pRepository->currentBranchName())
+    {
+        m_pRepository->refreshCurrentBranch();
+        m_pRepository->invalidateCaches();
+    }
+
     return CError::eNone;
 }
 

@@ -45,6 +45,8 @@ CError::EErrorCode CPopStashCommand::execute()
                 m_pRepository->stagingCommit()->addCommit(m_pRepository->database(), pStash->stage());
             }
 
+            m_pRepository->invalidateWorkingFolderCache();
+
             return CError::eNone;
         }
         else

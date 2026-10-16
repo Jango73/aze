@@ -117,6 +117,9 @@ private slots:
     //! Tests the working folder hash cache (hits, misses and invalidation)
     void testFileHashCache();
 
+    //! Tests cache invalidation after commit, merge, received push and branch switch on the same instance
+    void testCacheInvalidation();
+
     //! Tests that the commit parent cache persists in binary format
     void testCommitTreeListBinaryCache();
     void testCommitTreeListTextCache();

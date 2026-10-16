@@ -456,6 +456,65 @@ void CRepository::refreshCurrentBranch()
 {
     m_pCurrentBranch.clear();
     m_pCurrentBranch.get();
+    invalidateStatusCache();
+    m_pCommitFunctions->clearFileHashCache();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops the cached file status. \br\br
+    The status depends on tip, stage and working folder, so every mutation
+    of one of them invalidates it and the next checkStatus reads again. \br
+*/
+void CRepository::invalidateStatusCache()
+{
+    m_eStatus = CEnums::eUnknown;
+    m_lFiles.clear();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops the cached tip and root commits and the cached file status. \br\br
+    Both lazy commits derive from the current branch tip, so they are
+    reloaded from the updated branch on next access. \br
+*/
+void CRepository::invalidateCommitCache()
+{
+    m_pTipCommit.clear();
+    m_pRootCommit.clear();
+    invalidateStatusCache();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops the working folder hash cache and the cached file status. \br\br
+    Stored size and modification time entries no longer describe the
+    replaced working folder content, so identifiers are recomputed from
+    file content on next access. \br
+*/
+void CRepository::invalidateWorkingFolderCache()
+{
+    m_pCommitFunctions->clearFileHashCache();
+    invalidateStatusCache();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Drops the cached tip and root commits, the working folder hash cache
+    and the cached file status. \br\br
+    Call this after commit, amend, merge, received push and branch switch,
+    which replace history, working folder content, or both (see TODO-037). \br
+*/
+void CRepository::invalidateCaches()
+{
+    m_pCommitFunctions->clearFileHashCache();
+    m_pTipCommit.clear();
+    m_pRootCommit.clear();
+    invalidateStatusCache();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -488,6 +547,7 @@ CError::EErrorCode CRepository::clearStage()
     if (not m_pStagingCommit.isNull())
     {
         m_pStagingCommit.set(new CCommit(this));
+        invalidateStatusCache();
 
         return CError::eNone;
     }

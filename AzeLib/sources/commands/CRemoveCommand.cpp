@@ -32,6 +32,8 @@ CError::EErrorCode CRemoveCommand::execute()
             return eCode;
     }
 
+    m_pRepository->invalidateWorkingFolderCache();
+
     return CError::eNone;
 }
 

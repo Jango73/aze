@@ -85,6 +85,8 @@ CError::EErrorCode CAmendCommand::execute()
         m_pRepository->currentBranch()->setRootCommitId(sNewCommitId);
     }
 
+    m_pRepository->invalidateCaches();
+
     return CError::eNone;
 }
 

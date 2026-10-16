@@ -74,6 +74,8 @@ CError::EErrorCode CCommitCommand::execute()
         m_pRepository->currentBranch()->setRootCommitId(sNewCommitId);
     }
 
+    m_pRepository->invalidateCaches();
+
     return CError::eNone;
 }
 

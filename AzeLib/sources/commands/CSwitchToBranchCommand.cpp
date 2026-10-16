@@ -69,6 +69,8 @@ CError::EErrorCode CSwitchToBranchCommand::execute()
         return CError::eStashPopFailed;
     }
 
+    m_pRepository->invalidateCaches();
+
     return CError::eNone;
 }
 

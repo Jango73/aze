@@ -54,6 +54,8 @@ CError::EErrorCode CRevertCommand::execute()
             return eCode;
     }
 
+    m_pRepository->invalidateWorkingFolderCache();
+
     return CError::eNone;
 }
 

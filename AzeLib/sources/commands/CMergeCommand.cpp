@@ -154,6 +154,8 @@ CError::EErrorCode CMergeCommand::execute()
 
         m_bHasConflicts = false;
 
+        m_pRepository->invalidateCaches();
+
         return CError::eNone;
     }
 
@@ -182,6 +184,8 @@ CError::EErrorCode CMergeCommand::execute()
                 .arg(m_sFromBranch)
                 .arg(m_pRepository->currentBranchName())
                 );
+
+    m_pRepository->invalidateCaches();
 
     return eMergeCode;
 }

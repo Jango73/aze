@@ -136,7 +136,7 @@ void CFileHashCache::invalidateFile(const QString& sAbsoluteFileName)
 /*!
     Drops all stored entries, keeping hit and miss counters unchanged. \br\br
     Call this after the working folder content is replaced by commit, merge,
-    received push or branch switch (see TODO-037). \br
+    received push or branch switch. \br
 */
 void CFileHashCache::clear()
 {

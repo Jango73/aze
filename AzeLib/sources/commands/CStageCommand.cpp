@@ -32,6 +32,8 @@ CError::EErrorCode CStageCommand::execute()
             return eCode;
     }
 
+    m_pRepository->invalidateStatusCache();
+
     return CError::eNone;
 }
 

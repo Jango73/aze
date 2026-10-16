@@ -58,5 +58,5 @@
 - [x] TODO-034 - Persist `CCommitTreeList` in binary format as indicated by the TODO marker instead of text XML.
 - [x] TODO-035 - Save the cache only when `dirty` is true because the destructor writes the file on each destruction.
 - [x] TODO-036 - Copy `m_mCommitParentList` and flags in the assignment operator and copy constructor of `CCommitTreeList`.
-- [ ] TODO-037 - Invalidate the commit cache and the working folder cache after commit, merge, received push and branch switch.
+- [x] TODO-037 - Invalidate the commit cache and the working folder cache after commit, merge, received push and branch switch.
 - [ ] TODO-038 - Handle files missing left or right in `threeWayMerge` as indicated by the TODO marker in `CCommitFunctions`.

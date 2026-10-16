@@ -179,6 +179,21 @@ public:
     //! Needed when switching branches
     void refreshCurrentBranch();
 
+    //! Drops the cached file status so the next check reads tip, stage and working folder again
+    void invalidateStatusCache();
+
+    //! Drops the cached tip and root commits and the cached file status
+    //! Needed after the branch tip changes (commit, amend, fast forward, received push)
+    void invalidateCommitCache();
+
+    //! Drops the working folder hash cache and the cached file status
+    //! Needed after the working folder content is replaced (merge, revert, switch, pull checkout, stash, patch, move, remove)
+    void invalidateWorkingFolderCache();
+
+    //! Drops the cached tip and root commits, the working folder hash cache and the cached file status
+    //! Needed after operations that replace both history and working folder (commit, merge, received push, branch switch)
+    void invalidateCaches();
+
     //! Writes the current branch
     CError::EErrorCode writeCurrentBranch();
 

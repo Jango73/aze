@@ -257,7 +257,12 @@ CError::EErrorCode CPullCommand::updateCurrentBranch()
         m_pRepository->currentBranch()->setTipCommitId(m_sServerTipId);
         m_pRepository->writeCurrentBranch();
 
-        return checkoutTipFiles(m_sServerTipId);
+        CError::EErrorCode eCheckoutCode = checkoutTipFiles(m_sServerTipId);
+
+        if (eCheckoutCode == CError::eNone)
+            m_pRepository->invalidateCaches();
+
+        return eCheckoutCode;
     }
 
     QList<QPair<int, QString>> lServerAncestors = m_pRepository->commitFunctions()->getCommitAncestorList(
@@ -334,6 +339,8 @@ CError::EErrorCode CPullCommand::checkoutTipFiles(const QString& sTipId)
             return CError::eObjectStoreFailed;
         }
     }
+
+    m_pRepository->invalidateWorkingFolderCache();
 
     return CError::eNone;
 }
