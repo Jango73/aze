@@ -31,6 +31,9 @@ CFile::CFile(const CFile& target)
 
 CFile& CFile::operator = (const CFile& target)
 {
+    if (this == &target)
+        return *this;
+
     m_sRelativeName = target.m_sRelativeName;
     m_eStatus = target.m_eStatus;
 

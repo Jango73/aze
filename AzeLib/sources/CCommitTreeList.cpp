@@ -80,9 +80,14 @@ CCommitTreeList::~CCommitTreeList()
 
 CCommitTreeList& CCommitTreeList::operator = (const CCommitTreeList& target)
 {
+    if (this == &target)
+        return *this;
+
     m_pDatabase = target.m_pDatabase;
     m_bSilent = target.m_bSilent;
     m_bDebug = target.m_bDebug;
+    m_bDirty = target.m_bDirty;
+    m_sFileName = target.m_sFileName;
     m_mCommitParentList = target.m_mCommitParentList;
     return *this;
 }
