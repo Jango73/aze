@@ -157,8 +157,9 @@ Creates a branch.
 ### `aze delete-branch`
 Deletes a branch.
 ```
-    aze delete-branch <branch-name>
+    aze delete-branch <branch-name> [-f]
 ```
+* `-f`, `--force` : delete the branch even when it is not merged into the current branch.
 
 ### `aze set-branch`
 Switches to a branch.

@@ -47,6 +47,7 @@ const char* CConstants::s_sSwitchAuthor                     = "author";
 const char* CConstants::s_sSwitchClean                      = "clean";
 const char* CConstants::s_sSwitchCount                      = "count";
 const char* CConstants::s_sSwitchDeleted                    = "deleted";
+const char* CConstants::s_sSwitchForce                      = "force";
 const char* CConstants::s_sSwitchGraph                      = "graph";
 const char* CConstants::s_sSwitchIgnored                    = "ignored";
 const char* CConstants::s_sSwitchLoose                      = "loose";
@@ -122,7 +123,7 @@ void CConstants::initCommandMap()
     s_mHelp[CConstants::s_sSwitchClone]                 = tr("Clones a repository from a server into a new folder.");
     s_mHelp[CConstants::s_sSwitchCommit]                = tr("Creates a commit from the stage.");
     s_mHelp[CConstants::s_sSwitchCreateBranch]          = tr("Creates a branch.");
-    s_mHelp[CConstants::s_sSwitchDeleteBranch]          = tr("Deletes a branch.");
+    s_mHelp[CConstants::s_sSwitchDeleteBranch]          = tr("Deletes a branch. Use --force to delete a branch not merged into the current branch.");
     s_mHelp[CConstants::s_sSwitchDiff]                  = tr("Shows a diff between two commits or files.");
     s_mHelp[CConstants::s_sSwitchDump]                  = tr("Dumps the content of a database object.");
     s_mHelp[CConstants::s_sSwitchHelp]                  = tr("Shows the help text.");

@@ -50,8 +50,10 @@ Aze::CError::EErrorCode CAzeClient::deleteBranch()
 
     QString sBranchName = m_tArguments.m_lFilesAndIds[0];
 
-    // Delete the branch, engine refuses the current branch with a distinct code
-    return m_pRepository->deleteBranch(sBranchName);
+    bool bForce = m_tArguments.m_tParser.isSet(m_tArguments.m_oForce);
+
+    // Delete the branch, engine refuses the current branch and, without force, unmerged branches with distinct codes
+    return m_pRepository->deleteBranch(sBranchName, bForce);
 }
 
 //-------------------------------------------------------------------------------------------------

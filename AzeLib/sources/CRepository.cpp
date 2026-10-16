@@ -2,6 +2,7 @@
 // Qt
 #include <QDebug>
 #include <QDir>
+#include <QSet>
 
 // Application
 #include "CRepository.h"
@@ -163,9 +164,12 @@ CError::EErrorCode CRepository::createBranch(const QString& sName)
 /*!
     Deletes, if it exists, the branch named \a sName. \br\br
     Refuses the current branch to avoid leaving the repository without a branch. \br
-    Returns eCannotDeleteCurrentBranch, eBranchDoesNotExist or eCouldNotDeleteBranch on failure. \br
+    Refuses a branch not merged into the current branch to avoid losing commits,
+    unless \a bForce is true. \br
+    A branch is merged when its tip is the current tip or is reachable from it. \br
+    Returns eCannotDeleteCurrentBranch, eCannotDeleteUnmergedBranch, eBranchDoesNotExist or eCouldNotDeleteBranch on failure. \br
 */
-CError::EErrorCode CRepository::deleteBranch(const QString& sName)
+CError::EErrorCode CRepository::deleteBranch(const QString& sName, bool bForce)
 {
     if (sName == m_sCurrentBranchName)
     {
@@ -179,6 +183,63 @@ CError::EErrorCode CRepository::deleteBranch(const QString& sName)
     {
         tellError(CError::eBranchDoesNotExist, sName);
         return CError::eBranchDoesNotExist;
+    }
+
+    CBranch* pBranchToDelete = m_pDatabase->getBranch(sName, nullptr);
+
+    if (IS_NULL(pBranchToDelete))
+    {
+        tellError(CError::eCouldNotDeleteBranch, sName);
+        return CError::eCouldNotDeleteBranch;
+    }
+
+    QString sTargetTipId = pBranchToDelete->tipCommitId();
+    delete pBranchToDelete;
+
+    // A branch without tip holds no commit, deletion loses nothing
+    if (not bForce and not sTargetTipId.isEmpty())
+    {
+        QString sCurrentTipId;
+
+        if (not m_pCurrentBranch.isNull())
+            sCurrentTipId = m_pCurrentBranch->tipCommitId();
+
+        bool bMerged = (sTargetTipId == sCurrentTipId);
+
+        if (not bMerged and not sCurrentTipId.isEmpty())
+        {
+            QSet<QString> sVisited;
+            QStringList lQueue;
+
+            sVisited << sCurrentTipId;
+            lQueue << sCurrentTipId;
+
+            while (not lQueue.isEmpty() and not bMerged)
+            {
+                QString sCommitId = lQueue.takeFirst();
+
+                if (sCommitId == sTargetTipId)
+                {
+                    bMerged = true;
+                    break;
+                }
+
+                for (const QString& sParentId : m_pCommitFunctions->commitTreeList()->commitParentIds(sCommitId))
+                {
+                    if (not sVisited.contains(sParentId))
+                    {
+                        sVisited << sParentId;
+                        lQueue << sParentId;
+                    }
+                }
+            }
+        }
+
+        if (not bMerged)
+        {
+            tellError(CError::eCannotDeleteUnmergedBranch, sName);
+            return CError::eCannotDeleteUnmergedBranch;
+        }
     }
 
     if (not QFile::remove(sBranchFileName))

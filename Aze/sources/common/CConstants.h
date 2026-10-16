@@ -92,6 +92,7 @@ public:
     static const char* s_sSwitchClean;
     static const char* s_sSwitchCount;
     static const char* s_sSwitchDeleted;
+    static const char* s_sSwitchForce;
     static const char* s_sSwitchGraph;
     static const char* s_sSwitchIgnored;
     static const char* s_sSwitchLoose;

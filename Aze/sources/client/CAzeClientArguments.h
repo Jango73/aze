@@ -27,6 +27,7 @@ public:
     QCommandLineOption      m_oModified;
     QCommandLineOption      m_oAdded;
     QCommandLineOption      m_oDeleted;
+    QCommandLineOption      m_oForce;
     QCommandLineOption      m_oMissing;
     QCommandLineOption      m_oIgnored;
     QCommandLineOption      m_oAuthor;

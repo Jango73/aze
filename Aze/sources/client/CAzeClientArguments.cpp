@@ -23,6 +23,7 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
     , m_oModified(QStringList() << CConstants::s_sSwitchModified, TRT("Include modified files."))
     , m_oAdded(QStringList() << CConstants::s_sSwitchAdded, TRT("Include added files."))
     , m_oDeleted(QStringList() << CConstants::s_sSwitchDeleted, TRT("Include deleted files."))
+    , m_oForce(QStringList() << "f" << CConstants::s_sSwitchForce, TRT("Force deletion of a branch not merged into the current branch."))
     , m_oMissing(QStringList() << CConstants::s_sSwitchMissing, TRT("Include missing files."))
     , m_oIgnored(QStringList() << CConstants::s_sSwitchIgnored, TRT("Include ignored files."))
     , m_oAuthor(QStringList() << "a" << CConstants::s_sSwitchAuthor, TRT("Set commit author to <author>."), TRT(CConstants::s_sSwitchAuthor))
@@ -49,7 +50,8 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
                              m_oClean,
                              m_oModified,
                              m_oAdded,
-                             m_oDeleted,
+                              m_oDeleted,
+                              m_oForce,
                              m_oMissing,
                              m_oIgnored,
                              m_oAuthor,

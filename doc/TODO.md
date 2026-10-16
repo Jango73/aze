@@ -13,7 +13,8 @@
 ## Branch creation, deletion and merge
 - [x] TODO-007 - Propagate `create-branch` through `push` because the push request carries branch, root and tip and creates the missing branch on the server.
 - [x] TODO-008 - Move branch deletion guards into the engine because only the client refuses the current branch.
-- [ ] TODO-009 - Refuse deletion of an unmerged branch with a distinct error code (unknown branches are refused with `eBranchDoesNotExist`).
+- [x] TODO-009 - Refuse deletion of an unmerged branch with a distinct error code (unknown branches are refused with `eBranchDoesNotExist`).
+- [x] TODO-046 - Add a `force` option to `delete-branch` which deletes a branch not merged into the current branch because TODO-009 refuses it without an override.
 - [ ] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
 - [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
 - [x] TODO-039 - Add the missing `merge` help text in `CConstants::initCommandMap` because every other branch command is documented there.

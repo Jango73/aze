@@ -104,6 +104,14 @@
     b \
     })
 
+#define DELETE_BRANCH_FORCE(a, b) \
+    a = exec({ \
+    CConstants::s_sSwitchDeleteBranch, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    QString("--%1").arg(CConstants::s_sSwitchForce), \
+    b \
+    })
+
 #define DIFF_LAST(a) \
     a = exec({ \
     CConstants::s_sSwitchDiff, "tip~1 tip > " \
@@ -1031,6 +1039,28 @@ void CTestAze::testMergeErrorsAndResolution()
     DELETE_BRANCH(sResult, "no-such-branch");
     QVERIFY(sResult == expectedCode(Aze::CError::eBranchDoesNotExist));
     QVERIFY(Aze::CError::eBranchDoesNotExist != Aze::CError::eCouldNotDeleteBranch);
+
+    // Delete unmerged branch is refused with a distinct code
+    CREATE_BRANCH("doomed");
+    SWITCH_TO_BRANCH("doomed");
+    QVERIFY(createFile(sFile1Path, sTrunk1));
+    STAGE(sFile1Path);
+    COMMIT("D1");
+    SWITCH_TO_BRANCH("trunk");
+    DELETE_BRANCH(sResult, "doomed");
+    QVERIFY(sResult == expectedCode(Aze::CError::eCannotDeleteUnmergedBranch));
+    QVERIFY(Aze::CError::eCannotDeleteUnmergedBranch != Aze::CError::eBranchDoesNotExist);
+    QVERIFY(Aze::CError::eCannotDeleteUnmergedBranch != Aze::CError::eCouldNotDeleteBranch);
+
+    // Force deletion removes the unmerged branch and its branch file
+    DELETE_BRANCH_FORCE(sResult, "doomed");
+    QVERIFY(sResult == expectedCode(Aze::CError::eNone));
+
+    {
+        Aze::CRepository oCheckRepository(m_sRootPath);
+        QVERIFY(oCheckRepository.ok());
+        QVERIFY(not QFile(oCheckRepository.database()->composeBranchFileName("doomed")).exists());
+    }
 }
 
 //-------------------------------------------------------------------------------------------------

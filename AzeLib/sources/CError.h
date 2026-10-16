@@ -80,7 +80,8 @@ public:
         eUnknownAction                      = 0x35,
         eEmptyRequest                       = 0x36,
         eCouldNotClone                        = 0x37,
-        eCloneRequestInvalid                  = 0x38
+        eCloneRequestInvalid                  = 0x38,
+        eCannotDeleteUnmergedBranch           = 0x39
     };
 
     Q_ENUM(EErrorCode)

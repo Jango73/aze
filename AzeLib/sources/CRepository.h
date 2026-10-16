@@ -100,7 +100,8 @@ public:
     CError::EErrorCode createBranch(const QString& sName);
 
     //! Deletes the branch sName
-    CError::EErrorCode deleteBranch(const QString& sName);
+    //! bForce deletes a branch not merged into the current branch
+    CError::EErrorCode deleteBranch(const QString& sName, bool bForce = false);
 
     //! Sets the current branch to sName
     CError::EErrorCode switchToBranch(const QString& sName, bool bAllowFileDelete = false);
