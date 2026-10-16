@@ -22,7 +22,7 @@
 - [x] TODO-042 - Return distinct error codes for merge failures (unknown branch, dirty working folder, nothing to merge) instead of reusing `s_iError_CouldNotMerge` on every path.
 - [x] TODO-043 - Refuse `merge` when the stage is not empty because `CMergeCommand` overwrites merge parents without checking staged files.
 - [x] TODO-044 - Handle fast forward in `CMergeCommand` when the current tip is an ancestor of the merged branch instead of creating a merge commit with two parents.
-- [ ] TODO-045 - Extend the conflict resolution test to verify both parents after resolving and committing because `testMergeErrorsAndResolution` checks file content only.
+- [x] TODO-045 - Extend the conflict resolution test to verify both parents after resolving and committing because `testMergeErrorsAndResolution` checks file content only.
 
 ## Push client and server
 - [x] TODO-012 - Store and apply the server response in `CAzeClient::onNetworkAccessFinished` which ignores success and errors.

@@ -874,6 +874,8 @@ void CTestAze::testMergeErrorsAndResolution()
     QString sFile2Path = "Files/MergeExt2.txt";
     QString sFileContent;
     QString sResult;
+    QString sTrunkTipId;
+    QString sSideTipId;
 
     QString sBase1("base1\n");
     QString sBase2("base2\n");
@@ -948,10 +950,25 @@ void CTestAze::testMergeErrorsAndResolution()
     STAGE(sFile2Path);
     COMMIT("T2");
 
+    {
+        Aze::CRepository oTrunkRepository(m_sRootPath);
+        QVERIFY(oTrunkRepository.ok());
+        sTrunkTipId = oTrunkRepository.tipCommit()->id();
+        QVERIFY(not sTrunkTipId.isEmpty());
+    }
+
     SWITCH_TO_BRANCH("side");
     QVERIFY(createFile(sFile2Path, sSide2));
     STAGE(sFile2Path);
     COMMIT("S2");
+
+    {
+        Aze::CRepository oSideRepository(m_sRootPath);
+        QVERIFY(oSideRepository.ok());
+        sSideTipId = oSideRepository.tipCommit()->id();
+        QVERIFY(not sSideTipId.isEmpty());
+        QVERIFY(sSideTipId != sTrunkTipId);
+    }
 
     // Merge reports conflicts, clean file is merged, conflicting file is marked
     SWITCH_TO_BRANCH("trunk");
@@ -975,6 +992,22 @@ void CTestAze::testMergeErrorsAndResolution()
 
     QVERIFY(readFile(sFile2Path, sFileContent));
     QVERIFY(sFileContent == sResolved);
+
+    // Resolution commit keeps both parents, proving a true merge
+    {
+        Aze::CRepository oResolvedRepository(m_sRootPath);
+        QVERIFY(oResolvedRepository.ok());
+        QVERIFY(oResolvedRepository.tipCommit()->isMerge());
+        QCOMPARE(oResolvedRepository.tipCommit()->message(), QString("R1"));
+        QStringList lParents = oResolvedRepository.tipCommit()->parents();
+        QVERIFY(lParents.count() == 2);
+        QVERIFY(lParents.contains(sTrunkTipId));
+        QVERIFY(lParents.contains(sSideTipId));
+    }
+
+    // Graph still shows a fork below the resolution commit
+    LOG_GRAPH(sResult);
+    QVERIFY(sResult.contains("\\  "));
 
     // Nothing left to merge is refused with a distinct code
     MERGE_BRANCH(sResult, "side");
