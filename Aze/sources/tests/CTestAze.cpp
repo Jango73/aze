@@ -1022,11 +1022,16 @@ void CTestAze::testMergeErrorsAndResolution()
     QVERIFY(sResult == expectedCode(Aze::CError::eNothingToMerge));
     QVERIFY(Aze::CError::eNothingToMerge != Aze::CError::eCouldNotMerge);
 
-    // Delete merged branch, trunk history stays readable
+    // Successful deletion removes the branch file, trunk history stays readable
     DELETE_BRANCH(sResult, "side");
     QVERIFY(sResult == expectedCode(Aze::CError::eNone));
 
-    SWITCH_TO_BRANCH("side");
+    {
+        Aze::CRepository oCheckRepository(m_sRootPath);
+        QVERIFY(oCheckRepository.ok());
+        QVERIFY(not QFile(oCheckRepository.database()->composeBranchFileName("side")).exists());
+    }
+
     LOG(sResult);
     QVERIFY(sResult.contains("R1"));
 
