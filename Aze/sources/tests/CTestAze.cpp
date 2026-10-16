@@ -1316,7 +1316,85 @@ void CTestAze::testPull()
     QString sConflictedContent = Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sFilePath));
     QVERIFY(sConflictedContent.contains("<<<<<<<"));
     QVERIFY(sConflictedContent.contains(">>>>>>>"));
-    QVERIFY(sConflictedContent.contains("Local divergent") || sConflictedContent.contains("Remote divergent"));
+    QVERIFY(sConflictedContent.contains("Local divergent") && sConflictedContent.contains("Remote divergent"));
+
+    // Resolve the conflict with the local content before pulling again
+    QVERIFY(createFile(QString("%1/%2").arg(sPullPath).arg(sFilePath), sLocalContent));
+
+    {
+        Aze::CRepository oResolveRepository(sPullPath);
+        QVERIFY(oResolveRepository.ok());
+        QString sAbsoluteFile = QString("%1/%2").arg(sPullPath).arg(sFilePath);
+        QVERIFY(oResolveRepository.stage(QStringList() << sAbsoluteFile) == Aze::CError::eNone);
+        QVERIFY(oResolveRepository.writeStage() == Aze::CError::eNone);
+        QVERIFY(oResolveRepository.commit(m_sAuthor, "Resolve") == Aze::CError::eNone);
+        QVERIFY(oResolveRepository.writeCurrentBranch() == Aze::CError::eNone);
+        QVERIFY(oResolveRepository.clearStage() == Aze::CError::eNone);
+        QVERIFY(oResolveRepository.writeStage() == Aze::CError::eNone);
+    }
+
+    // Single line files without trailing newline keep conflict markers too
+    QString sSinglePath = "Files/PullSingleLine.txt";
+    QVERIFY(createFile(sSinglePath, "single"));
+    STAGE(sSinglePath);
+    COMMIT("Single base");
+
+    Aze::CRepository oSingleSource(m_sRootPath);
+    CXMLNode xSinglePush = CXMLNode::parseJSON(Aze::CRemoteRepository(&oSingleSource).getPushRequest().toJsonString());
+    QVERIFY(oRemoteTarget.applyPushRequest(xSinglePush, sDetail) == Aze::CError::eNone);
+
+    {
+        Aze::CRepository oSinglePull(sPullPath);
+        Aze::CRemoteRepository oSingleRemote(&oSinglePull);
+        CXMLNode xSingleRequest = CXMLNode::parseJSON(oSingleRemote.getPullRequest().toJsonString());
+
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        CXMLNode xSingleResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xSingleRequest).toJsonString());
+        QVERIFY(oSingleRemote.applyPullResponse(xSingleResponse, sDetail) == Aze::CError::eNone);
+    }
+
+    QVERIFY(createFile(QString("%1/%2").arg(sPullPath).arg(sSinglePath), "local-single"));
+
+    {
+        Aze::CRepository oLocalRepository(sPullPath);
+        QVERIFY(oLocalRepository.ok());
+        QString sAbsoluteSingleFile = QString("%1/%2").arg(sPullPath).arg(sSinglePath);
+        QVERIFY(oLocalRepository.stage(QStringList() << sAbsoluteSingleFile) == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeStage() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.commit(m_sAuthor, "Local single") == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeCurrentBranch() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.clearStage() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeStage() == Aze::CError::eNone);
+    }
+
+    QVERIFY(createFile(sSinglePath, "remote-single"));
+    STAGE(sSinglePath);
+    COMMIT("Remote single");
+
+    Aze::CRepository oSingleDiverged(m_sRootPath);
+    CXMLNode xSingleDivergedPush = CXMLNode::parseJSON(Aze::CRemoteRepository(&oSingleDiverged).getPushRequest().toJsonString());
+    QVERIFY(oRemoteTarget.applyPushRequest(xSingleDivergedPush, sDetail) == Aze::CError::eNone);
+
+    Aze::CRepository oSinglePull(sPullPath);
+    Aze::CRemoteRepository oSingleRemote(&oSinglePull);
+    CXMLNode xSingleDivergedRequest = CXMLNode::parseJSON(oSingleRemote.getPullRequest().toJsonString());
+    CXMLNode xSingleDivergedResponse;
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        xSingleDivergedResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xSingleDivergedRequest).toJsonString());
+    }
+
+    QVERIFY(oSingleRemote.applyPullResponse(xSingleDivergedResponse, sDetail) == Aze::CError::eMergeHasConflicts);
+
+    QString sSingleConflicted = Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sSinglePath));
+    QVERIFY(sSingleConflicted.contains("<<<<<<<"));
+    QVERIFY(sSingleConflicted.contains(">>>>>>>"));
+    QVERIFY(sSingleConflicted.contains("local-single") && sSingleConflicted.contains("remote-single"));
 
     // Unknown branches are refused with a distinct code
     CXMLNode xUnknownRequest("");
