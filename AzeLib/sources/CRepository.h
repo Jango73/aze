@@ -203,9 +203,6 @@ public:
     //! Returns the diff between tip commit and working directory, if any
     QString diffWorkingDirectory();
 
-    //!
-    QString getPushRequest();
-
     //-------------------------------------------------------------------------------------------------
     // Instantiators
     //-------------------------------------------------------------------------------------------------
