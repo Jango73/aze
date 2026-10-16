@@ -50,6 +50,7 @@ CCommitTreeList::CCommitTreeList(CDatabase* pDatabase, QObject* parent, bool bSi
     {
         fromNode(CXMLNode::load(sOtherFileName));
         QFile::remove(sOtherFileName);
+        m_bDirty = true;
     }
     else
     {
@@ -69,7 +70,10 @@ CCommitTreeList::CCommitTreeList(const CCommitTreeList& target)
 
 CCommitTreeList::~CCommitTreeList()
 {
-    toNode().save(m_sFileName);
+    if (m_bDirty)
+    {
+        toNode().save(m_sFileName);
+    }
 }
 
 //-------------------------------------------------------------------------------------------------
