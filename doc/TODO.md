@@ -46,7 +46,7 @@
 - [x] TODO-025 - Add a `clone` test which verifies branches, branch tip and file content after cloning.
 
 ## General server
-- [ ] TODO-026 - Route `delete-branch` requests in `CAzeServerProcessor` which handles only `pull`, `push` and `clone`.
+- [x] TODO-026 - Route `delete-branch` requests in `CAzeServerProcessor` which handles only `pull`, `push` and `clone`.
 - [x] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
 - [x] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
 - [ ] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.

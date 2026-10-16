@@ -620,6 +620,53 @@ CError::EErrorCode CRemoteRepository::applyPushRequest(const CXMLNode& xRequest,
     return updateBranchFromPush(sBranchName, sRootId, sTipId, lCommitIds, sDetail);
 }
 
+/************************************************************************/
+
+/*!
+    Returns the request for a delete-branch. \br\br
+    The request carries the branch name and the force flag, the server
+    deletes the branch with CRepository::deleteBranch. \br
+*/
+CXMLNode CRemoteRepository::getDeleteBranchRequest(const QString& sBranchName, bool bForce)
+{
+    CXMLNode xRequest("");
+
+    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamDeleteBranch;
+    xRequest.attributes()[CStrings::s_sParamBranch] = sBranchName;
+    xRequest.attributes()[CStrings::s_sParamForce] = bForce ? QStringLiteral("true") : QStringLiteral("false");
+
+    return xRequest;
+}
+
+/************************************************************************/
+
+/*!
+    Applies \a xRequest as a branch deletion to the local repository. \br\br
+    The request carries the branch name and the force flag. \br
+    Sets \a sDetail and returns the failure reason when the request is invalid. \br
+*/
+CError::EErrorCode CRemoteRepository::applyDeleteBranchRequest(const CXMLNode& xRequest, QString& sDetail)
+{
+    QString sBranchName = xRequest.attributes()[CStrings::s_sParamBranch];
+    QString sForce = xRequest.attributes()[CStrings::s_sParamForce];
+
+    if (xRequest.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamDeleteBranch
+            || sBranchName.isEmpty())
+    {
+        sDetail = CError::message(CError::eDeleteBranchRequestInvalid);
+        return CError::eDeleteBranchRequestInvalid;
+    }
+
+    bool bForce = (sForce == QStringLiteral("true") || sForce == QStringLiteral("1"));
+
+    CError::EErrorCode eCode = m_pLocalRepository->deleteBranch(sBranchName, bForce);
+
+    if (eCode != CError::eNone)
+        sDetail = sBranchName;
+
+    return eCode;
+}
+
 //-------------------------------------------------------------------------------------------------
 
 CError::EErrorCode CRemoteRepository::storeRequestObjects(const CXMLNode& xRequest, QString& sDetail)

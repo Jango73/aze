@@ -58,6 +58,9 @@ protected:
     //!
     static CXMLNode serveClone(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
+    //!
+    static CXMLNode serveDeleteBranch(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
+
     //-------------------------------------------------------------------------------------------------
     // Properties
     //-------------------------------------------------------------------------------------------------

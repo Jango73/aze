@@ -23,12 +23,14 @@
 #include "../server/CAzeServerProcessor.h"
 #include "CTestAze.h"
 
-// Exposes the protected server handler to the test without touching
-// production headers: servePush is static, so no server instance is needed.
+// Exposes the protected server handlers to the test without touching
+// production headers: servePush and serveDeleteBranch are static,
+// so no server instance is needed.
 class CServePushProbe : public CAzeServerProcessor
 {
 public:
     using CAzeServerProcessor::servePush;
+    using CAzeServerProcessor::serveDeleteBranch;
 };
 
 // For debug info on tests, swap next two lines
@@ -1254,6 +1256,114 @@ void CTestAze::testServePush()
     }
 
     QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testServeDeleteBranch()
+{
+    QString sFilePath = "Files/ServeDeleteBranch.txt";
+    QString sContent("Served delete branch content.");
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sContent));
+    STAGE(sFilePath);
+    COMMIT("P1");
+
+    CREATE_BRANCH("doomed");
+
+    Aze::CRepository oServerRepository(m_sRootPath);
+    QVERIFY(oServerRepository.ok());
+
+    Aze::CRemoteRepository oServerRemote(&oServerRepository);
+    CWebContext tContext;
+
+    // The delete-branch request carries the branch name and the force flag
+    CXMLNode xRequest = oServerRemote.getDeleteBranchRequest("doomed", false);
+    QVERIFY(xRequest.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamDeleteBranch);
+    QCOMPARE(xRequest.attributes()[Aze::CStrings::s_sParamBranch], QString("doomed"));
+
+    // Simulate the HTTP wire with a JSON round-trip of the POST body
+    CXMLNode xReceived = CXMLNode::parseJSON(xRequest.toJsonString());
+    QVERIFY(xReceived.attributes()[Aze::CStrings::s_sParamBranch] == QString("doomed"));
+
+    // Apply the delete-branch request through the server layer
+    CXMLNode xResponse = CServePushProbe::serveDeleteBranch(&oServerRepository, tContext, xReceived);
+
+    // Simulate the HTTP wire back with a JSON round-trip of the response body
+    QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xResponse.toJsonString())) == Aze::CError::eNone);
+
+    // Check the branch file is gone from a fresh repository instance
+    {
+        Aze::CRepository oCheckRepository(m_sRootPath);
+        QVERIFY(oCheckRepository.ok());
+        QVERIFY(not QFile(oCheckRepository.database()->composeBranchFileName("doomed")).exists());
+    }
+
+    // Deleting an unknown branch through the server is refused
+    {
+        Aze::CRepository oFreshServer(m_sRootPath);
+        QVERIFY(oFreshServer.ok());
+        Aze::CRemoteRepository oFreshRemote(&oFreshServer);
+        CXMLNode xUnknown = CXMLNode::parseJSON(oFreshRemote.getDeleteBranchRequest("no-such-branch", false).toJsonString());
+        CXMLNode xUnknownResponse = CServePushProbe::serveDeleteBranch(&oFreshServer, tContext, xUnknown);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xUnknownResponse.toJsonString())) == Aze::CError::eBranchDoesNotExist);
+    }
+
+    // Deleting without a branch name through the server is refused
+    {
+        Aze::CRepository oFreshServer(m_sRootPath);
+        QVERIFY(oFreshServer.ok());
+        CXMLNode xBad("");
+        xBad.attributes()[Aze::CStrings::s_sParamRequest] = Aze::CStrings::s_sParamDeleteBranch;
+        CXMLNode xBadReceived = CXMLNode::parseJSON(xBad.toJsonString());
+        CXMLNode xBadResponse = CServePushProbe::serveDeleteBranch(&oFreshServer, tContext, xBadReceived);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xBadResponse.toJsonString())) == Aze::CError::eDeleteBranchRequestInvalid);
+    }
+
+    // Deleting the current branch through the server is refused
+    {
+        Aze::CRepository oFreshServer(m_sRootPath);
+        QVERIFY(oFreshServer.ok());
+        Aze::CRemoteRepository oFreshRemote(&oFreshServer);
+        CXMLNode xCurrent = CXMLNode::parseJSON(oFreshRemote.getDeleteBranchRequest(oFreshServer.currentBranchName(), true).toJsonString());
+        CXMLNode xCurrentResponse = CServePushProbe::serveDeleteBranch(&oFreshServer, tContext, xCurrent);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xCurrentResponse.toJsonString())) == Aze::CError::eCannotDeleteCurrentBranch);
+    }
+
+    // Deleting an unmerged branch without force is refused, with force it succeeds
+    CREATE_BRANCH("unmerged");
+    SWITCH_TO_BRANCH("unmerged");
+    QVERIFY(createFile(sFilePath, QString("Diverged content.")));
+    STAGE(sFilePath);
+    COMMIT("U1");
+    SWITCH_TO_BRANCH(Aze::CStrings::s_sDefaultBranchName);
+
+    {
+        Aze::CRepository oFreshServer(m_sRootPath);
+        QVERIFY(oFreshServer.ok());
+        Aze::CRemoteRepository oFreshRemote(&oFreshServer);
+        CXMLNode xUnmerged = CXMLNode::parseJSON(oFreshRemote.getDeleteBranchRequest("unmerged", false).toJsonString());
+        CXMLNode xUnmergedResponse = CServePushProbe::serveDeleteBranch(&oFreshServer, tContext, xUnmerged);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xUnmergedResponse.toJsonString())) == Aze::CError::eCannotDeleteUnmergedBranch);
+    }
+
+    {
+        Aze::CRepository oFreshServer(m_sRootPath);
+        QVERIFY(oFreshServer.ok());
+        Aze::CRemoteRepository oFreshRemote(&oFreshServer);
+        CXMLNode xForced = CXMLNode::parseJSON(oFreshRemote.getDeleteBranchRequest("unmerged", true).toJsonString());
+        QVERIFY(xForced.attributes()[Aze::CStrings::s_sParamForce] == QString("true"));
+        CXMLNode xForcedResponse = CServePushProbe::serveDeleteBranch(&oFreshServer, tContext, xForced);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xForcedResponse.toJsonString())) == Aze::CError::eNone);
+    }
+
+    {
+        Aze::CRepository oCheckRepository(m_sRootPath);
+        QVERIFY(oCheckRepository.ok());
+        QVERIFY(not QFile(oCheckRepository.database()->composeBranchFileName("unmerged")).exists());
+    }
 }
 
 //-------------------------------------------------------------------------------------------------

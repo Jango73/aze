@@ -82,7 +82,8 @@ public:
         eCouldNotClone                        = 0x37,
         eCloneRequestInvalid                  = 0x38,
         eCannotDeleteUnmergedBranch           = 0x39,
-        ePullRequestInvalid                   = 0x3A
+        ePullRequestInvalid                   = 0x3A,
+        eDeleteBranchRequestInvalid           = 0x3B
     };
 
     Q_ENUM(EErrorCode)

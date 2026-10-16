@@ -73,6 +73,7 @@ QString CError::message(EErrorCode eCode)
     case eCloneRequestInvalid: return tr("Invalid clone response.");
     case eCannotDeleteUnmergedBranch: return tr("Cannot delete unmerged branch.");
     case ePullRequestInvalid: return tr("Invalid pull request.");
+    case eDeleteBranchRequestInvalid: return tr("Invalid delete branch request.");
     }
 
     return tr("Generic error.");
@@ -165,7 +166,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
     if (bOk == false)
         return eGeneric;
 
-    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(ePullRequestInvalid))
+    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eDeleteBranchRequestInvalid))
         return static_cast<EErrorCode>(iCode);
 
     return eGeneric;

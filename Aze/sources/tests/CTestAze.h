@@ -102,6 +102,9 @@ private slots:
     //! Tests push request applying through the server layer
     void testServePush();
 
+    //! Tests delete-branch request applying through the server layer
+    void testServeDeleteBranch();
+
     //! Tests pull convergence after push then pull
     void testPull();
 

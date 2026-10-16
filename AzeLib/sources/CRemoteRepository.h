@@ -76,6 +76,15 @@ public:
     //! sDetail optionally receives message detail (object identifier, branch name)
     CError::EErrorCode applyPushRequest(const CXMLNode& xRequest, QString& sDetail);
 
+    //! Returns the request for delete-branch
+    //! Carries the branch name and the force flag
+    CXMLNode getDeleteBranchRequest(const QString& sBranchName, bool bForce = false);
+
+    //! Applies a delete-branch request to the local repository
+    //! Returns eNone on success, the precise failure reason otherwise
+    //! sDetail optionally receives message detail (branch name)
+    CError::EErrorCode applyDeleteBranchRequest(const CXMLNode& xRequest, QString& sDetail);
+
 protected:
 
     //-------------------------------------------------------------------------------------------------

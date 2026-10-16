@@ -23,7 +23,7 @@
     AZE Request format
 
     {
-    "request": "<Type of request: pull, push or clone>"
+    "request": "<Type of request: pull, push, clone or delete-branch>"
     "branch": "<Name of branch>"
     "root": "<Root commit Id of the pushed branch>"
     "tip": "<Tip commit Id>"
@@ -42,6 +42,7 @@
     A pull response carries the requested branch with its name plus
     every commit reachable from the server tip and every object
     referenced by those commits.
+    A delete-branch request carries the branch name and the force flag.
 */
 
 //-------------------------------------------------------------------------------------------------
@@ -53,6 +54,7 @@ CAzeServerProcessor::CAzeServerProcessor(CAzeServer* parent, quint16 iPort)
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPull] = servePull;
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPush] = servePush;
     m_mRequestFunctionMap[Aze::CStrings::s_sParamClone] = serveClone;
+    m_mRequestFunctionMap[Aze::CStrings::s_sParamDeleteBranch] = serveDeleteBranch;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -161,6 +163,21 @@ CXMLNode CAzeServerProcessor::serveClone(Aze::CRepository* pRepository, CWebCont
     Aze::CRemoteRepository oRemoteRepository(pRepository);
 
     return oRemoteRepository.getCloneResponse();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+CXMLNode CAzeServerProcessor::serveDeleteBranch(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest)
+{
+    Q_UNUSED(tContext)
+
+    QString sDetail;
+
+    Aze::CRemoteRepository oRemoteRepository(pRepository);
+
+    Aze::CError::EErrorCode eCode = oRemoteRepository.applyDeleteBranchRequest(xRequest, sDetail);
+
+    return Aze::CError::toResultNode(eCode, sDetail);
 }
 
 //-------------------------------------------------------------------------------------------------

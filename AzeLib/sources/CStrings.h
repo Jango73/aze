@@ -38,9 +38,11 @@ public:
     static const QString s_sParamCommitTreeList;
     static const QString s_sParamCurrent;
     static const QString s_sParamDate;
+    static const QString s_sParamDeleteBranch;
     static const QString s_sParamDiff;
     static const QString s_sParamError;
     static const QString s_sParamFiles;
+    static const QString s_sParamForce;
     static const QString s_sParamId;
     static const QString s_sParamInfo;
     static const QString s_sParamIsMerge;
