@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
 
     if (argc > 1 && QString(argv[1]) == "serve")
     {
-        return CAzeServer(argc, argv).exec();
+        CAzeServer oServer(argc, argv);
+        return oServer.run();
     }
 
     return Aze::CError::toExitCode(CAzeClient(argc, argv).run());

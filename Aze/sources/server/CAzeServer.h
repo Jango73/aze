@@ -45,6 +45,15 @@ public:
     // Control methods
     //-------------------------------------------------------------------------------------------------
 
+    //! Returns the HTTPS initialization error, eNone when the server can run
+    Aze::CError::EErrorCode initializationError() const;
+
+    //! Returns the detail of the HTTPS initialization error
+    QString initializationErrorDetail() const;
+
+    //! Runs the server event loop, returns a clean exit code on invalid HTTPS configuration
+    int run();
+
     //-------------------------------------------------------------------------------------------------
     // Properties
     //-------------------------------------------------------------------------------------------------
@@ -53,6 +62,8 @@ protected:
 
     CAzeServerArguments     m_tArguments;
     CAzeServerProcessor*    m_pProcessor;
+    Aze::CError::EErrorCode m_eInitializationError;
+    QString                 m_sInitializationDetail;
 };
 
 //-------------------------------------------------------------------------------------------------

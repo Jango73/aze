@@ -50,7 +50,7 @@
 - [x] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
 - [x] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
 - [ ] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.
-- [ ] TODO-030 - Avoid `qFatal` in `CAzeServer` on invalid HTTPS configuration and return a clean error code.
+- [x] TODO-030 - Avoid `qFatal` in `CAzeServer` on invalid HTTPS configuration and return a clean error code.
 
 ## Index and acceleration
 - [x] TODO-031 - Add a working folder hash cache keyed by path, size and modification time because `folderAsCommit` recomputes each identifier with `idFromByteArray`.
