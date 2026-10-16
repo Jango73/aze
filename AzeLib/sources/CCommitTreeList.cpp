@@ -51,7 +51,7 @@ CCommitTreeList& CCommitTreeList::operator = (const CCommitTreeList& target)
     m_pDatabase = target.m_pDatabase;
     m_bSilent = target.m_bSilent;
     m_bDebug = target.m_bDebug;
-    m_lCommitTreeList = target.m_lCommitTreeList;
+    m_mCommitParentList = target.m_mCommitParentList;
     return *this;
 }
 
@@ -59,7 +59,7 @@ CCommitTreeList& CCommitTreeList::operator = (const CCommitTreeList& target)
 
 bool CCommitTreeList::operator == (const CCommitTreeList& target)
 {
-    return m_lCommitTreeList == target.m_lCommitTreeList;
+    return m_mCommitParentList == target.m_mCommitParentList;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -77,7 +77,6 @@ CXMLNode CCommitTreeList::toNode()
     }
 
     xReturnValue.attributes()[CStrings::s_sParamCommitParentList] = lCommitParentList.join("|");
-    xReturnValue.attributes()[CStrings::s_sParamCommitTreeList] = "";
 
     return xReturnValue;
 }
@@ -98,8 +97,6 @@ void CCommitTreeList::fromNode(const CXMLNode& xNode)
 
         m_mCommitParentList[sId] = sParents.split(":");
     }
-
-    QString sToto = xNode.attributes()[CStrings::s_sParamCommitTreeList];
 }
 
 //-------------------------------------------------------------------------------------------------

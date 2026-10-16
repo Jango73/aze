@@ -10,7 +10,6 @@
 
 // qt-plus
 #include "Macros.h"
-#include "QTree.h"
 
 // Application
 #include "objects/CCommit.h"
@@ -25,11 +24,6 @@ namespace Aze {
 // Key is commit Id
 // Value is the commit's parent Ids
 typedef QMap<QString, QStringList> QCommitParentList;
-
-// A list of commit trees (parent-child relations)
-// First in pair is commit Id
-// Second in pair is the commit parent tree
-typedef QList<QPair<QString, QStringTree>> QCommitTreeList;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -97,7 +91,6 @@ protected:
 
     QString             m_sFileName;
     QCommitParentList   m_mCommitParentList;
-    QCommitTreeList     m_lCommitTreeList;
 };
 
 }
