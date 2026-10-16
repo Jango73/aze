@@ -2,6 +2,7 @@
 // Qt
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 
 // qt-plus
 #include "File/CDirectoryListing.h"
@@ -38,21 +39,49 @@ CCommitFunctions::~CCommitFunctions()
 
 CCommit* CCommitFunctions::getCommitAncestor(CDatabase* pDatabase, CCommit* pCommit, QObject* owner, int iDelta)
 {
-    QString pAncestor = pCommit->id();
+    if (IS_NULL(pCommit) || IS_NULL(pDatabase))
+        return nullptr;
+
+    QString sAncestorId = commitAncestorId(pCommit->id(), iDelta);
+
+    if (sAncestorId.isEmpty())
+        return nullptr;
+
+    CCommit* pAncestor = CCommit::fromId(pDatabase, sAncestorId, owner);
+
+    if (IS_NOT_NULL(pAncestor) && QFile::exists(pDatabase->composeCommitFileName(sAncestorId)))
+        m_pCommitTreeList->registerCommitParents(sAncestorId, pAncestor->parents());
+
+    return pAncestor;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Returns the identifier of the nth ancestor of a commit. \br\br
+    The ancestry walk follows first parents through the parent cache, so no
+    commit file is loaded during the walk. Only the caller decides whether
+    the resulting identifier needs a commit object loaded. \br
+    \a sCommitId is the starting commit identifier \br
+    \a iDelta is the number of first-parent steps to walk \br
+*/
+QString CCommitFunctions::commitAncestorId(const QString& sCommitId, int iDelta)
+{
+    if (sCommitId.isEmpty() || iDelta <= 0)
+        return "";
+
+    QString sAncestorId = sCommitId;
     int iGuard = 999999;
 
     while (true)
     {
-        QStringList parents = m_pCommitTreeList->commitParentIds(pAncestor);
+        QStringList lParents = m_pCommitTreeList->commitParentIds(sAncestorId);
 
-        if (parents.count() == 0)
-        {
-            pAncestor = "";
-            return nullptr;
-        }
+        if (lParents.count() == 0)
+            return "";
 
         // The first parent is the one to follow in order to stay on branch of pCommit
-        pAncestor = parents[0];
+        sAncestorId = lParents[0];
 
         iDelta--;
         iGuard--;
@@ -61,7 +90,95 @@ CCommit* CCommitFunctions::getCommitAncestor(CDatabase* pDatabase, CCommit* pCom
             break;
     }
 
-    return CCommit::fromId(pDatabase, pAncestor, owner);
+    return sAncestorId;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Caches the parent identifiers of a commit without loading any file. \br\br
+    Call this right after storing a new commit so later ancestor walks and
+    log traversals hit the cache instead of reloading the commit file. \br
+    \a sCommitId is the commit identifier to register \br
+    \a lParentIds are the parent identifiers to cache \br
+*/
+void CCommitFunctions::registerCommitParents(const QString& sCommitId, const QStringList& lParentIds)
+{
+    m_pCommitTreeList->registerCommitParents(sCommitId, lParentIds);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Stores a commit and caches its parents in one step. \br\br
+    This is the single write path for versioned commits: callers store
+    through here instead of CDatabase so the parent cache never misses on
+    freshly stored commits. \br
+    \a pCommit is the commit to store \br
+    \a sId forces the stored identifier, empty generates it from content \br
+*/
+QString CCommitFunctions::storeCommit(CCommit* pCommit, const QString& sId)
+{
+    if (IS_NULL(pCommit))
+        return "";
+
+    QString sStoredId = m_pDatabase->storeCommit(pCommit, sId);
+
+    if (not sStoredId.isEmpty())
+        m_pCommitTreeList->registerCommitParents(sStoredId, pCommit->parents());
+
+    return sStoredId;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Loads a commit and seeds the parent cache in one step. \br\br
+    This is the single read path for versioned commits: callers load through
+    here instead of CDatabase so every loaded commit warms the cache for
+    later ancestor walks and log traversals. Missing files resolve to null
+    without polluting the cache. \br
+    \a sCommitId is the commit identifier to load \br
+    \a parent is the owner of the returned commit \br
+*/
+CCommit* CCommitFunctions::loadCommit(const QString& sCommitId, QObject* parent)
+{
+    if (sCommitId.isEmpty())
+        return nullptr;
+
+    if (not QFile::exists(m_pDatabase->composeCommitFileName(sCommitId)))
+        return nullptr;
+
+    CCommit* pCommit = m_pDatabase->getCommit(sCommitId, parent);
+
+    if (IS_NOT_NULL(pCommit))
+        m_pCommitTreeList->registerCommitParents(sCommitId, pCommit->parents());
+
+    return pCommit;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Loads commits and seeds the parent cache in one step. \br\br
+    Empty identifiers resolve to no object, existing ones are loaded through
+    loadCommit so each warms the parent cache. \br
+    \a lCommitIds are the commit identifiers to load \br
+    \a parent is the owner of the returned commits \br
+*/
+QList<CCommit*> CCommitFunctions::loadCommitList(const QStringList& lCommitIds, QObject* parent)
+{
+    QList<CCommit*> lCommits;
+
+    for (const QString& sCommitId : lCommitIds)
+    {
+        CCommit* pCommit = loadCommit(sCommitId, parent);
+
+        if (IS_NOT_NULL(pCommit))
+            lCommits << pCommit;
+    }
+
+    return lCommits;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -300,12 +417,16 @@ QString CCommitFunctions::getCommonCommitChains(
     {
         for (int iTempKey : commonAncestors.keys())
         {
-            CCommit* pTempCommit = CCommit::fromId(m_pDatabase, commonAncestors[iTempKey].first, nullptr);
-            OUT_DEBUG(QString("Common ancestor at %1: %2")
-                      .arg(iTempKey)
-                      .arg(pTempCommit->message())
-                      );
-            delete pTempCommit;
+            CCommit* pTempCommit = loadCommit(commonAncestors[iTempKey].first, nullptr);
+
+            if (IS_NOT_NULL(pTempCommit))
+            {
+                OUT_DEBUG(QString("Common ancestor at %1: %2")
+                          .arg(iTempKey)
+                          .arg(pTempCommit->message())
+                          );
+                delete pTempCommit;
+            }
         }
     }
 

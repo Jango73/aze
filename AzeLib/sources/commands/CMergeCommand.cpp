@@ -82,7 +82,7 @@ CError::EErrorCode CMergeCommand::execute()
         return CError::eCannotMergeSelf;
     }
 
-    CCommit* pFromTipCommit = m_pRepository->database()->getCommit(pFromBranch->tipCommitId(), this);
+    CCommit* pFromTipCommit = m_pRepository->commitFunctions()->loadCommit(pFromBranch->tipCommitId(), this);
 
     // Check validity of 'from' branch tip commit
     if (IS_NULL(pFromTipCommit))
@@ -123,7 +123,7 @@ CError::EErrorCode CMergeCommand::execute()
         return CError::eDirtyWorkingFolder;
     }
 
-    CCommit* pCommonAncestor = CCommit::fromId(m_pRepository->database(), sCommonAncestorId, this);
+    CCommit* pCommonAncestor = m_pRepository->commitFunctions()->loadCommit(sCommonAncestorId, this);
     if (IS_NULL(pCommonAncestor))
     {
         m_pRepository->tellError(CError::eNoCommonAncestor);

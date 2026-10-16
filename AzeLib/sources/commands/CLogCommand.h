@@ -4,6 +4,11 @@
 // Global
 #include "../Aze_global.h"
 
+// Qt
+#include <QHash>
+#include <QMap>
+#include <QStringList>
+
 // Application
 #include "CBaseCommand.h"
 #include "../objects/CCommit.h"
@@ -44,6 +49,12 @@ protected:
     //!
     void outputBranches(int iCurrentBranch, bool bFirstLine);
 
+    //!
+    QMap<int, QString> nextParentLevel(const QMap<int, QString>& mCommitLevel, QHash<QString, int>& hAddedCommits);
+
+    //!
+    void outputCommitLevel(const QMap<int, QString>& mCommitLevel);
+
     //-------------------------------------------------------------------------------------------------
     // Properties
     //-------------------------------------------------------------------------------------------------
@@ -51,7 +62,7 @@ protected:
 protected:
 
     QStringList                 m_lFileNames;
-    QList<QMap<int, CCommit*>>  m_vBranches;
+    QList<QMap<int, QString>>   m_vBranchCommitIds;
     QString*                    m_pResult;
     bool                        m_bGraph;
     int                         m_iStart;

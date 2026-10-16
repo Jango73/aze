@@ -88,15 +88,15 @@ CError::EErrorCode CDiffCommand::execute()
 
         if (not sObject1.isEmpty() && not sObject2.isEmpty())
         {
-            pCommit1 = m_pRepository->database()->getCommit(sObject1, this);
-            pCommit2 = m_pRepository->database()->getCommit(sObject2, this);
+            pCommit1 = m_pRepository->commitFunctions()->loadCommit(sObject1, this);
+            pCommit2 = m_pRepository->commitFunctions()->loadCommit(sObject2, this);
         }
         else if (not sObject1.isEmpty() && sObject2.isEmpty())
         {
             if (m_pRepository->stagingCommit().isNull())
                 return CError::eNoStagingCommit;
 
-            pCommit1 = m_pRepository->database()->getCommit(sObject1, this);
+            pCommit1 = m_pRepository->commitFunctions()->loadCommit(sObject1, this);
             pCommit2 = m_pRepository->commitFunctions()->folderAsCommit(this);
         }
         else if (sObject1.isEmpty() && not sObject2.isEmpty())
@@ -104,7 +104,7 @@ CError::EErrorCode CDiffCommand::execute()
             if (m_pRepository->stagingCommit().isNull())
                 return CError::eNoStagingCommit;
 
-            pCommit1 = m_pRepository->database()->getCommit(sObject2, this);
+            pCommit1 = m_pRepository->commitFunctions()->loadCommit(sObject2, this);
             pCommit2 = m_pRepository->commitFunctions()->folderAsCommit(this);
         }
 

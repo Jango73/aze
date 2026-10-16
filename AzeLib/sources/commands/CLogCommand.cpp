@@ -54,49 +54,30 @@ CError::EErrorCode CLogCommand::execute()
         return CError::eNoTipCommit;
     }
 
-    // Keep track of shown commits
-    QHash<QString, int> hAddedCommits;
+    QString sTipId = m_pRepository->currentBranch()->tipCommitId();
 
-    // Get the starting commit
-    m_vBranches << QMap<int, CCommit*>();
-    m_vBranches.last()[0] = m_pRepository->tipCommit()->clone(this);
+    if (sTipId.isEmpty())
+    {
+        m_pRepository->tellError(CError::eNoTipCommit);
+        return CError::eNoTipCommit;
+    }
+
+    // Keep track of shown commits by identifier
+    // The walk below resolves parents through the parent cache, commit files
+    // are loaded only when a level is displayed
+    QHash<QString, int> hAddedCommits;
+    hAddedCommits[sTipId] = 0;
+
+    // Get the starting commit identifier
+    m_vBranchCommitIds << QMap<int, QString>();
+    m_vBranchCommitIds.last()[0] = sTipId;
 
     // We stop when no more branches to show
     while (true)
     {
         if (m_iStart == 0)
         {
-            // Iterate through each branch
-            for (int index = 0; index < m_vBranches.last().count(); index++)
-            {
-                CCommit* pCommit = m_vBranches.last()[index];
-
-                if (m_bGraph)
-                {
-                    outputBranches(index, index == 0);
-
-                    (*m_pResult) += QString("%1 - %2 - %3 - %4%5")
-                            .arg(pCommit->shortId())
-                            .arg(PRINTABLE_ISO_DATE(m_vBranches.last()[index]->date()))
-                            .arg(pCommit->author())
-                            .arg(pCommit->message())
-                            .arg(CStrings::s_sNewLine);
-                }
-                else
-                {
-                    (*m_pResult) += QString("%1%2%3%4by: %5%6%7%8%9%10")
-                            .arg(pCommit->id())
-                            .arg(CStrings::s_sNewLine)
-                            .arg(pCommit->date())
-                            .arg(CStrings::s_sNewLine)
-                            .arg(pCommit->author())
-                            .arg(CStrings::s_sNewLine)
-                            .arg(CStrings::s_sNewLine)
-                            .arg(pCommit->message())
-                            .arg(CStrings::s_sNewLine)
-                            .arg(CStrings::s_sNewLine);
-                }
-            }
+            outputCommitLevel(m_vBranchCommitIds.last());
 
             if (not bGetAllLog)
             {
@@ -110,61 +91,117 @@ CError::EErrorCode CLogCommand::execute()
             m_iStart--;
         }
 
-        QMap<int, CCommit*> mNewBranches;
-        int iNewBranchIndex = 0;
+        QMap<int, QString> mNewBranches = nextParentLevel(m_vBranchCommitIds.last(), hAddedCommits);
 
-        for (int index = 0; index < m_vBranches.last().count(); index++)
-        {
-            QList<CCommit*> lParents = m_pRepository->commitFunctions()->commitTreeList()->commitParentList(
-                        m_vBranches.last()[index],
-                        this
-                        );
+        m_vBranchCommitIds << mNewBranches;
 
-            for (CCommit* pCommit : lParents)
-            {
-                if (not hAddedCommits.contains(pCommit->id()))
-                {
-                    hAddedCommits[pCommit->id()] = 0;
-                    mNewBranches[iNewBranchIndex++] = pCommit;
-                }
-                else
-                {
-                    delete pCommit;
-                }
-            }
-        }
-
-        m_vBranches << mNewBranches;
-
-        if (m_vBranches.last().count() == 0)
+        if (m_vBranchCommitIds.last().count() == 0)
             break;
     }
 
-    for (QMap<int, CCommit*>& mLevel : m_vBranches)
-    {
-        qDeleteAll(mLevel.values());
-        mLevel.clear();
-    }
-
-    m_vBranches.clear();
+    m_vBranchCommitIds.clear();
 
     return CError::eNone;
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Collects the parent identifiers of a log level through the parent cache. \br\br
+    Each parent identifier is looked up once in CCommitTreeList, so already
+    visited ancestries perform no file access. Identifiers present in
+    \a hAddedCommits are skipped and new ones are recorded there. \br
+    \a mCommitLevel maps branch indexes to commit identifiers of the level \br
+    \a hAddedCommits tracks the identifiers already placed in the walk \br
+*/
+QMap<int, QString> CLogCommand::nextParentLevel(const QMap<int, QString>& mCommitLevel, QHash<QString, int>& hAddedCommits)
+{
+    QMap<int, QString> mNewBranches;
+    int iNewBranchIndex = 0;
+
+    for (int iIndex = 0; iIndex < mCommitLevel.count(); iIndex++)
+    {
+        QStringList lParentIds = m_pRepository->commitFunctions()->commitTreeList()->commitParentIds(
+                    mCommitLevel[iIndex]
+                    );
+
+        for (const QString& sParentId : lParentIds)
+        {
+            if (sParentId.isEmpty())
+                continue;
+
+            if (not hAddedCommits.contains(sParentId))
+            {
+                hAddedCommits[sParentId] = 0;
+                mNewBranches[iNewBranchIndex++] = sParentId;
+            }
+        }
+    }
+
+    return mNewBranches;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Outputs the commits of a log level. \br\br
+    Commit files are loaded here only, after the identifier walk has selected
+    the level to display, so skipped levels never touch commit files. \br
+    \a mCommitLevel maps branch indexes to commit identifiers of the level \br
+*/
+void CLogCommand::outputCommitLevel(const QMap<int, QString>& mCommitLevel)
+{
+    for (int iIndex = 0; iIndex < mCommitLevel.count(); iIndex++)
+    {
+        CCommit* pCommit = m_pRepository->commitFunctions()->loadCommit(mCommitLevel[iIndex], this);
+
+        if (IS_NULL(pCommit))
+            continue;
+
+        if (m_bGraph)
+        {
+            outputBranches(iIndex, iIndex == 0);
+
+            (*m_pResult) += QString("%1 - %2 - %3 - %4%5")
+                    .arg(pCommit->shortId())
+                    .arg(PRINTABLE_ISO_DATE(pCommit->date()))
+                    .arg(pCommit->author())
+                    .arg(pCommit->message())
+                    .arg(CStrings::s_sNewLine);
+        }
+        else
+        {
+            (*m_pResult) += QString("%1%2%3%4by: %5%6%7%8%9%10")
+                    .arg(pCommit->id())
+                    .arg(CStrings::s_sNewLine)
+                    .arg(pCommit->date())
+                    .arg(CStrings::s_sNewLine)
+                    .arg(pCommit->author())
+                    .arg(CStrings::s_sNewLine)
+                    .arg(CStrings::s_sNewLine)
+                    .arg(pCommit->message())
+                    .arg(CStrings::s_sNewLine)
+                    .arg(CStrings::s_sNewLine);
+        }
+
+        delete pCommit;
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void CLogCommand::outputBranches(int iCurrentBranch, bool bFirstLine)
 {
-    for (int index = 0; index < m_vBranches.last().count(); index++)
+    for (int index = 0; index < m_vBranchCommitIds.last().count(); index++)
     {
-        if (m_vBranches.count() > 1)
+        if (m_vBranchCommitIds.count() > 1)
         {
             if (index == iCurrentBranch)
                 (*m_pResult) += QString(" * ");
             else if (
                     bFirstLine
-                    && m_vBranches[m_vBranches.count() - 2].count() < m_vBranches[m_vBranches.count() - 1].count()
-                    && index == m_vBranches.last().count() - 1
+                    && m_vBranchCommitIds[m_vBranchCommitIds.count() - 2].count() < m_vBranchCommitIds[m_vBranchCommitIds.count() - 1].count()
+                    && index == m_vBranchCommitIds.last().count() - 1
                     )
             {
                 (*m_pResult) += QString("\\  ");

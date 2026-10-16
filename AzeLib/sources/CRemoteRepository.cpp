@@ -75,7 +75,7 @@ CXMLNode CRemoteRepository::getPushRequest()
         if (not lCommitIds.contains(pCommit.second))
             lCommitIds << pCommit.second;
 
-    QList<CCommit*> lCommits = CCommit::fromIdList(m_pLocalRepository->database(), lCommitIds, nullptr);
+    QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
 
     QStringList lSentObjectIds;
 
@@ -192,7 +192,7 @@ CError::EErrorCode CRemoteRepository::storeRequestCommits(const CXMLNode& xReque
         }
 
         CCommit* pCommit = CCommit::fromNode(xCommit, this, sCommitId);
-        QString sStoredId = m_pLocalRepository->database()->storeCommit(pCommit, sCommitId);
+        QString sStoredId = m_pLocalRepository->commitFunctions()->storeCommit(pCommit, sCommitId);
         delete pCommit;
 
         if (sStoredId.isEmpty())
@@ -240,7 +240,7 @@ CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranc
     {
         pBranch = new CBranch(this);
 
-        CCommit* pTipCommit = pDatabase->getCommit(sTipId, this);
+        CCommit* pTipCommit = m_pLocalRepository->commitFunctions()->loadCommit(sTipId, this);
         pBranch->setAuthor(pTipCommit->author());
         delete pTipCommit;
 
@@ -255,12 +255,15 @@ CError::EErrorCode CRemoteRepository::updateBranchFromPush(const QString& sBranc
 
             for (int iIndex = lCommitIds.count() - 1; iIndex >= 0; --iIndex)
             {
-                CCommit* pCommit = pDatabase->getCommit(lCommitIds[iIndex], this);
+                CCommit* pCommit = m_pLocalRepository->commitFunctions()->loadCommit(lCommitIds[iIndex], this);
 
-                if (pCommit->parents().isEmpty())
-                    sRootId = pCommit->id();
+                if (IS_NOT_NULL(pCommit))
+                {
+                    if (pCommit->parents().isEmpty())
+                        sRootId = pCommit->id();
 
-                delete pCommit;
+                    delete pCommit;
+                }
             }
 
             pBranch->setRootCommitId(sRootId);

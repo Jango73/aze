@@ -78,10 +78,19 @@ public:
     void fromNode(const CXMLNode& xNode);
 
     //!
+    bool containsCommit(const QString& sCommitId) const;
+
+    //!
+    void registerCommitParents(const QString& sCommitId, const QStringList& lParentIds);
+
+    //!
     QList<CCommit*> commitParentList(const CCommit* pCommit, QObject* parent);
 
     //!
-    const QStringList& commitParentIds(const QString& sCommitId);
+    QList<CCommit*> commitParentList(const QString& sCommitId, QObject* parent);
+
+    //!
+    QStringList commitParentIds(const QString& sCommitId);
 
     //-------------------------------------------------------------------------------------------------
     // Properties

@@ -53,7 +53,7 @@
 
 ## Index and acceleration
 - [x] TODO-031 - Add a working folder hash cache keyed by path, size and modification time because `folderAsCommit` recomputes each identifier with `idFromByteArray`.
-- [ ] TODO-033 - Route `log` and ancestor search through the parent cache instead of loading each commit file.
+- [x] TODO-033 - Route `log` and ancestor search through the parent cache instead of loading each commit file.
 - [ ] TODO-034 - Persist `CCommitTreeList` in binary format as indicated by the TODO marker instead of text XML.
 - [ ] TODO-035 - Save the cache only when `dirty` is true because the destructor writes the file on each destruction.
 - [ ] TODO-036 - Copy `m_mCommitParentList` and flags in the assignment operator and copy constructor of `CCommitTreeList`.

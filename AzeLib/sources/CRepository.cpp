@@ -585,7 +585,7 @@ QString CRepository::diffWorkingDirectory()
     if (not m_pCurrentBranch->tipCommitId().isEmpty())
     {
         // Get the current branch tip commit
-        pFromCommit = m_pDatabase->getCommit(m_pCurrentBranch->tipCommitId(), this);
+        pFromCommit = m_pCommitFunctions->loadCommit(m_pCurrentBranch->tipCommitId(), this);
 
         // Get the working directory as commit
         pToCommit = m_pCommitFunctions->folderAsCommit(this);
@@ -635,7 +635,7 @@ CCommit* CRepository::readRootCommit(void* pContext)
     CRepository* pRepository = static_cast<CRepository*>(pContext);
 
     if (not pRepository->m_pCurrentBranch->rootCommitId().isEmpty())
-        return pRepository->m_pDatabase->getCommit(pRepository->m_pCurrentBranch->rootCommitId(), nullptr);
+        return pRepository->m_pCommitFunctions->loadCommit(pRepository->m_pCurrentBranch->rootCommitId(), nullptr);
 
     return nullptr;
 }
@@ -650,7 +650,7 @@ CCommit* CRepository::readTipCommit(void* pContext)
     CRepository* pRepository = static_cast<CRepository*>(pContext);
 
     if (not pRepository->m_pCurrentBranch->tipCommitId().isEmpty())
-        return pRepository->m_pDatabase->getCommit(pRepository->m_pCurrentBranch->tipCommitId(), nullptr);
+        return pRepository->m_pCommitFunctions->loadCommit(pRepository->m_pCurrentBranch->tipCommitId(), nullptr);
 
     return nullptr;
 }

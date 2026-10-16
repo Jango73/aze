@@ -58,6 +58,21 @@ public:
     //! Returns the nth ancestor of a commit
     CCommit* getCommitAncestor(CDatabase* pDatabase, CCommit* pCommit, QObject* owner = nullptr, int iDelta = 1);
 
+    //! Returns the identifier of the nth ancestor of sCommitId through the parent cache
+    QString commitAncestorId(const QString& sCommitId, int iDelta = 1);
+
+    //! Caches parent identifiers of sCommitId without loading any commit file
+    void registerCommitParents(const QString& sCommitId, const QStringList& lParentIds);
+
+    //! Stores pCommit and caches its parents, single write path for commits
+    QString storeCommit(CCommit* pCommit, const QString& sId = "");
+
+    //! Loads a commit and seeds the parent cache, single read path for commits
+    CCommit* loadCommit(const QString& sCommitId, QObject* parent);
+
+    //! Loads commits and seeds the parent cache, single read path for commit lists
+    QList<CCommit*> loadCommitList(const QStringList& lCommitIds, QObject* parent);
+
     //! Returns a list of pairs (distance, id) of ancestors of sCommitId
     QList<QPair<int, QString>> getCommitAncestorList(
             const QString& sCommitId,

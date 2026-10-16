@@ -64,7 +64,7 @@ CError::EErrorCode CCommitCommand::execute()
     pNewCommit->setAuthor(m_sAuthor);
     pNewCommit->setMessage(m_sMessage);
 
-    QString sNewCommitId = m_pRepository->database()->storeCommit(pNewCommit);
+    QString sNewCommitId = m_pRepository->commitFunctions()->storeCommit(pNewCommit);
 
     // Update the current branch
     m_pRepository->currentBranch()->setTipCommitId(sNewCommitId);
