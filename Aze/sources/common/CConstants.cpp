@@ -127,6 +127,7 @@ void CConstants::initCommandMap()
     s_mHelp[CConstants::s_sSwitchHelp]                  = tr("Shows the help text.");
     s_mHelp[CConstants::s_sSwitchInitRepository]        = tr("Makes the current directory an Aze repository.");
     s_mHelp[CConstants::s_sSwitchLog]                   = tr("Shows a log of a branch.");
+    s_mHelp[CConstants::s_sSwitchMerge]                 = tr("Merges a branch onto the current one.");
     s_mHelp[CConstants::s_sSwitchMove]                  = tr("Moves some files.");
     s_mHelp[CConstants::s_sSwitchPatch]                 = tr("Apply a patch (diff) to the repository.");
     s_mHelp[CConstants::s_sSwitchPopStash]              = tr("Restores the contents of a stash.");
