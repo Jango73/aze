@@ -99,6 +99,9 @@ private slots:
     //! Tests push request building and applying to another repository
     void testRemotePush();
 
+    //! Tests cloning of branches, branch tips and file contents
+    void testClone();
+
     //! Tests diff variants (no argument, one id, file name)
     void testDiff();
 

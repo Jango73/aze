@@ -104,6 +104,146 @@ CXMLNode CRemoteRepository::getPushRequest()
     return xRequest;
 }
 
+/************************************************************************/
+
+/*!
+    Returns the request for a clone. \br\br
+    The clone request carries no payload, the server answers
+    with getCloneResponse built from its own repository. \br
+*/
+CXMLNode CRemoteRepository::getCloneRequest()
+{
+    CXMLNode xRequest("");
+
+    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamClone;
+
+    return xRequest;
+}
+
+/************************************************************************/
+
+/*!
+    Returns the full clone payload of the local repository. \br\br
+    The response carries the current branch name, one named node per branch
+    plus every commit reachable from the branch tips and every object
+    referenced by those commits. \br
+*/
+CXMLNode CRemoteRepository::getCloneResponse()
+{
+    CXMLNode xResponse("");
+
+    xResponse.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamClone;
+    xResponse.attributes()[CStrings::s_sParamCurrent] = m_pLocalRepository->currentBranchName();
+
+    QStringList lBranchNames = cloneBranchNames();
+    QStringList lCommitIds = cloneCommitIds(lBranchNames);
+
+    appendCloneBranchNodes(xResponse, lBranchNames);
+    appendCloneCommitNodes(xResponse, lCommitIds);
+
+    return xResponse;
+}
+
+/************************************************************************/
+
+QStringList CRemoteRepository::cloneBranchNames() const
+{
+    QStringList lBranchNames;
+
+    QStringList lFilters;
+    lFilters << QString("*.%1").arg(CStrings::s_sCompressedXMLExtension);
+
+    QDir tBranchFolder(m_pLocalRepository->database()->branchPath());
+    QFileInfoList lFiles = tBranchFolder.entryInfoList(lFilters, QDir::Files | QDir::NoSymLinks);
+
+    for (const QFileInfo& tFile : lFiles)
+        lBranchNames << tFile.baseName();
+
+    return lBranchNames;
+}
+
+/************************************************************************/
+
+QStringList CRemoteRepository::cloneCommitIds(const QStringList& lBranchNames) const
+{
+    QStringList lCommitIds;
+
+    for (const QString& sBranchName : lBranchNames)
+    {
+        CBranch* pBranch = m_pLocalRepository->database()->getBranch(sBranchName, nullptr);
+
+        if (IS_NOT_NULL(pBranch))
+        {
+            QString sTipId = pBranch->tipCommitId();
+            delete pBranch;
+
+            if (not sTipId.isEmpty() and not lCommitIds.contains(sTipId))
+                lCommitIds << sTipId;
+
+            QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
+                        sTipId,
+                        true,
+                        0
+                        );
+
+            for (const QPair<int, QString>& tAncestor : lAncestors)
+                if (not lCommitIds.contains(tAncestor.second))
+                    lCommitIds << tAncestor.second;
+        }
+    }
+
+    return lCommitIds;
+}
+
+/************************************************************************/
+
+void CRemoteRepository::appendCloneBranchNodes(CXMLNode& xResponse, const QStringList& lBranchNames)
+{
+    for (const QString& sBranchName : lBranchNames)
+    {
+        CBranch* pBranch = m_pLocalRepository->database()->getBranch(sBranchName, this);
+
+        if (IS_NOT_NULL(pBranch))
+        {
+            CXMLNode xBranch = pBranch->toNode();
+            xBranch.attributes()[CStrings::s_sParamName] = sBranchName;
+            xResponse << xBranch;
+            delete pBranch;
+        }
+    }
+}
+
+/************************************************************************/
+
+void CRemoteRepository::appendCloneCommitNodes(CXMLNode& xResponse, const QStringList& lCommitIds)
+{
+    QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
+
+    QStringList lSentObjectIds;
+
+    for (CCommit* pCommit : lCommits)
+    {
+        CXMLNode xCommit = pCommit->toNode();
+        xCommit.attributes()[CStrings::s_sParamId] = pCommit->id();
+        xResponse << xCommit;
+
+        for (QString sObjectId : pCommit->files().values())
+        {
+            if (not sObjectId.isEmpty() and not lSentObjectIds.contains(sObjectId))
+            {
+                lSentObjectIds << sObjectId;
+
+                CXMLNode xObject(CStrings::s_sParamObject);
+                xObject.attributes()[CStrings::s_sParamId] = sObjectId;
+                xObject.setValue(CStrings::s_sBase64Marker + QString(m_pLocalRepository->database()->getObject(sObjectId).toBase64()));
+                xResponse << xObject;
+            }
+        }
+    }
+
+    qDeleteAll(lCommits);
+}
+
 //-------------------------------------------------------------------------------------------------
 
 /*!

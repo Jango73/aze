@@ -28,6 +28,7 @@ const QString CStrings::s_sParamAuthor                          = "author";
 const QString CStrings::s_sParamBranch                          = "branch";
 const QString CStrings::s_sParamBranches                        = "branches";
 const QString CStrings::s_sParamCode                            = "code";
+const QString CStrings::s_sParamClone                          = "clone";
 const QString CStrings::s_sParamCommit                          = "commit";
 const QString CStrings::s_sParamCommitChain                     = "commitChain";
 const QString CStrings::s_sParamCommitParentList                = "commitParentList";

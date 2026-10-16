@@ -91,6 +91,11 @@ public:
     //! Initializes a repository, creating mandatory folders and files
     CError::EErrorCode init();
 
+    //! Clones a repository from a clone response into the target folder
+    //! Creates the `.aze` folder and copies branches, commits and objects
+    //! sDetail optionally receives message detail (branch name, object identifier)
+    static CError::EErrorCode clone(const QString& sTargetPath, const CXMLNode& xResponse, QString& sDetail, QObject* parent = nullptr);
+
     //! Creates a branch as sName
     CError::EErrorCode createBranch(const QString& sName);
 

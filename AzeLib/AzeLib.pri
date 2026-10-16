@@ -7,6 +7,7 @@ HEADERS += \
     sources/CFileHashCache.h \
     sources/commands/CBaseCommand.h \
     sources/commands/CAmendCommand.h \
+    sources/commands/CCloneCommand.h \
     sources/commands/CCommitCommand.h \
     sources/commands/CDiffCommand.h \
     sources/commands/CLogCommand.h \
@@ -49,6 +50,7 @@ SOURCES += \
     sources/CFileHashCache.cpp \
     sources/commands/CBaseCommand.cpp \
     sources/commands/CAmendCommand.cpp \
+    sources/commands/CCloneCommand.cpp \
     sources/commands/CCommitCommand.cpp \
     sources/commands/CDiffCommand.cpp \
     sources/commands/CLogCommand.cpp \

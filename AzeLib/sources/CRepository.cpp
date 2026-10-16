@@ -8,6 +8,7 @@
 #include "CUtils.h"
 
 #include "commands/CAmendCommand.h"
+#include "commands/CCloneCommand.h"
 #include "commands/CCommitCommand.h"
 #include "commands/CDiffCommand.h"
 #include "commands/CLogCommand.h"
@@ -110,6 +111,22 @@ CError::EErrorCode CRepository::init()
     setOk(true);
 
     return CError::eNone;
+}
+
+/************************************************************************/
+
+/*!
+    Clones a repository from \a xResponse into \a sTargetPath. \br\br
+    The target folder is created with its `.aze` structure, then branches,
+    commits and objects are copied from the server response and the cloned
+    branch tip is extracted into the working folder. \br
+    Sets \a sDetail and returns the failure reason when cloning fails. \br
+*/
+CError::EErrorCode CRepository::clone(const QString& sTargetPath, const CXMLNode& xResponse, QString& sDetail, QObject* parent)
+{
+    CRepository oTargetRepository(sTargetPath, parent, true);
+
+    return CCloneCommand(&oTargetRepository, xResponse, sDetail).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

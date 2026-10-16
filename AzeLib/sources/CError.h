@@ -78,7 +78,9 @@ public:
         eNetworkError                       = 0x33,
         eInvalidResponse                    = 0x34,
         eUnknownAction                      = 0x35,
-        eEmptyRequest                       = 0x36
+        eEmptyRequest                       = 0x36,
+        eCouldNotClone                        = 0x37,
+        eCloneRequestInvalid                  = 0x38
     };
 
     Q_ENUM(EErrorCode)

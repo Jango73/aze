@@ -1,6 +1,7 @@
 
 // Qt
 #include <QDebug>
+#include <QDir>
 #include <QMutex>
 #include <QWaitCondition>
 
@@ -52,6 +53,43 @@ Aze::CError::EErrorCode CAzeClient::push()
 
 //-------------------------------------------------------------------------------------------------
 
+Aze::CError::EErrorCode CAzeClient::clone()
+{
+    // A target folder is mandatory, it is created when missing
+    if (m_tArguments.m_lFilesAndIds.count() == 0 || m_tArguments.m_lFilesAndIds[0].isEmpty())
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoFileNameGiven));
+        return Aze::CError::eNoFileNameGiven;
+    }
+
+    QString sTargetPath = QDir::current().absoluteFilePath(m_tArguments.m_lFilesAndIds[0]);
+
+    CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getCloneRequest();
+
+    postNetworkRequest(xRequest);
+
+    if (m_eLastError == Aze::CError::eNetworkError)
+        return m_eLastError;
+
+    // A clone payload carries no result attribute, anything else is a server error
+    Aze::CError::EErrorCode eResponseCode = Aze::CError::fromResultNode(m_xLastResponse);
+
+    if (eResponseCode != Aze::CError::eInvalidResponse)
+        return eResponseCode;
+
+    QString sDetail;
+    Aze::CError::EErrorCode eCloneCode = Aze::CRepository::clone(sTargetPath, m_xLastResponse, sDetail, this);
+
+    if (eCloneCode != Aze::CError::eNone)
+    {
+        OUT_ERROR(Aze::CError::message(eCloneCode, sDetail));
+    }
+
+    return eCloneCode;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
 {
     m_eLastError = Aze::CError::eNone;
@@ -59,7 +97,12 @@ Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
 
     if (IS_NOT_NULL(m_pRepository))
     {
-        setupRemoteHost(m_pRepository->remoteHostInfo()->name());
+        QString sRemoteHostName = m_pRepository->remoteHostInfo()->name();
+
+        // Keep the default host when the repository sets none,
+        // cloning outside of a repository leaves the name empty
+        if (not sRemoteHostName.isEmpty())
+            setupRemoteHost(sRemoteHostName);
     }
 
     m_pNetworkAccessManager->post(m_tNetworkRequest, xRequest.toJsonString().simplified().toUtf8());
@@ -79,12 +122,13 @@ void CAzeClient::onNetworkAccessFinished(QNetworkReply* pReply)
 {
     if (pReply->error() == QNetworkReply::NoError)
     {
-        CXMLNode xResponse = CXMLNode::parseJSON(QString(pReply->readAll()));
+        m_xLastResponse = CXMLNode::parseJSON(QString(pReply->readAll()));
 
-        m_eLastError = Aze::CError::fromResultNode(xResponse);
+        m_eLastError = Aze::CError::fromResultNode(m_xLastResponse);
     }
     else
     {
+        m_xLastResponse = CXMLNode();
         m_eLastError = Aze::CError::eNetworkError;
     }
 

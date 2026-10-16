@@ -40,12 +40,12 @@
 - [ ] TODO-022 - Add an end to end pull test which verifies content convergence after push then pull.
 
 ## Clone
-- [ ] TODO-023 - Implement `clone` in the engine with creation of the `.aze` folder and copy of branches, commits and objects from the server response.
-- [ ] TODO-024 - Expose `clone` in `CAzeClient`, `CAzeServerProcessor` and `CConstants` with handling of an empty or missing target folder.
-- [ ] TODO-025 - Add a `clone` test which verifies branches, branch tip and file content after cloning.
+- [x] TODO-023 - Implement `clone` in the engine with creation of the `.aze` folder and copy of branches, commits and objects from the server response.
+- [x] TODO-024 - Expose `clone` in `CAzeClient`, `CAzeServerProcessor` and `CConstants` with handling of an empty or missing target folder.
+- [x] TODO-025 - Add a `clone` test which verifies branches, branch tip and file content after cloning.
 
 ## General server
-- [ ] TODO-026 - Route `delete-branch` and `clone` requests in `CAzeServerProcessor` which handles only `pull` and `push`.
+- [ ] TODO-026 - Route `delete-branch` requests in `CAzeServerProcessor` which handles only `pull`, `push` and `clone`.
 - [x] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
 - [x] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
 - [ ] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.

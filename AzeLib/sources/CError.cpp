@@ -69,6 +69,8 @@ QString CError::message(EErrorCode eCode)
     case eInvalidResponse: return tr("Invalid server response.");
     case eUnknownAction: return tr("Unknown action: %1.");
     case eEmptyRequest: return tr("Empty request.");
+    case eCouldNotClone: return tr("Could not clone repository.");
+    case eCloneRequestInvalid: return tr("Invalid clone response.");
     }
 
     return tr("Generic error.");
@@ -161,7 +163,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
     if (bOk == false)
         return eGeneric;
 
-    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eEmptyRequest))
+    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eCloneRequestInvalid))
         return static_cast<EErrorCode>(iCode);
 
     return eGeneric;

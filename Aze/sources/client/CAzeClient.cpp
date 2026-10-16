@@ -100,6 +100,7 @@ Aze::CError::EErrorCode CAzeClient::run()
     case CConstants::eCommandUnstage:           return unstage();
 
     // Remote commands
+    case CConstants::eCommandClone:          return clone();
     case CConstants::eCommandPull:           return pull();
     case CConstants::eCommandPush:           return push();
     }

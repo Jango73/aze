@@ -28,6 +28,7 @@ public:
         eCommandNone,
         eCommandAmend,
         eCommandCleanUp,
+        eCommandClone,
         eCommandCommit,
         eCommandCreateBranch,
         eCommandDeleteBranch,
@@ -58,6 +59,7 @@ public:
     // Command switches
     static const char* s_sSwitchAmend;
     static const char* s_sSwitchCleanUp;
+    static const char* s_sSwitchClone;
     static const char* s_sSwitchCommit;
     static const char* s_sSwitchCreateBranch;
     static const char* s_sSwitchDeleteBranch;

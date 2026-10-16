@@ -1083,6 +1083,90 @@ void CTestAze::testRemotePush()
 
 //-------------------------------------------------------------------------------------------------
 
+void CTestAze::testClone()
+{
+    QString sTrunkFilePath = "Files/CloneTrunk.txt";
+    QString sTrunkContent("Cloned trunk content.");
+    QString sBranchFilePath = "Files/CloneBranch.txt";
+    QString sBranchContent("Cloned branch content.");
+
+    INIT();
+
+    QVERIFY(createFile(sTrunkFilePath, sTrunkContent));
+    STAGE(sTrunkFilePath);
+    COMMIT("C1");
+
+    CREATE_BRANCH(m_sBranch1);
+    SWITCH_TO_BRANCH(m_sBranch1);
+    QVERIFY(createFile(sBranchFilePath, sBranchContent));
+    STAGE(sBranchFilePath);
+    COMMIT("C2");
+    SWITCH_TO_BRANCH(Aze::CStrings::s_sDefaultBranchName);
+
+    // Read the source branch tips from a fresh repository instance
+    Aze::CRepository oSourceRepository(m_sRootPath);
+    QVERIFY(oSourceRepository.ok());
+    QVERIFY(oSourceRepository.currentBranchName() == Aze::CStrings::s_sDefaultBranchName);
+
+    QString sTrunkTip = oSourceRepository.tipCommit()->id();
+
+    Aze::CBranch* pSourceBranch = oSourceRepository.database()->getBranch(m_sBranch1, this);
+    QVERIFY(pSourceBranch != nullptr);
+    QString sBranchTip = pSourceBranch->tipCommitId();
+    delete pSourceBranch;
+
+    QVERIFY(not sTrunkTip.isEmpty());
+    QVERIFY(not sBranchTip.isEmpty());
+    QVERIFY(sBranchTip != sTrunkTip);
+
+    // Build a clone response and simulate the wire with a JSON round-trip
+    Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+    CXMLNode xResponse = oSourceRemote.getCloneResponse();
+    QVERIFY(xResponse.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamClone);
+
+    CXMLNode xReceived = CXMLNode::parseJSON(xResponse.toJsonString());
+    QVERIFY(xReceived.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamClone);
+
+    // Clone into a missing folder outside of the source folder
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sClonePath = oParent.absoluteFilePath("aze-tests-clone");
+    QDir oCloneFolder(sClonePath);
+
+    if (oCloneFolder.exists())
+        QVERIFY(oCloneFolder.removeRecursively());
+
+    QVERIFY(not oCloneFolder.exists());
+
+    QString sDetail;
+    Aze::CError::EErrorCode eCloneCode = Aze::CRepository::clone(sClonePath, xReceived, sDetail, this);
+    QVERIFY2(eCloneCode == Aze::CError::eNone, qPrintable(Aze::CError::message(eCloneCode, sDetail)));
+
+    // Check branches, branch tips and file content from a fresh repository instance
+    Aze::CRepository oCheckRepository(sClonePath);
+    QVERIFY(oCheckRepository.ok());
+    QCOMPARE(oCheckRepository.currentBranchName(), QString(Aze::CStrings::s_sDefaultBranchName));
+    QCOMPARE(oCheckRepository.tipCommit()->id(), sTrunkTip);
+
+    Aze::CBranch* pClonedBranch = oCheckRepository.database()->getBranch(m_sBranch1, this);
+    QVERIFY(pClonedBranch != nullptr);
+    QCOMPARE(pClonedBranch->tipCommitId(), sBranchTip);
+    delete pClonedBranch;
+
+    QCOMPARE(Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sClonePath).arg(sTrunkFilePath)), sTrunkContent);
+    QCOMPARE(Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sClonePath).arg(sBranchFilePath)), QString());
+
+    // Cloning again into the same folder is refused with a distinct code
+    QVERIFY(Aze::CRepository::clone(sClonePath, xReceived, sDetail, this) == Aze::CError::eCouldNotClone);
+
+    // Cloning without a target folder is refused with a distinct code
+    QVERIFY(exec({ CConstants::s_sSwitchClone }) == expectedCode(Aze::CError::eNoFileNameGiven));
+
+    QVERIFY(QDir(sClonePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void CTestAze::testDiff()
 {
     QString sFile1Path = "Files/DiffTest1.txt";

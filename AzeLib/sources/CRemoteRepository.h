@@ -52,12 +52,35 @@ public:
     //! Returns the request for push
     CXMLNode getPushRequest();
 
+    //! Returns the request for clone
+    CXMLNode getCloneRequest();
+
+    //! Returns the full clone payload of the local repository
+    //! Branches carry their name, commits their identifier, objects their content
+    CXMLNode getCloneResponse();
+
     //! Applies a push request to the local repository
     //! Returns eNone on success, the precise failure reason otherwise
     //! sDetail optionally receives message detail (object identifier, branch name)
     CError::EErrorCode applyPushRequest(const CXMLNode& xRequest, QString& sDetail);
 
 protected:
+
+    //-------------------------------------------------------------------------------------------------
+    // Protected payload methods
+    //-------------------------------------------------------------------------------------------------
+
+    //! Lists the branch names stored in the local repository
+    QStringList cloneBranchNames() const;
+
+    //! Collects the tip and ancestor identifiers of the branches
+    QStringList cloneCommitIds(const QStringList& lBranchNames) const;
+
+    //! Appends one named node per branch to the response
+    void appendCloneBranchNodes(CXMLNode& xResponse, const QStringList& lBranchNames);
+
+    //! Appends commit and object nodes for the commits to the response
+    void appendCloneCommitNodes(CXMLNode& xResponse, const QStringList& lCommitIds);
 
     //-------------------------------------------------------------------------------------------------
     // Protected control methods

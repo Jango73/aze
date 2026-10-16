@@ -126,6 +126,9 @@ public:
     //!
     Aze::CError::EErrorCode push();
 
+    //! Clones a repository from the server into a new folder
+    Aze::CError::EErrorCode clone();
+
     //!
     Aze::CError::EErrorCode postNetworkRequest(CXMLNode xRequest);
 
@@ -145,6 +148,7 @@ protected:
     QNetworkAccessManager*  m_pNetworkAccessManager;
     QNetworkRequest         m_tNetworkRequest;
     Aze::CError::EErrorCode m_eLastError;
+    CXMLNode                m_xLastResponse;
     bool                    m_bOutputStreamIsMine;
     bool                    m_bNetworkAccessFinished;
 };

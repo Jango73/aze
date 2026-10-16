@@ -23,7 +23,7 @@
     AZE Request format
 
     {
-    "request": "<Type of request: pull or push>"
+    "request": "<Type of request: pull, push or clone>"
     "branch": "<Name of branch>"
     "root": "<Root commit Id of the pushed branch>"
     "tip": "<Tip commit Id>"
@@ -34,6 +34,10 @@
     "object": [
         { "id": "<Object Id>", "value": "B64:<Base64 content>" }
     ]
+
+    A clone request carries no payload besides "request": "clone".
+    A clone response carries every branch with its name plus every
+    commit and object of the served repository.
 */
 
 //-------------------------------------------------------------------------------------------------
@@ -44,6 +48,7 @@ CAzeServerProcessor::CAzeServerProcessor(CAzeServer* parent, quint16 iPort)
 {
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPull] = servePull;
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPush] = servePush;
+    m_mRequestFunctionMap[Aze::CStrings::s_sParamClone] = serveClone;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -141,6 +146,18 @@ CXMLNode CAzeServerProcessor::servePush(Aze::CRepository* pRepository, CWebConte
     Aze::CError::EErrorCode eCode = oRemoteRepository.applyPushRequest(xRequest, sDetail);
 
     return Aze::CError::toResultNode(eCode, sDetail);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+CXMLNode CAzeServerProcessor::serveClone(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest)
+{
+    Q_UNUSED(tContext)
+    Q_UNUSED(xRequest)
+
+    Aze::CRemoteRepository oRemoteRepository(pRepository);
+
+    return oRemoteRepository.getCloneResponse();
 }
 
 //-------------------------------------------------------------------------------------------------

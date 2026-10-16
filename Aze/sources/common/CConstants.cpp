@@ -13,6 +13,7 @@ const char* CConstants::s_sContextMain                      = "main";
 
 const char* CConstants::s_sSwitchAmend                      = "amend";
 const char* CConstants::s_sSwitchCleanUp                    = "clean-up";
+const char* CConstants::s_sSwitchClone                      = "clone";
 const char* CConstants::s_sSwitchCommit                     = "commit";
 const char* CConstants::s_sSwitchCreateBranch               = "create-branch";
 const char* CConstants::s_sSwitchDeleteBranch               = "delete-branch";
@@ -90,6 +91,7 @@ void CConstants::initCommandMap()
 {
     s_mCommands[CConstants::s_sSwitchAmend]               = CConstants::eCommandAmend;
     s_mCommands[CConstants::s_sSwitchCleanUp]           = CConstants::eCommandCleanUp;
+    s_mCommands[CConstants::s_sSwitchClone]             = CConstants::eCommandClone;
     s_mCommands[CConstants::s_sSwitchCommit]            = CConstants::eCommandCommit;
     s_mCommands[CConstants::s_sSwitchCreateBranch]      = CConstants::eCommandCreateBranch;
     s_mCommands[CConstants::s_sSwitchDeleteBranch]      = CConstants::eCommandDeleteBranch;
@@ -116,6 +118,7 @@ void CConstants::initCommandMap()
 
     s_mHelp[CConstants::s_sSwitchAmend]                 = tr("Rewrites the tip commit with the staged files.");
     s_mHelp[CConstants::s_sSwitchCleanUp]               = tr("Clears the stage and reverts all files. Warning: loose files are deleted.");
+    s_mHelp[CConstants::s_sSwitchClone]                 = tr("Clones a repository from a server into a new folder.");
     s_mHelp[CConstants::s_sSwitchCommit]                = tr("Creates a commit from the stage.");
     s_mHelp[CConstants::s_sSwitchCreateBranch]          = tr("Creates a branch.");
     s_mHelp[CConstants::s_sSwitchDeleteBranch]          = tr("Deletes a branch.");
