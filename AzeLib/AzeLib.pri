@@ -7,16 +7,25 @@ HEADERS += \
     sources/CFileHashCache.h \
     sources/commands/CBaseCommand.h \
     sources/commands/CAmendCommand.h \
+    sources/commands/CCleanUpCommand.h \
     sources/commands/CCloneCommand.h \
     sources/commands/CCommitCommand.h \
+    sources/commands/CCreateBranchCommand.h \
+    sources/commands/CDeleteBranchCommand.h \
     sources/commands/CDiffCommand.h \
+    sources/commands/CDumpCommand.h \
+    sources/commands/CInitRepositoryCommand.h \
     sources/commands/CLogCommand.h \
     sources/commands/CMergeCommand.h \
+    sources/commands/CMoveCommand.h \
     sources/commands/CPatchCommand.h \
     sources/commands/CPopStashCommand.h \
+    sources/commands/CPullCommand.h \
+    sources/commands/CPushCommand.h \
     sources/commands/CRemoveCommand.h \
     sources/commands/CRevertCommand.h \
     sources/commands/CSaveStashCommand.h \
+    sources/commands/CSetRemoteHostCommand.h \
     sources/commands/CStageCommand.h \
     sources/commands/CStatusCommand.h \
     sources/commands/CSwitchToBranchCommand.h \
@@ -50,16 +59,25 @@ SOURCES += \
     sources/CFileHashCache.cpp \
     sources/commands/CBaseCommand.cpp \
     sources/commands/CAmendCommand.cpp \
+    sources/commands/CCleanUpCommand.cpp \
     sources/commands/CCloneCommand.cpp \
     sources/commands/CCommitCommand.cpp \
+    sources/commands/CCreateBranchCommand.cpp \
+    sources/commands/CDeleteBranchCommand.cpp \
     sources/commands/CDiffCommand.cpp \
+    sources/commands/CDumpCommand.cpp \
+    sources/commands/CInitRepositoryCommand.cpp \
     sources/commands/CLogCommand.cpp \
     sources/commands/CMergeCommand.cpp \
+    sources/commands/CMoveCommand.cpp \
     sources/commands/CPatchCommand.cpp \
     sources/commands/CPopStashCommand.cpp \
+    sources/commands/CPullCommand.cpp \
+    sources/commands/CPushCommand.cpp \
     sources/commands/CRemoveCommand.cpp \
     sources/commands/CRevertCommand.cpp \
     sources/commands/CSaveStashCommand.cpp \
+    sources/commands/CSetRemoteHostCommand.cpp \
     sources/commands/CStageCommand.cpp \
     sources/commands/CStatusCommand.cpp \
     sources/commands/CSwitchToBranchCommand.cpp \

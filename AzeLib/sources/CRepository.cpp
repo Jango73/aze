@@ -2,23 +2,29 @@
 // Qt
 #include <QDebug>
 #include <QDir>
-#include <QSet>
 
 // Application
 #include "CRepository.h"
 #include "CUtils.h"
 
 #include "commands/CAmendCommand.h"
+#include "commands/CCleanUpCommand.h"
 #include "commands/CCloneCommand.h"
 #include "commands/CCommitCommand.h"
+#include "commands/CCreateBranchCommand.h"
+#include "commands/CDeleteBranchCommand.h"
 #include "commands/CDiffCommand.h"
+#include "commands/CDumpCommand.h"
+#include "commands/CInitRepositoryCommand.h"
 #include "commands/CLogCommand.h"
 #include "commands/CMergeCommand.h"
+#include "commands/CMoveCommand.h"
 #include "commands/CPatchCommand.h"
 #include "commands/CPopStashCommand.h"
 #include "commands/CRemoveCommand.h"
 #include "commands/CRevertCommand.h"
 #include "commands/CSaveStashCommand.h"
+#include "commands/CSetRemoteHostCommand.h"
 #include "commands/CStageCommand.h"
 #include "commands/CStatusCommand.h"
 #include "commands/CSwitchToBranchCommand.h"
@@ -95,24 +101,7 @@ CRepository::~CRepository()
 */
 CError::EErrorCode CRepository::init()
 {
-    if (not m_pDatabase->init())
-        return CError::eGeneric;
-
-    CError::EErrorCode eCode = createBranch(CStrings::s_sDefaultBranchName);
-
-    if (eCode != CError::eNone)
-        return eCode;
-
-    setCurrentBranchName(CStrings::s_sDefaultBranchName);
-
-    eCode = writeGeneralInformation();
-
-    if (eCode != CError::eNone)
-        return eCode;
-
-    setOk(true);
-
-    return CError::eNone;
+    return CInitRepositoryCommand(this).execute();
 }
 
 /************************************************************************/
@@ -138,26 +127,7 @@ CError::EErrorCode CRepository::clone(const QString& sTargetPath, const CXMLNode
 */
 CError::EErrorCode CRepository::createBranch(const QString& sName)
 {
-    QString sBranchFileName = m_pDatabase->composeBranchFileName(sName);
-
-    if (QFile(sBranchFileName).exists())
-    {
-        tellInfo(CError::eBranchAlreadyExists, sName);
-    }
-    else
-    {
-        CBranch* pNewBranch = new CBranch(this);
-
-        if (not m_pCurrentBranch.isNull())
-        {
-            pNewBranch->setRootCommitId(m_pCurrentBranch->tipCommitId());
-            pNewBranch->setTipCommitId(m_pCurrentBranch->tipCommitId());
-        }
-
-        pNewBranch->toNode().save(sBranchFileName);
-    }
-
-    return CError::eNone;
+    return CCreateBranchCommand(this, sName).execute();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -172,84 +142,7 @@ CError::EErrorCode CRepository::createBranch(const QString& sName)
 */
 CError::EErrorCode CRepository::deleteBranch(const QString& sName, bool bForce)
 {
-    if (sName == m_sCurrentBranchName)
-    {
-        tellError(CError::eCannotDeleteCurrentBranch, sName);
-        return CError::eCannotDeleteCurrentBranch;
-    }
-
-    QString sBranchFileName = m_pDatabase->composeBranchFileName(sName);
-
-    if (not QFile(sBranchFileName).exists())
-    {
-        tellError(CError::eBranchDoesNotExist, sName);
-        return CError::eBranchDoesNotExist;
-    }
-
-    CBranch* pBranchToDelete = m_pDatabase->getBranch(sName, nullptr);
-
-    if (IS_NULL(pBranchToDelete))
-    {
-        tellError(CError::eCouldNotDeleteBranch, sName);
-        return CError::eCouldNotDeleteBranch;
-    }
-
-    QString sTargetTipId = pBranchToDelete->tipCommitId();
-    delete pBranchToDelete;
-
-    // A branch without tip holds no commit, deletion loses nothing
-    if (not bForce and not sTargetTipId.isEmpty())
-    {
-        QString sCurrentTipId;
-
-        if (not m_pCurrentBranch.isNull())
-            sCurrentTipId = m_pCurrentBranch->tipCommitId();
-
-        bool bMerged = (sTargetTipId == sCurrentTipId);
-
-        if (not bMerged and not sCurrentTipId.isEmpty())
-        {
-            QSet<QString> sVisited;
-            QStringList lQueue;
-
-            sVisited << sCurrentTipId;
-            lQueue << sCurrentTipId;
-
-            while (not lQueue.isEmpty() and not bMerged)
-            {
-                QString sCommitId = lQueue.takeFirst();
-
-                if (sCommitId == sTargetTipId)
-                {
-                    bMerged = true;
-                    break;
-                }
-
-                for (const QString& sParentId : m_pCommitFunctions->commitTreeList()->commitParentIds(sCommitId))
-                {
-                    if (not sVisited.contains(sParentId))
-                    {
-                        sVisited << sParentId;
-                        lQueue << sParentId;
-                    }
-                }
-            }
-        }
-
-        if (not bMerged)
-        {
-            tellError(CError::eCannotDeleteUnmergedBranch, sName);
-            return CError::eCannotDeleteUnmergedBranch;
-        }
-    }
-
-    if (not QFile::remove(sBranchFileName))
-    {
-        tellError(CError::eCouldNotDeleteBranch, sName);
-        return CError::eCouldNotDeleteBranch;
-    }
-
-    return CError::eNone;
+    return CDeleteBranchCommand(this, sName, bForce).execute();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -431,6 +324,58 @@ CError::EErrorCode CRepository::popStash(const QString& sId)
 CError::EErrorCode CRepository::patch(const QString& sFilename)
 {
     return CPatchCommand(this, sFilename).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Clears the stage and reverts the listed working folder files. \br\br
+    \a lFileNames holds the expanded working folder files to revert
+    \a bAllowFileDelete allows deletion of files missing from the tip commit
+*/
+CError::EErrorCode CRepository::cleanUp(const QStringList& lFileNames, bool bAllowFileDelete)
+{
+    return CCleanUpCommand(this, lFileNames, bAllowFileDelete).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Moves the listed files to the target. \br\br
+    \a lFileNames holds the source files followed by the target
+*/
+CError::EErrorCode CRepository::move(const QStringList& lFileNames)
+{
+    return CMoveCommand(this, lFileNames).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Returns the printable contents of the listed database objects. \br\br
+    \a lIds holds the object identifiers to dump
+*/
+QString CRepository::dump(const QStringList& lIds)
+{
+    QString sReturnValue;
+
+    if (CDumpCommand(this, lIds, &sReturnValue).execute() == CError::eNone)
+    {
+        return sReturnValue;
+    }
+
+    return "";
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Sets the remote host name to \a sName. \br\br
+    The caller writes the general information file.
+*/
+CError::EErrorCode CRepository::setRemoteHost(const QString& sName)
+{
+    return CSetRemoteHostCommand(this, sName).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

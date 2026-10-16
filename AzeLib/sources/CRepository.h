@@ -154,6 +154,18 @@ public:
     //! Patches the repository with file
     CError::EErrorCode patch(const QString& sFilename);
 
+    //! Clears the stage and reverts the listed working folder files
+    CError::EErrorCode cleanUp(const QStringList& lFileNames, bool bAllowFileDelete = true);
+
+    //! Moves the listed files to the target, last entry is the target
+    CError::EErrorCode move(const QStringList& lFileNames);
+
+    //! Returns the printable contents of the listed database objects
+    QString dump(const QStringList& lIds);
+
+    //! Sets the remote host name
+    CError::EErrorCode setRemoteHost(const QString& sName);
+
     //! Returns the staging commit
     CCommit* getStagingCommit();
 

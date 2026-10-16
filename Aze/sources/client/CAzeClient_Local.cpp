@@ -246,8 +246,15 @@ Aze::CError::EErrorCode CAzeClient::move()
     // Repository sanity check
     RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 1, Aze::CError::eNoFileNameGiven);
+
+    // Expand source wildcards, the last entry stays the literal target
+    QString sTarget = m_tArguments.m_lFilesAndIds.takeLast();
+    processWildCards();
+    m_tArguments.m_lFilesAndIds << sTarget;
+
     // Move the specified files
-    // TODO
+    RETURN_WHEN_ERROR(m_pRepository->move(m_tArguments.m_lFilesAndIds), Aze::CError::eCouldNotMoveFiles);
 
     // Update the stage
     RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
@@ -324,16 +331,15 @@ Aze::CError::EErrorCode CAzeClient::cleanUp()
     // Repository sanity check
     RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    // Clear the stage file
-    RETURN_WHEN_ERROR(m_pRepository->clearStage(), Aze::CError::eCouldNotWriteStage);
-    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
-
     // Revert all files
     m_tArguments.m_lFilesAndIds.clear();
     m_tArguments.m_lFilesAndIds << "*";
     processWildCards();
 
-    RETURN_WHEN_ERROR(m_pRepository->revert(m_tArguments.m_lFilesAndIds, true), Aze::CError::eCouldNotRevertFiles);
+    // Clear the stage file and revert the working folder
+    RETURN_WHEN_ERROR(m_pRepository->cleanUp(m_tArguments.m_lFilesAndIds, true), Aze::CError::eCouldNotRevertFiles);
+
+    RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
     return Aze::CError::eNone;
 }
@@ -467,7 +473,10 @@ Aze::CError::EErrorCode CAzeClient::setRemoteHost()
 
     QString sRemoteHostName = m_tArguments.m_lFilesAndIds.takeFirst();
 
-    m_pRepository->setRemoteHostName(sRemoteHostName);
+    Aze::CError::EErrorCode eCode = m_pRepository->setRemoteHost(sRemoteHostName);
+
+    if (eCode != Aze::CError::eNone)
+        return eCode;
 
     RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
@@ -481,11 +490,8 @@ Aze::CError::EErrorCode CAzeClient::dump()
     // Repository sanity check
     RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    for (QString sId : m_tArguments.m_lFilesAndIds)
-    {
-        (*m_pOutStream) << m_pRepository->database()->printableFileContentById(sId);
-        m_pOutStream->flush();
-    }
+    (*m_pOutStream) << m_pRepository->dump(m_tArguments.m_lFilesAndIds);
+    m_pOutStream->flush();
 
     return Aze::CError::eNone;
 }

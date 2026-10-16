@@ -106,20 +106,6 @@ protected:
 
     //! Appends commit and object nodes for the commits to the response
     void appendCloneCommitNodes(CXMLNode& xResponse, const QStringList& lCommitIds);
-
-    //-------------------------------------------------------------------------------------------------
-    // Protected control methods
-    //-------------------------------------------------------------------------------------------------
-
-    //! Stores the object nodes of a push request
-    CError::EErrorCode storeRequestObjects(const CXMLNode& xRequest, QString& sDetail);
-
-    //! Stores the commit nodes of a push request into lCommitIds
-    CError::EErrorCode storeRequestCommits(const CXMLNode& xRequest, QStringList& lCommitIds, QString& sDetail);
-
-    //! Updates a branch from pushed commits
-    //! sRequestedRootId carries the source branch root so a created branch keeps the branch point
-    CError::EErrorCode updateBranchFromPush(const QString& sBranchName, const QString& sRequestedRootId, const QString& sTipId, const QStringList& lCommitIds, QString& sDetail);
 };
 
 }
