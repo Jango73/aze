@@ -49,7 +49,7 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    CCommitTreeList(CDatabase* pDatabase, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false);
+    CCommitTreeList(CDatabase* pDatabase, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false, bool bTextCache = false);
 
     //!
     CCommitTreeList(const CCommitTreeList& target);

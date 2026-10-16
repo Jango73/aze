@@ -41,8 +41,9 @@ namespace Aze {
     \a parent is the repository's owner \br
     \a bSilent tells that we should not output any text \br
     \a bDebug tells that we should output debug information \br
+    \a bTextCache tells that the commit cache uses the text format \br
 */
-CRepository::CRepository(const QString& sRootPath, QObject* parent, bool bSilent, bool bDebug)
+CRepository::CRepository(const QString& sRootPath, QObject* parent, bool bSilent, bool bDebug, bool bTextCache)
     : CObject(parent)
     , m_bOk(false)
     , m_bSilent(bSilent)
@@ -50,7 +51,7 @@ CRepository::CRepository(const QString& sRootPath, QObject* parent, bool bSilent
     , m_eStatus(CEnums::eUnknown)
     , m_pDatabase(new CDatabase(sRootPath, this))
     , m_pRemoteHostInfo(new CRemoteHostInfo(this))
-    , m_pCommitFunctions(new CCommitFunctions(m_pDatabase, this, bSilent, bDebug))
+    , m_pCommitFunctions(new CCommitFunctions(m_pDatabase, this, bSilent, bDebug, bTextCache))
     , m_pCurrentBranch(readCurrentBranch, this)
     , m_pStagingCommit(readStage, this)
     , m_pRootCommit(readRootCommit, this)

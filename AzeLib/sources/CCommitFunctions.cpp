@@ -17,12 +17,12 @@ namespace Aze {
 
 //-------------------------------------------------------------------------------------------------
 
-CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool bSilent, bool bDebug)
+CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool bSilent, bool bDebug, bool bTextCache)
     : QObject(parent)
     , m_pDatabase(pDatabase)
     , m_bSilent(bSilent)
     , m_bDebug(bDebug)
-    , m_pCommitTreeList(new CCommitTreeList(pDatabase, parent, bSilent, bDebug))
+    , m_pCommitTreeList(new CCommitTreeList(pDatabase, parent, bSilent, bDebug, bTextCache))
     , m_pFileHashCache(new CFileHashCache(this))
 {
 }

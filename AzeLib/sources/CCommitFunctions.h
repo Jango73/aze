@@ -46,7 +46,7 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    CCommitFunctions(CDatabase* pDatabase, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false);
+    CCommitFunctions(CDatabase* pDatabase, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false, bool bTextCache = false);
 
     //!
     ~CCommitFunctions();

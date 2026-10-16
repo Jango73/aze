@@ -79,7 +79,7 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //!
-    CRepository(const QString& sRootPath, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false);
+    CRepository(const QString& sRootPath, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false, bool bTextCache = false);
 
     //!
     ~CRepository();

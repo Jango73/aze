@@ -39,6 +39,7 @@ public:
     QCommandLineOption      m_oNoFastForward;
     QCommandLineOption      m_oSilent;
     QCommandLineOption      m_oDebug;
+    QCommandLineOption      m_oTextCache;
     CConstants::ECommand    m_eCommand;
     QStringList             m_lFilesAndIds;
 };

@@ -58,6 +58,7 @@ const char* CConstants::s_sSwitchNoFastForward              = "no-fast-forward";
 const char* CConstants::s_sSwitchStart                      = "start";
 const char* CConstants::s_sSwitchSilent                     = "silent";
 const char* CConstants::s_sSwitchDebug                      = "debug";
+const char* CConstants::s_sSwitchTextCache                  = "text-cache";
 const char* CConstants::s_sSwitchVoid                       = "";
 
 //-------------------------------------------------------------------------------------------------

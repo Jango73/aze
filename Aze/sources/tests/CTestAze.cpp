@@ -1840,6 +1840,93 @@ void CTestAze::testFileHashCache()
 
 //-------------------------------------------------------------------------------------------------
 
+void CTestAze::testCommitTreeListBinaryCache()
+{
+    QString sFilePath = "Files/CacheTest.txt";
+    QString sLogResult;
+
+    INIT();
+    QVERIFY(createFile(sFilePath, "C1\n--"));
+    STAGE(sFilePath);
+    COMMIT("C1");
+    QVERIFY(createFile(sFilePath, "C2\n--"));
+    STAGE(sFilePath);
+    COMMIT("C2");
+    LOG(sLogResult);
+    QVERIFY(sLogResult.contains("C2"));
+
+    // The parent cache is persisted in binary format through the destructor
+    QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
+    QStringList lBinaries = tCacheDir.entryList(
+        QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
+    QCOMPARE(lBinaries.count(), 1);
+
+    QString sError;
+    CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(lBinaries.first()), &sError);
+    QVERIFY2(sError.isEmpty(), qPrintable(sError));
+    QVERIFY(not xCache.isEmpty());
+    QVERIFY(xCache.attributes().contains(Aze::CStrings::s_sParamCommitParentList));
+    QVERIFY(not xCache.attributes()[Aze::CStrings::s_sParamCommitParentList].isEmpty());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testCommitTreeListTextCache()
+{
+    QString sFilePath = "Files/CacheTest.txt";
+    QString sLogResult;
+    QString sTextCache = QString("--%1").arg(CConstants::s_sSwitchTextCache);
+
+    clearRepository();
+    QDir rootDir(m_sRootPath);
+    QVERIFY(rootDir.mkdir(m_sFilesFolderName));
+    QDir filesDir(m_sFilesFolderPath);
+    QVERIFY(filesDir.mkdir(m_sFilesSubFolderName));
+    exec({ CConstants::s_sSwitchInitRepository, sTextCache });
+
+    QVERIFY(createFile(sFilePath, "C1\n--"));
+    exec({ CConstants::s_sSwitchStage, QString("--%1").arg(SILENT_OR_DEBUG), sTextCache, sFilePath });
+    exec({
+        CConstants::s_sSwitchCommit,
+        QString("--%1").arg(SILENT_OR_DEBUG),
+        sTextCache,
+        QString("--%1").arg(CConstants::s_sSwitchMessage),
+        "C1",
+        QString("--%1").arg(CConstants::s_sSwitchAuthor),
+        m_sAuthor
+    });
+    QVERIFY(createFile(sFilePath, "C2\n--"));
+    exec({ CConstants::s_sSwitchStage, QString("--%1").arg(SILENT_OR_DEBUG), sTextCache, sFilePath });
+    exec({
+        CConstants::s_sSwitchCommit,
+        QString("--%1").arg(SILENT_OR_DEBUG),
+        sTextCache,
+        QString("--%1").arg(CConstants::s_sSwitchMessage),
+        "C2",
+        QString("--%1").arg(CConstants::s_sSwitchAuthor),
+        m_sAuthor
+    });
+    sLogResult = exec({ CConstants::s_sSwitchLog, sTextCache });
+    QVERIFY(sLogResult.contains("C2"));
+
+    // The parent cache is persisted in text format through the destructor
+    QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
+    QStringList lTextCaches = tCacheDir.entryList(
+        QStringList() << QString("*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension), QDir::Files);
+    QCOMPARE(lTextCaches.count(), 1);
+    QCOMPARE(tCacheDir.entryList(
+        QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
+
+    QString sError;
+    CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(lTextCaches.first()), &sError);
+    QVERIFY2(sError.isEmpty(), qPrintable(sError));
+    QVERIFY(not xCache.isEmpty());
+    QVERIFY(xCache.attributes().contains(Aze::CStrings::s_sParamCommitParentList));
+    QVERIFY(not xCache.attributes()[Aze::CStrings::s_sParamCommitParentList].isEmpty());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void CTestAze::testHeavy()
 {
 //     INIT();

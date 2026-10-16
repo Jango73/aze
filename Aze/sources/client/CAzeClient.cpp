@@ -29,7 +29,8 @@ CAzeClient::CAzeClient(int argc, char *argv[], QTextStream* pOutStream)
     , m_pRepository(new Aze::CRepository(
                         QDir::currentPath(), this,
                         m_tArguments.m_tParser.isSet(m_tArguments.m_oSilent),
-                        m_tArguments.m_tParser.isSet(m_tArguments.m_oDebug)
+                        m_tArguments.m_tParser.isSet(m_tArguments.m_oDebug),
+                        m_tArguments.m_tParser.isSet(m_tArguments.m_oTextCache)
                         ))
     , m_pNetworkAccessManager(new QNetworkAccessManager(this))
     , m_eLastError(Aze::CError::eNone)

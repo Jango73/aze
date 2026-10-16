@@ -17,7 +17,7 @@ namespace Aze {
 
 //-------------------------------------------------------------------------------------------------
 
-CCommitTreeList::CCommitTreeList(CDatabase* pDatabase, QObject* parent, bool bSilent, bool bDebug)
+CCommitTreeList::CCommitTreeList(CDatabase* pDatabase, QObject* parent, bool bSilent, bool bDebug, bool bTextCache)
     : QObject(parent)
     , m_pDatabase(pDatabase)
     , m_bSilent(bSilent)
@@ -25,9 +25,36 @@ CCommitTreeList::CCommitTreeList(CDatabase* pDatabase, QObject* parent, bool bSi
     , m_bDirty(false)
 {
     m_sFileName = m_pDatabase->composeCacheFileName(metaObject()->className());
-    m_sFileName = QString("%1.%2").arg(m_sFileName).arg(CStrings::s_sCompressedXMLExtension);
 
-    fromNode(m_sFileName);
+    QString sBinaryFileName = m_sFileName + CXMLNode::sExtension_BIN;
+    QString sTextFileName = QString("%1.%2").arg(m_sFileName).arg(CStrings::s_sCompressedXMLExtension);
+
+    // The text format is the former cache format, binary is the default
+    if (bTextCache)
+    {
+        m_sFileName = sTextFileName;
+    }
+    else
+    {
+        m_sFileName = sBinaryFileName;
+    }
+
+    // One-way migration from the other format: load it once, then drop it.
+    // The destructor persists the content in the selected format from now on.
+    QString sOtherFileName = sTextFileName;
+
+    if (m_sFileName == sTextFileName)
+        sOtherFileName = sBinaryFileName;
+
+    if (not QFile::exists(m_sFileName) and QFile::exists(sOtherFileName))
+    {
+        fromNode(CXMLNode::load(sOtherFileName));
+        QFile::remove(sOtherFileName);
+    }
+    else
+    {
+        fromNode(CXMLNode::load(m_sFileName));
+    }
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -65,7 +92,6 @@ bool CCommitTreeList::operator == (const CCommitTreeList& target)
 
 //-------------------------------------------------------------------------------------------------
 
-// TODO : save and load in binary format
 CXMLNode CCommitTreeList::toNode()
 {
     CXMLNode xReturnValue(CStrings::s_sParamCommitTreeList);
