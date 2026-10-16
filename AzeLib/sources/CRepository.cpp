@@ -338,10 +338,11 @@ QString CRepository::diff(const QString& sFirst, const QString& sSecond)
     Merges a branch onto the current branch. \br\br
     \a sName is the branch to merge
     \a bHasConflicts will contain whether the merge has conflict files
+    \a bAllowFastForward moves the current tip forward without a merge commit when it is an ancestor
 */
-CError::EErrorCode CRepository::merge(const QString& sName, bool& bHasConflicts)
+CError::EErrorCode CRepository::merge(const QString& sName, bool& bHasConflicts, bool bAllowFastForward)
 {
-    CMergeCommand oCommand(this, sName, bHasConflicts);
+    CMergeCommand oCommand(this, sName, bHasConflicts, bAllowFastForward);
     CError::EErrorCode eCode = oCommand.execute();
 
     bHasConflicts = (eCode == CError::eMergeHasConflicts);

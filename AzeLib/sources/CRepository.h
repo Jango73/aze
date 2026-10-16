@@ -140,8 +140,9 @@ public:
 
     //! Merges the branch sName onto the current one
     //! bHasConflicts is set when the merge reports conflicts
+    //! bAllowFastForward moves the current tip forward without a merge commit when it is an ancestor
     //! Returns eNone, eMergeHasConflicts or the precise failure reason
-    CError::EErrorCode merge(const QString& sName, bool& bHasConflicts);
+    CError::EErrorCode merge(const QString& sName, bool& bHasConflicts, bool bAllowFastForward = true);
 
     //! Stashes the working directory changes
     CError::EErrorCode saveStash(const QString& sMessage);

@@ -98,6 +98,7 @@ public:
     static const char* s_sSwitchMessage;
     static const char* s_sSwitchMissing;
     static const char* s_sSwitchModified;
+    static const char* s_sSwitchNoFastForward;
     static const char* s_sSwitchStart;
     static const char* s_sSwitchSilent;
     static const char* s_sSwitchDebug;

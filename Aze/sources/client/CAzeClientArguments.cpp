@@ -31,6 +31,7 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
     , m_oCount(QStringList() << "c" << CConstants::s_sSwitchCount, TRT("List <count> items."), TRT(CConstants::s_sSwitchCount))
     , m_oAllowFileDelete(QStringList() << "d" << CConstants::s_sSwitchAllowFileDelete, TRT("Allow Aze to delete files."))
     , m_oGraph(QStringList() << "g" << CConstants::s_sSwitchGraph, TRT("Show log as a graph."))
+    , m_oNoFastForward(QStringList() << CConstants::s_sSwitchNoFastForward, TRT("Merge without fast forward, creating a merge commit."))
     , m_oSilent(QStringList() << CConstants::s_sSwitchSilent, TRT("Silent mode (no messages)."))
     , m_oDebug(QStringList() << CConstants::s_sSwitchDebug, TRT("Debug mode (tons of messages)."))
     , m_eCommand(CConstants::eCommandNone)
@@ -57,6 +58,7 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
                              m_oCount,
                              m_oAllowFileDelete,
                              m_oGraph,
+                             m_oNoFastForward,
                              m_oSilent,
                              m_oDebug
                          });

@@ -2,19 +2,22 @@
 // Qt
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 
 // Application
 #include "CMergeCommand.h"
 #include "../CRepository.h"
+#include "../CUtils.h"
 
 namespace Aze {
 
 //-------------------------------------------------------------------------------------------------
 
-CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranch, bool& bHasConflicts)
+CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranch, bool& bHasConflicts, bool bAllowFastForward)
     : CBaseCommand(pRepository)
     , m_sFromBranch(sFromBranch)
     , m_bHasConflicts(bHasConflicts)
+    , m_bAllowFastForward(bAllowFastForward)
 {
     m_bHasConflicts = false;
 }
@@ -24,6 +27,9 @@ CMergeCommand::CMergeCommand(CRepository* pRepository, const QString& sFromBranc
 /*!
     Merges the branch \a m_sFromBranch onto the current branch. \br\br
     Refuses a non empty stage to avoid overwriting merge parents. \br
+    Fast forwards the current branch when its tip is an ancestor of the
+    merged branch instead of creating a merge commit with two parents,
+    unless fast forward is refused with \a m_bAllowFastForward set to false. \br
     Returns the precise failure reason as a CError::EErrorCode. \br
 */
 CError::EErrorCode CMergeCommand::execute()
@@ -121,6 +127,34 @@ CError::EErrorCode CMergeCommand::execute()
     {
         m_pRepository->tellError(CError::eDirtyWorkingFolder);
         return CError::eDirtyWorkingFolder;
+    }
+
+    // Fast forward when the current tip is an ancestor of the merged branch
+    // No merge commit is created, the current branch tip is moved forward
+    if (m_bAllowFastForward && sCommonAncestorId == pToTipCommit->id())
+    {
+        for (const QString& sRelativeFileName : pFromTipCommit->files().keys())
+        {
+            QByteArray baData = m_pRepository->database()->getObject(pFromTipCommit->files()[sRelativeFileName]);
+
+            if (baData.isEmpty())
+                return CError::eCouldNotMerge;
+
+            if (not CUtils::putBinaryFileContent(m_pRepository->database()->composeLocalFileName(sRelativeFileName), baData))
+                return CError::eCouldNotMerge;
+        }
+
+        for (const QString& sRelativeFileName : pToTipCommit->files().keys())
+        {
+            if (not pFromTipCommit->files().contains(sRelativeFileName))
+                QFile::remove(m_pRepository->database()->composeLocalFileName(sRelativeFileName));
+        }
+
+        m_pRepository->currentBranch()->setTipCommitId(pFromTipCommit->id());
+
+        m_bHasConflicts = false;
+
+        return CError::eNone;
     }
 
     CCommit* pCommonAncestor = m_pRepository->commitFunctions()->loadCommit(sCommonAncestorId, this);

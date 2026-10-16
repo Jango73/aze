@@ -387,11 +387,13 @@ Aze::CError::EErrorCode CAzeClient::merge()
     }
 
     bool bHasConflicts = false;
-    Aze::CError::EErrorCode eMergeCode = m_pRepository->merge(sBranchName, bHasConflicts);
+    bool bAllowFastForward = not m_tArguments.m_tParser.isSet(m_tArguments.m_oNoFastForward);
+    Aze::CError::EErrorCode eMergeCode = m_pRepository->merge(sBranchName, bHasConflicts, bAllowFastForward);
 
     if (eMergeCode != Aze::CError::eNone && eMergeCode != Aze::CError::eMergeHasConflicts)
         return eMergeCode;
 
+    RETURN_WHEN_ERROR(m_pRepository->writeCurrentBranch(), Aze::CError::eCouldNotWriteCurrentBranch);
     RETURN_WHEN_ERROR(m_pRepository->writeStage(), Aze::CError::eCouldNotWriteStage);
 
     return bHasConflicts ? Aze::CError::eMergeHasConflicts : Aze::CError::eNone;

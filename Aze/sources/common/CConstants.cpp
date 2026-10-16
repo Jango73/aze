@@ -53,6 +53,7 @@ const char* CConstants::s_sSwitchLoose                      = "loose";
 const char* CConstants::s_sSwitchMessage                    = "message";
 const char* CConstants::s_sSwitchMissing                    = "missing";
 const char* CConstants::s_sSwitchModified                   = "modified";
+const char* CConstants::s_sSwitchNoFastForward              = "no-fast-forward";
 const char* CConstants::s_sSwitchStart                      = "start";
 const char* CConstants::s_sSwitchSilent                     = "silent";
 const char* CConstants::s_sSwitchDebug                      = "debug";
