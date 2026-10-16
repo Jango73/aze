@@ -6,6 +6,7 @@
 
 // Application
 #include "CRemoteRepository.h"
+#include "CUtils.h"
 
 namespace Aze {
 
@@ -29,14 +30,12 @@ CXMLNode CRemoteRepository::getPullRequest()
 {
     CXMLNode xRequest("");
 
-    QVector<CBranch*> lBranches = m_pLocalRepository->database()->getAllBranches(this);
-
     xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPull;
+    xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
 
-    for (CBranch* pBranch : lBranches)
+    if (not m_pLocalRepository->tipCommit().isNull())
     {
-        CXMLNode xBranch = pBranch->toNode();
-        xRequest << xBranch;
+        xRequest.attributes()[CStrings::s_sParamTip] = m_pLocalRepository->tipCommit()->id();
     }
 
     return xRequest;
@@ -142,6 +141,342 @@ CXMLNode CRemoteRepository::getCloneResponse()
     appendCloneCommitNodes(xResponse, lCommitIds);
 
     return xResponse;
+}
+
+/************************************************************************/
+
+/*!
+    Returns the pull payload for \a xRequest. \br\br
+    The request carries the requested branch name and the client tip,
+    the response carries the branch name, the server tip plus every
+    commit reachable from the server tip and every object referenced
+    by those commits. Branch author and root travel as attributes so
+    no child node collides with them in JSON. \br
+    Returns an error node when the request is invalid or the branch
+    is unknown. \br
+*/
+CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
+{
+    QString sBranchName = xRequest.attributes()[CStrings::s_sParamBranch];
+
+    if (xRequest.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamPull
+            || sBranchName.isEmpty())
+    {
+        return CError::toResultNode(CError::ePullRequestInvalid);
+    }
+
+    CBranch* pBranch = nullptr;
+
+    if (not QFile(m_pLocalRepository->database()->composeBranchFileName(sBranchName)).exists())
+    {
+        return CError::toResultNode(CError::eBranchDoesNotExist, sBranchName);
+    }
+
+    pBranch = m_pLocalRepository->database()->getBranch(sBranchName, nullptr);
+
+    if (IS_NULL(pBranch))
+    {
+        return CError::toResultNode(CError::eBranchDoesNotExist, sBranchName);
+    }
+
+    QString sServerTipId = pBranch->tipCommitId();
+    QString sAuthor = pBranch->author();
+    QString sRootId = pBranch->rootCommitId();
+    delete pBranch;
+
+    CXMLNode xResponse("");
+
+    xResponse.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPull;
+    xResponse.attributes()[CStrings::s_sParamBranch] = sBranchName;
+    xResponse.attributes()[CStrings::s_sParamTip] = sServerTipId;
+    xResponse.attributes()[CStrings::s_sParamAuthor] = sAuthor;
+    xResponse.attributes()[CStrings::s_sParamRoot] = sRootId;
+
+    if (sServerTipId.isEmpty())
+        return xResponse;
+
+    QStringList lCommitIds = pullCommitIds(sServerTipId);
+
+    appendCloneCommitNodes(xResponse, lCommitIds);
+
+    return xResponse;
+}
+
+/************************************************************************/
+
+/*!
+    Applies \a xResponse as a pull to the local repository. \br\br
+    Stores received objects and commits, then updates the pulled branch.
+    The current branch is fast forwarded when it is an ancestor of the
+    received tip, merged otherwise through a temporary branch. \br
+    A divergent merge leaves conflict markers in the working folder and
+    the merge parents in the stage, like a local merge. \br
+    Sets \a sDetail and returns the failure reason when invalid. \br
+*/
+CError::EErrorCode CRemoteRepository::applyPullResponse(const CXMLNode& xResponse, QString& sDetail)
+{
+    CError::EErrorCode eCheckCode = CError::fromResultNode(xResponse);
+
+    if (eCheckCode != CError::eInvalidResponse)
+        return eCheckCode;
+
+    if (xResponse.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamPull)
+    {
+        sDetail = CError::message(CError::ePullRequestInvalid);
+        return CError::ePullRequestInvalid;
+    }
+
+    QString sBranchName = xResponse.attributes()[CStrings::s_sParamBranch];
+    QString sServerTipId = xResponse.attributes()[CStrings::s_sParamTip];
+
+    if (sBranchName.isEmpty())
+    {
+        sDetail = CError::message(CError::ePullRequestInvalid);
+        return CError::ePullRequestInvalid;
+    }
+
+    if (sServerTipId.isEmpty())
+    {
+        QString sBranchFileName = m_pLocalRepository->database()->composeBranchFileName(sBranchName);
+
+        if (not QFile(sBranchFileName).exists())
+        {
+            CBranch* pNewBranch = new CBranch(m_pLocalRepository);
+            pNewBranch->toNode().save(sBranchFileName);
+            delete pNewBranch;
+        }
+
+        return CError::eNone;
+    }
+
+    CError::EErrorCode eCode = storeRequestObjects(xResponse, sDetail);
+
+    if (eCode != CError::eNone)
+        return eCode;
+
+    QStringList lCommitIds;
+    eCode = storeRequestCommits(xResponse, lCommitIds, sDetail);
+
+    if (eCode != CError::eNone)
+        return eCode;
+
+    if (lCommitIds.isEmpty() || not lCommitIds.contains(sServerTipId))
+    {
+        sDetail = CError::message(CError::ePullRequestInvalid);
+        return CError::ePullRequestInvalid;
+    }
+
+    CDatabase* pDatabase = m_pLocalRepository->database();
+    QString sBranchFileName = pDatabase->composeBranchFileName(sBranchName);
+
+    if (not QFile(sBranchFileName).exists())
+    {
+        CBranch* pNewBranch = new CBranch(m_pLocalRepository);
+
+        pNewBranch->setAuthor(xResponse.attributes()[CStrings::s_sParamAuthor]);
+        pNewBranch->setRootCommitId(xResponse.attributes()[CStrings::s_sParamRoot]);
+        pNewBranch->setTipCommitId(sServerTipId);
+
+        if (pNewBranch->rootCommitId().isEmpty())
+            pNewBranch->setRootCommitId(sServerTipId);
+
+        if (pNewBranch->author().isEmpty())
+        {
+            CCommit* pTipCommit = m_pLocalRepository->commitFunctions()->loadCommit(sServerTipId, m_pLocalRepository);
+
+            if (IS_NOT_NULL(pTipCommit))
+            {
+                pNewBranch->setAuthor(pTipCommit->author());
+                delete pTipCommit;
+            }
+        }
+
+        pNewBranch->toNode().save(sBranchFileName);
+        delete pNewBranch;
+
+        if (sBranchName != m_pLocalRepository->currentBranchName())
+            return CError::eNone;
+
+        m_pLocalRepository->refreshCurrentBranch();
+
+        CCommit* pTipCommit = m_pLocalRepository->commitFunctions()->loadCommit(sServerTipId, m_pLocalRepository);
+
+        if (IS_NULL(pTipCommit))
+        {
+            sDetail = sServerTipId;
+            return CError::ePullRequestInvalid;
+        }
+
+        QDictionary mFiles = pTipCommit->files();
+        delete pTipCommit;
+
+        for (const QString& sRelativeFileName : mFiles.keys())
+        {
+            QByteArray baData = pDatabase->getObject(mFiles[sRelativeFileName]);
+
+            if (baData.isEmpty())
+            {
+                sDetail = sRelativeFileName;
+                return CError::eObjectStoreFailed;
+            }
+
+            if (not CUtils::putBinaryFileContent(pDatabase->composeLocalFileName(sRelativeFileName), baData))
+            {
+                sDetail = sRelativeFileName;
+                return CError::eObjectStoreFailed;
+            }
+        }
+
+        return CError::eNone;
+    }
+
+    if (sBranchName != m_pLocalRepository->currentBranchName())
+    {
+        CBranch* pBranch = pDatabase->getBranch(sBranchName, m_pLocalRepository);
+
+        if (IS_NULL(pBranch))
+        {
+            sDetail = sBranchName;
+            return CError::eBranchDoesNotExist;
+        }
+
+        pBranch->setTipCommitId(sServerTipId);
+        pBranch->toNode().save(sBranchFileName);
+        delete pBranch;
+
+        return CError::eNone;
+    }
+
+    m_pLocalRepository->refreshCurrentBranch();
+
+    QString sLocalTipId;
+
+    if (not m_pLocalRepository->currentBranch().isNull())
+        sLocalTipId = m_pLocalRepository->currentBranch()->tipCommitId();
+
+    if (sLocalTipId == sServerTipId)
+        return CError::eNone;
+
+    if (sLocalTipId.isEmpty())
+    {
+        m_pLocalRepository->currentBranch()->setTipCommitId(sServerTipId);
+        m_pLocalRepository->writeCurrentBranch();
+
+        CCommit* pTipCommit = m_pLocalRepository->commitFunctions()->loadCommit(sServerTipId, m_pLocalRepository);
+
+        if (IS_NULL(pTipCommit))
+        {
+            sDetail = sServerTipId;
+            return CError::ePullRequestInvalid;
+        }
+
+        QDictionary mFiles = pTipCommit->files();
+        delete pTipCommit;
+
+        for (const QString& sRelativeFileName : mFiles.keys())
+        {
+            QByteArray baData = pDatabase->getObject(mFiles[sRelativeFileName]);
+
+            if (baData.isEmpty())
+            {
+                sDetail = sRelativeFileName;
+                return CError::eObjectStoreFailed;
+            }
+
+            if (not CUtils::putBinaryFileContent(pDatabase->composeLocalFileName(sRelativeFileName), baData))
+            {
+                sDetail = sRelativeFileName;
+                return CError::eObjectStoreFailed;
+            }
+        }
+
+        return CError::eNone;
+    }
+
+    QList<QPair<int, QString>> lServerAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
+                sServerTipId,
+                false,
+                0
+                );
+
+    bool bServerContainsLocal = false;
+
+    for (const QPair<int, QString>& tAncestor : lServerAncestors)
+    {
+        if (tAncestor.second == sLocalTipId)
+        {
+            bServerContainsLocal = true;
+            break;
+        }
+    }
+
+    if (not bServerContainsLocal)
+    {
+        QList<QPair<int, QString>> lLocalAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
+                    sLocalTipId,
+                    false,
+                    0
+                    );
+
+        for (const QPair<int, QString>& tAncestor : lLocalAncestors)
+        {
+            if (tAncestor.second == sServerTipId)
+                return CError::eNone;
+        }
+    }
+
+    const QString sTemporaryBranchName("__aze_pull_tmp__");
+    QString sTemporaryFileName = pDatabase->composeBranchFileName(sTemporaryBranchName);
+
+    QFile::remove(sTemporaryFileName);
+
+    CBranch* pTemporaryBranch = new CBranch(m_pLocalRepository);
+    pTemporaryBranch->setTipCommitId(sServerTipId);
+    pTemporaryBranch->toNode().save(sTemporaryFileName);
+    delete pTemporaryBranch;
+
+    bool bHasConflicts = false;
+    CError::EErrorCode eMergeCode = m_pLocalRepository->merge(sTemporaryBranchName, bHasConflicts, true);
+
+    QFile::remove(sTemporaryFileName);
+
+    if (eMergeCode == CError::eNothingToMerge)
+        return CError::eNone;
+
+    if (eMergeCode != CError::eNone && eMergeCode != CError::eMergeHasConflicts)
+        return eMergeCode;
+
+    m_pLocalRepository->writeCurrentBranch();
+    m_pLocalRepository->writeStage();
+
+    if (bHasConflicts || eMergeCode == CError::eMergeHasConflicts)
+        return CError::eMergeHasConflicts;
+
+    return CError::eNone;
+}
+
+/************************************************************************/
+
+QStringList CRemoteRepository::pullCommitIds(const QString& sTipId) const
+{
+    QStringList lCommitIds;
+
+    if (sTipId.isEmpty())
+        return lCommitIds;
+
+    lCommitIds << sTipId;
+
+    QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
+                sTipId,
+                false,
+                0
+                );
+
+    for (const QPair<int, QString>& tAncestor : lAncestors)
+        if (not lCommitIds.contains(tAncestor.second))
+            lCommitIds << tAncestor.second;
+
+    return lCommitIds;
 }
 
 /************************************************************************/

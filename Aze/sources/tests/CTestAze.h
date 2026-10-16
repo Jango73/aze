@@ -99,6 +99,9 @@ private slots:
     //! Tests push request building and applying to another repository
     void testRemotePush();
 
+    //! Tests pull convergence after push then pull
+    void testPull();
+
     //! Tests cloning of branches, branch tips and file contents
     void testClone();
 

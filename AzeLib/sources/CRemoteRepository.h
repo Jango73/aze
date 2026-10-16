@@ -47,10 +47,22 @@ public:
     //-------------------------------------------------------------------------------------------------
 
     //! Returns the request for pull
+    //! Carries the requested branch name and the local tip identifier
     CXMLNode getPullRequest();
 
     //! Returns the request for push
     CXMLNode getPushRequest();
+
+    //! Returns the pull response for a pull request
+    //! Branches carry their name, commits their identifier, objects their content
+    //! Returns an error node when the request is invalid or the branch is unknown
+    CXMLNode getPullResponse(const CXMLNode& xRequest);
+
+    //! Applies a pull response to the local repository
+    //! Stores received objects and commits, updates the branch with fast forward or merge
+    //! Returns eNone, eMergeHasConflicts or the precise failure reason
+    //! sDetail optionally receives message detail (object identifier, branch name)
+    CError::EErrorCode applyPullResponse(const CXMLNode& xResponse, QString& sDetail);
 
     //! Returns the request for clone
     CXMLNode getCloneRequest();
@@ -69,6 +81,10 @@ protected:
     //-------------------------------------------------------------------------------------------------
     // Protected payload methods
     //-------------------------------------------------------------------------------------------------
+
+    //! Collects the tip and ancestor identifiers of a single branch tip
+    //! Follows every parent so merge history is included
+    QStringList pullCommitIds(const QString& sTipId) const;
 
     //! Lists the branch names stored in the local repository
     QStringList cloneBranchNames() const;

@@ -38,6 +38,10 @@
     A clone request carries no payload besides "request": "clone".
     A clone response carries every branch with its name plus every
     commit and object of the served repository.
+    A pull request carries the requested branch and the client tip.
+    A pull response carries the requested branch with its name plus
+    every commit reachable from the server tip and every object
+    referenced by those commits.
 */
 
 //-------------------------------------------------------------------------------------------------
@@ -125,12 +129,11 @@ CXMLNode CAzeServerProcessor::serveRequest(CWebContext& tContext, const CXMLNode
 
 CXMLNode CAzeServerProcessor::servePull(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest)
 {
-    Q_UNUSED(pRepository)
     Q_UNUSED(tContext)
-    Q_UNUSED(xRequest)
 
-    // TODO: implement pull payload handling (TODO-018, TODO-019, TODO-020)
-    return Aze::CError::toResultNode(Aze::CError::eNone);
+    Aze::CRemoteRepository oRemoteRepository(pRepository);
+
+    return oRemoteRepository.getPullResponse(xRequest);
 }
 
 //-------------------------------------------------------------------------------------------------

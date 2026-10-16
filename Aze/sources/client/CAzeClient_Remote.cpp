@@ -37,7 +37,26 @@ Aze::CError::EErrorCode CAzeClient::pull()
 
     CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPullRequest();
 
-    return postNetworkRequest(xRequest);
+    postNetworkRequest(xRequest);
+
+    if (m_eLastError == Aze::CError::eNetworkError)
+        return m_eLastError;
+
+    // A pull payload carries no result attribute, anything else is a server error
+    Aze::CError::EErrorCode eResponseCode = Aze::CError::fromResultNode(m_xLastResponse);
+
+    if (eResponseCode != Aze::CError::eInvalidResponse)
+        return eResponseCode;
+
+    QString sDetail;
+    Aze::CError::EErrorCode ePullCode = Aze::CRemoteRepository(m_pRepository).applyPullResponse(m_xLastResponse, sDetail);
+
+    if (ePullCode != Aze::CError::eNone && ePullCode != Aze::CError::eMergeHasConflicts)
+    {
+        OUT_ERROR(Aze::CError::message(ePullCode, sDetail));
+    }
+
+    return ePullCode;
 }
 
 //-------------------------------------------------------------------------------------------------

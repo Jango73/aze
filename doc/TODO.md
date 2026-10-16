@@ -34,11 +34,11 @@
 - [ ] TODO-017 - Add an HTTP test for `servePush` because only the engine is covered by `testRemotePush` without server or command line interface.
 
 ## Pull client and server
-- [ ] TODO-018 - Implement `applyPullRequest` and `getPullResponse` in `CRemoteRepository` because only `getPullRequest` exists without commit and object payload.
-- [ ] TODO-019 - Implement `CAzeServerProcessor::servePull` which returns an empty success without reading the requested repository.
-- [ ] TODO-020 - Store received commits and objects in `CAzeClient::pull` and update the local branch with fast forward or merge.
-- [ ] TODO-021 - Include the requested branch and the tip identifier in the pull request instead of dumping all local branches.
-- [ ] TODO-022 - Add an end to end pull test which verifies content convergence after push then pull.
+- [x] TODO-018 - Implement `applyPullResponse` and `getPullResponse` in `CRemoteRepository` because only `getPullRequest` exists without commit and object payload.
+- [x] TODO-019 - Implement `CAzeServerProcessor::servePull` which returns an empty success without reading the requested repository.
+- [x] TODO-020 - Store received commits and objects in `CAzeClient::pull` and update the local branch with fast forward or merge.
+- [x] TODO-021 - Include the requested branch and the tip identifier in the pull request instead of dumping all local branches.
+- [x] TODO-022 - Add an end to end pull test which verifies content convergence after push then pull.
 
 ## Clone
 - [x] TODO-023 - Implement `clone` in the engine with creation of the `.aze` folder and copy of branches, commits and objects from the server response.

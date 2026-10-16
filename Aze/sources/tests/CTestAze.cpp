@@ -1151,6 +1151,192 @@ void CTestAze::testRemotePush()
 
 //-------------------------------------------------------------------------------------------------
 
+void CTestAze::testPull()
+{
+    QString sFilePath = "Files/PullTest.txt";
+    QString sContent1("Pulled line1.\nPulled content v1.\n");
+    QString sContent2("Pulled line1.\nPulled content v2.\n");
+    QString sLocalContent("Pulled line1.\nLocal divergent content.\n");
+    QString sRemoteContent("Pulled line1.\nRemote divergent content.\n");
+    QString sDetail;
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sContent1));
+    STAGE(sFilePath);
+    COMMIT("P1");
+
+    // The pull request carries the requested branch and the local tip
+    Aze::CRepository oSourceRepository(m_sRootPath);
+    QVERIFY(oSourceRepository.ok());
+
+    Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+    CXMLNode xPullRequest = oSourceRemote.getPullRequest();
+    QVERIFY(xPullRequest.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamPull);
+    QCOMPARE(xPullRequest.attributes()[Aze::CStrings::s_sParamBranch], oSourceRepository.currentBranchName());
+    QCOMPARE(xPullRequest.attributes()[Aze::CStrings::s_sParamTip], oSourceRepository.tipCommit()->id());
+
+    // Prepare an empty remote repository outside of the source folder
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sRemotePath = oParent.absoluteFilePath("aze-tests-remote");
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    Aze::CRepository oRemoteRepository(sRemotePath);
+    QVERIFY(oRemoteRepository.init() == Aze::CError::eNone);
+
+    // Push the source tip to the remote repository
+    Aze::CRemoteRepository oPushRemote(&oSourceRepository);
+    CXMLNode xPushRequest = oPushRemote.getPushRequest();
+    CXMLNode xPushReceived = CXMLNode::parseJSON(xPushRequest.toJsonString());
+
+    Aze::CRemoteRepository oRemoteTarget(&oRemoteRepository);
+    QVERIFY(oRemoteTarget.applyPushRequest(xPushReceived, sDetail) == Aze::CError::eNone);
+
+    // Prepare an empty pull repository and pull the remote tip
+    QString sPullPath = oParent.absoluteFilePath("aze-tests-pull");
+    QDir oPullFolder(sPullPath);
+
+    if (oPullFolder.exists())
+        QVERIFY(oPullFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sPullPath));
+
+    Aze::CRepository oPullRepository(sPullPath);
+    QVERIFY(oPullRepository.init() == Aze::CError::eNone);
+
+    Aze::CRemoteRepository oPullRemote(&oPullRepository);
+    CXMLNode xFirstPullRequest = CXMLNode::parseJSON(oPullRemote.getPullRequest().toJsonString());
+
+    CXMLNode xFirstResponse;
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        xFirstResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xFirstPullRequest).toJsonString());
+    }
+
+    QVERIFY(xFirstResponse.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamPull);
+    QVERIFY(oPullRemote.applyPullResponse(xFirstResponse, sDetail) == Aze::CError::eNone);
+
+    // Content converges after push then pull
+    Aze::CRepository oCheckPulledRepository(sPullPath);
+    QVERIFY(oCheckPulledRepository.ok());
+    QCOMPARE(oCheckPulledRepository.tipCommit()->id(), oSourceRepository.tipCommit()->id());
+    QCOMPARE(Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sFilePath)), sContent1);
+
+    // Advance the source, push, then pull again with fast forward
+    QVERIFY(createFile(sFilePath, sContent2));
+    STAGE(sFilePath);
+    COMMIT("P2");
+
+    Aze::CRepository oAdvancedRepository(m_sRootPath);
+    QVERIFY(oAdvancedRepository.ok());
+
+    Aze::CRemoteRepository oAdvancedRemote(&oAdvancedRepository);
+    CXMLNode xSecondPush = CXMLNode::parseJSON(oAdvancedRemote.getPushRequest().toJsonString());
+    QVERIFY(oRemoteTarget.applyPushRequest(xSecondPush, sDetail) == Aze::CError::eNone);
+
+    Aze::CRepository oBehindRepository(sPullPath);
+    Aze::CRemoteRepository oBehindRemote(&oBehindRepository);
+    CXMLNode xSecondPullRequest = CXMLNode::parseJSON(oBehindRemote.getPullRequest().toJsonString());
+    CXMLNode xSecondResponse;
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        xSecondResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xSecondPullRequest).toJsonString());
+    }
+
+    QVERIFY(oBehindRemote.applyPullResponse(xSecondResponse, sDetail) == Aze::CError::eNone);
+
+    Aze::CRepository oConvergedRepository(sPullPath);
+    QVERIFY(oConvergedRepository.ok());
+    QCOMPARE(oConvergedRepository.tipCommit()->id(), oAdvancedRepository.tipCommit()->id());
+    QCOMPARE(Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sFilePath)), sContent2);
+
+    // Pulling again without new commits stays converged
+    Aze::CRemoteRepository oUpToDateRemote(&oConvergedRepository);
+    CXMLNode xUpToDateRequest = CXMLNode::parseJSON(oUpToDateRemote.getPullRequest().toJsonString());
+    CXMLNode xUpToDateResponse;
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        xUpToDateResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xUpToDateRequest).toJsonString());
+    }
+
+    QVERIFY(oUpToDateRemote.applyPullResponse(xUpToDateResponse, sDetail) == Aze::CError::eNone);
+
+    // Divergent histories report conflicts with markers, like a local merge
+    QVERIFY(createFile(QString("%1/%2").arg(sPullPath).arg(sFilePath), sLocalContent));
+
+        {
+        Aze::CRepository oLocalRepository(sPullPath);
+        QVERIFY(oLocalRepository.ok());
+        QString sAbsolutePullFile = QString("%1/%2").arg(sPullPath).arg(sFilePath);
+        QVERIFY(oLocalRepository.stage(QStringList() << sAbsolutePullFile) == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeStage() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.commit(m_sAuthor, "Local") == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeCurrentBranch() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.clearStage() == Aze::CError::eNone);
+        QVERIFY(oLocalRepository.writeStage() == Aze::CError::eNone);
+    }
+
+    QVERIFY(createFile(sFilePath, sRemoteContent));
+    STAGE(sFilePath);
+    COMMIT("Remote");
+
+    Aze::CRepository oDivergedSource(m_sRootPath);
+    CXMLNode xDivergedPush = CXMLNode::parseJSON(Aze::CRemoteRepository(&oDivergedSource).getPushRequest().toJsonString());
+    QVERIFY(oRemoteTarget.applyPushRequest(xDivergedPush, sDetail) == Aze::CError::eNone);
+
+    Aze::CRepository oDivergedPull(sPullPath);
+    Aze::CRemoteRepository oDivergedRemote(&oDivergedPull);
+    CXMLNode xDivergedRequest = CXMLNode::parseJSON(oDivergedRemote.getPullRequest().toJsonString());
+    CXMLNode xDivergedResponse;
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        xDivergedResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xDivergedRequest).toJsonString());
+    }
+
+    QVERIFY(oDivergedRemote.applyPullResponse(xDivergedResponse, sDetail) == Aze::CError::eMergeHasConflicts);
+
+    QString sConflictedContent = Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sFilePath));
+    QVERIFY(sConflictedContent.contains("<<<<<<<"));
+    QVERIFY(sConflictedContent.contains(">>>>>>>"));
+    QVERIFY(sConflictedContent.contains("Local divergent") || sConflictedContent.contains("Remote divergent"));
+
+    // Unknown branches are refused with a distinct code
+    CXMLNode xUnknownRequest("");
+    xUnknownRequest.attributes()[Aze::CStrings::s_sParamRequest] = Aze::CStrings::s_sParamPull;
+    xUnknownRequest.attributes()[Aze::CStrings::s_sParamBranch] = "no-such-branch";
+
+    {
+        Aze::CRepository oFreshRemote(sRemotePath);
+        QVERIFY(oFreshRemote.ok());
+        Aze::CRemoteRepository oFreshSource(&oFreshRemote);
+        CXMLNode xUnknownResponse = CXMLNode::parseJSON(oFreshSource.getPullResponse(xUnknownRequest).toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xUnknownResponse) == Aze::CError::eBranchDoesNotExist);
+    }
+
+    QVERIFY(QDir(sPullPath).removeRecursively());
+    QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void CTestAze::testClone()
 {
     QString sTrunkFilePath = "Files/CloneTrunk.txt";
