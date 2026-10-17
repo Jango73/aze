@@ -59,3 +59,9 @@ QT_PLUGIN_PATH = $$[QT_INSTALL_PLUGINS]
         QMAKE_POST_LINK += $$makeExecutable($$EXEC_NAMES, $$DESTDIR)
     }
 }
+
+# Installation (make install, used by the .deb package)
+unix {
+    target.path = /usr/bin
+    INSTALLS += target
+}

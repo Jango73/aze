@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+export QT_SELECT := qt6
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p build-deb
+	cd build-deb && qmake6 ../Aze.pro CONFIG+=release
+
+override_dh_auto_build:
+	make -C build-deb -j$(nproc)
+
+override_dh_auto_install:
+	make -C build-deb install INSTALL_ROOT=$(CURDIR)/debian/aze
+
+override_dh_auto_test:
+	LD_LIBRARY_PATH=$(CURDIR)/build-deb/AzeLib/bin $(CURDIR)/build-deb/Aze/bin/aze run-tests
+
+override_dh_auto_clean:
+	rm -rf build-deb

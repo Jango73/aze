@@ -26,3 +26,9 @@ CONFIG(debug, debug|release) {
 } else {
     TARGET = aze
 }
+
+# Installation (make install, used by the .deb package)
+unix {
+    target.path = /usr/lib
+    INSTALLS += target
+}

@@ -1,0 +1,16 @@
+Source: aze
+Section: vcs
+Priority: optional
+Maintainer: Jango73 <guillaumed00@gmail.com>
+Build-Depends: debhelper-compat (= 13), qt6-base-dev, qt6-base-dev-tools, build-essential
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: aze
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: distributed versioning system (client and server)
+ Aze is a versioning tool shipped as a single binary providing both
+ the client commands and the "aze serve" server.
+ .
+ This package installs /usr/bin/aze and the libaze runtime library.

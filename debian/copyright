@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://github.com/Jango73/aze
+
+Files: *
+Copyright: Jango73 <guillaumed00@gmail.com>
+License: GPL-3+
+
+Files: qt-plus/*
+Copyright: Jango73 <guillaumed00@gmail.com>
+License: GPL-3+
+
+Files: AzeLib/sources/dtl/*
+Copyright: 2015 Tatsuhiko Kubo <cubicdaiya@gmail.com>
+License: BSD-3-clause
+ See AzeLib/sources/dtl/COPYING in the source tree.
+
+License: GPL-3+
+ On Debian systems, the full text of the GNU General Public License
+ version 3 can be found in /usr/share/common-licenses/GPL-3.
