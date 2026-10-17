@@ -8,6 +8,7 @@
 #include "CTestServe.h"
 #include "CTestCache.h"
 #include "CTestPrune.h"
+#include "CTestMassive.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -66,6 +67,11 @@ int CTestAze::runAllTests()
 
     {
         CTestPrune oTest(m_sArgument0);
+        iStatus |= QTest::qExec(&oTest);
+    }
+
+    {
+        CTestMassive oTest(m_sArgument0);
         iStatus |= QTest::qExec(&oTest);
     }
 

@@ -14,6 +14,7 @@ HEADERS += \
     sources/tests/CTestDiffPatch.h \
     sources/tests/CTestFixture.h \
     sources/tests/CTestMacros.h \
+    sources/tests/CTestMassive.h \
     sources/tests/CTestMerge.h \
     sources/tests/CTestPrune.h \
     sources/tests/CTestRemote.h \
@@ -34,6 +35,7 @@ SOURCES += \
     sources/tests/CTestCache.cpp \
     sources/tests/CTestDiffPatch.cpp \
     sources/tests/CTestFixture.cpp \
+    sources/tests/CTestMassive.cpp \
     sources/tests/CTestMerge.cpp \
     sources/tests/CTestPrune.cpp \
     sources/tests/CTestRemote.cpp \

@@ -131,6 +131,14 @@
     b \
     })
 
+#define MERGE_BRANCH_NO_FAST_FORWARD(a, b) \
+    a = exec({ \
+    CConstants::s_sSwitchMerge, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    QString("--%1").arg(CConstants::s_sSwitchNoFastForward), \
+    b \
+    })
+
 #define SAVE_STASH(...) \
     exec({ \
     CConstants::s_sSwitchSaveStash, \
