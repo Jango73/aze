@@ -7,6 +7,7 @@
 #include "CTestRemote.h"
 #include "CTestServe.h"
 #include "CTestCache.h"
+#include "CTestPrune.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -60,6 +61,11 @@ int CTestAze::runAllTests()
 
     {
         CTestCache oTest(m_sArgument0);
+        iStatus |= QTest::qExec(&oTest);
+    }
+
+    {
+        CTestPrune oTest(m_sArgument0);
         iStatus |= QTest::qExec(&oTest);
     }
 

@@ -158,4 +158,24 @@
     QString("--%1").arg(SILENT_OR_DEBUG) \
     })
 
+#define PRUNE(a) \
+    a = exec({ \
+    CConstants::s_sSwitchPrune, \
+    QString("--%1").arg(CConstants::s_sSwitchRetention), \
+    "0" \
+    })
+
+#define PRUNE_DRY_RUN(a) \
+    a = exec({ \
+    CConstants::s_sSwitchPrune, \
+    QString("--%1").arg(CConstants::s_sSwitchDryRun), \
+    QString("--%1").arg(CConstants::s_sSwitchRetention), \
+    "0" \
+    })
+
+#define PRUNE_DEFAULT_RETENTION(a) \
+    a = exec({ \
+    CConstants::s_sSwitchPrune \
+    })
+
 //-------------------------------------------------------------------------------------------------
