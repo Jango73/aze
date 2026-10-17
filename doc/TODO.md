@@ -16,7 +16,7 @@
 - [x] TODO-009 - Refuse deletion of an unmerged branch with a distinct error code (unknown branches are refused with `eBranchDoesNotExist`).
 - [x] TODO-046 - Add a `force` option to `delete-branch` which deletes a branch not merged into the current branch because TODO-009 refuses it without an override.
 - [x] TODO-010 - Add a successful deletion test which verifies disappearance of the branch file.
-- [ ] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
+- [x] TODO-011 - Implement `move` with history preservation because `CAzeClient::move` is a stub which writes only the staging area.
 - [x] TODO-039 - Add the missing `merge` help text in `CConstants::initCommandMap` because every other branch command is documented there.
 - [x] TODO-040 - Remove or repair the dead `CTwoWayMergeCommand.cpp` which redefines `CMergeCommand` with a stale two-argument constructor and is excluded from `AzeLib.pri`.
 - [x] TODO-041 - Unify the self-merge guard in the engine because `CAzeClient::merge` refuses it by branch name while `CMergeCommand` refuses it by tip identifier with a different message.

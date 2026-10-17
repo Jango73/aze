@@ -39,6 +39,9 @@ protected:
     //! Moves a single file to the target and updates the stage
     CError::EErrorCode moveSingleFile(const QString& sSourceRelativeName, const QString& sTargetRelativeName);
 
+    //! Returns true when a relative name designates repository internals
+    bool isRepositoryInternalPath(const QString& sRelativeName) const;
+
     //-------------------------------------------------------------------------------------------------
     // Properties
     //-------------------------------------------------------------------------------------------------

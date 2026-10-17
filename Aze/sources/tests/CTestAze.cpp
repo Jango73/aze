@@ -100,6 +100,13 @@ public:
     __VA_ARGS__ \
     })
 
+#define MOVE(...) \
+    exec({ \
+    CConstants::s_sSwitchMove, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    __VA_ARGS__ \
+    })
+
 #define LOG(a) \
     a = exec({ \
     CConstants::s_sSwitchLog, \
@@ -561,6 +568,79 @@ void CTestAze::testDelete()
 
     DIFF_LAST(sDiffContent);
     QVERIFY(sDiffContent == sD23);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void CTestAze::testMove()
+{
+    QString sSourcePath = "Files/MoveTest.txt";
+    QString sTargetPath = "Files/MoveTestRenamed.txt";
+    QString sOtherPath = "Files/MoveOther.txt";
+    QString sResult, sFileContent;
+
+    QString sContent("M1\n--");
+
+    INIT();
+
+    QVERIFY(createFile(sSourcePath, sContent));
+    QVERIFY(STAGE(sSourcePath) == expectedCode(Aze::CError::eNone));
+    COMMIT("M1");
+
+    QString sTipBefore;
+    QString sObjectBefore;
+
+    {
+        Aze::CRepository oBeforeRepository(m_sRootPath);
+        QVERIFY(oBeforeRepository.ok());
+        sTipBefore = oBeforeRepository.tipCommit()->id();
+        QVERIFY(not sTipBefore.isEmpty());
+        QVERIFY(oBeforeRepository.tipCommit()->files().contains(sSourcePath));
+        sObjectBefore = oBeforeRepository.tipCommit()->files()[sSourcePath];
+        QVERIFY(not sObjectBefore.isEmpty());
+    }
+
+    QVERIFY(MOVE(sSourcePath, sTargetPath) == expectedCode(Aze::CError::eNone));
+
+    QVERIFY(not QFile(sSourcePath).exists());
+    QVERIFY(QFile(sTargetPath).exists());
+    QVERIFY(readFile(sTargetPath, sFileContent));
+    QVERIFY(sFileContent == sContent);
+
+    {
+        Aze::CRepository oStagedRepository(m_sRootPath);
+        QVERIFY(oStagedRepository.ok());
+        QVERIFY(oStagedRepository.stagingCommit()->files().contains(sTargetPath));
+        QCOMPARE(oStagedRepository.stagingCommit()->files()[sTargetPath], sObjectBefore);
+    }
+
+    COMMIT("M2");
+
+    {
+        Aze::CRepository oAfterRepository(m_sRootPath);
+        QVERIFY(oAfterRepository.ok());
+        QVERIFY(not oAfterRepository.tipCommit()->files().contains(sSourcePath));
+        QVERIFY(oAfterRepository.tipCommit()->files().contains(sTargetPath));
+        QCOMPARE(oAfterRepository.tipCommit()->files()[sTargetPath], sObjectBefore);
+        QVERIFY(oAfterRepository.tipCommit()->fileContent(oAfterRepository.database(), sTargetPath) == sContent.toUtf8());
+
+        QStringList lParents = oAfterRepository.tipCommit()->parents();
+        QVERIFY(lParents.count() == 1);
+        QCOMPARE(lParents.first(), sTipBefore);
+
+        Aze::CCommit* pParent = Aze::CCommit::fromId(oAfterRepository.database(), sTipBefore, nullptr);
+        QVERIFY(pParent != nullptr);
+        QVERIFY(pParent->files().contains(sSourcePath));
+        QCOMPARE(pParent->files()[sSourcePath], sObjectBefore);
+        delete pParent;
+    }
+
+    QVERIFY(MOVE("Files/NoSuchFile.txt", sOtherPath) == expectedCode(Aze::CError::eCouldNotMoveFiles));
+    QVERIFY(MOVE(sTargetPath, sTargetPath) == expectedCode(Aze::CError::eCouldNotMoveFiles));
+    QVERIFY(createFile(sOtherPath, sContent));
+    QVERIFY(MOVE(sTargetPath, sOtherPath) == expectedCode(Aze::CError::eCouldNotMoveFiles));
+    QVERIFY(readFile(sTargetPath, sFileContent));
+    QVERIFY(sFileContent == sContent);
 }
 
 //-------------------------------------------------------------------------------------------------

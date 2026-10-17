@@ -87,6 +87,9 @@ private slots:
     //! Test file deletion functionality
     void testDelete();
 
+    //! Test file move with history preservation
+    void testMove();
+
     //! Tests patch functionality
     void testPatch();
 
