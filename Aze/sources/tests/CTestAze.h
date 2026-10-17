@@ -111,9 +111,6 @@ private slots:
     //! Tests repository path confinement under the server base folder
     void testServePathIsolation();
 
-    //! Tests bearer token extraction and comparison for server authentication
-    void testServeAuth();
-
     //! Tests pull convergence after push then pull
     void testPull();
 

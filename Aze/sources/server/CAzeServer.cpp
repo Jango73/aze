@@ -25,13 +25,11 @@
 CAzeServer::CAzeServer(int argc, char *argv[])
     : QCoreApplication(argc, argv)
     , m_sRepositoriesBasePath(".")
-    , m_sAuthToken()
     , m_tArguments(*this)
     , m_pProcessor(new CAzeServerProcessor(this, m_tArguments.m_tParser.value(m_tArguments.m_oHttpPort).toInt()))
     , m_eInitializationError(Aze::CError::eNone)
     , m_sInitializationDetail()
 {
-    setAuthToken(m_tArguments.m_tParser.value(m_tArguments.m_oAuthToken));
     const quint16 uiHttpsPort = static_cast<quint16>(m_tArguments.m_tParser.value(m_tArguments.m_oHttpsPort).toUInt());
 
     if (uiHttpsPort > 0)

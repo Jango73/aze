@@ -36,7 +36,6 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
     , m_oSilent(QStringList() << CConstants::s_sSwitchSilent, TRT("Silent mode (no messages)."))
     , m_oDebug(QStringList() << CConstants::s_sSwitchDebug, TRT("Debug mode (tons of messages)."))
     , m_oTextCache(QStringList() << CConstants::s_sSwitchTextCache, TRT("Use text format for the commit cache."))
-    , m_oAuthToken(QStringList() << CConstants::s_sSwitchAuthToken, TRT("Bearer token sent as Authorization header on remote commands."), TRT(CConstants::s_sSwitchAuthToken), QString())
     , m_eCommand(CConstants::eCommandNone)
 {
     CConstants::initCommandMap();
@@ -64,10 +63,9 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
                              m_oGraph,
                              m_oNoFastForward,
                               m_oSilent,
-                              m_oDebug,
-                              m_oTextCache,
-                              m_oAuthToken
-                          });
+                               m_oDebug,
+                               m_oTextCache
+                           });
 
     // Finalize option array
     m_tParser.addVersionOption();

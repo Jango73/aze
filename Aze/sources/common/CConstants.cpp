@@ -68,7 +68,6 @@ const char* CConstants::s_sSwitchPort                       = "port";
 const char* CConstants::s_sSwitchHttpsPort                 = "https-port";
 const char* CConstants::s_sSwitchSslCert                   = "ssl-cert";
 const char* CConstants::s_sSwitchSslKey                    = "ssl-key";
-const char* CConstants::s_sSwitchAuthToken                 = "auth-token";
 
 //-------------------------------------------------------------------------------------------------
 // Text strings

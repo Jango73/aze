@@ -76,16 +76,6 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
     {
         if (tContext.m_sContentType == MIME_Content_JSON)
         {
-            // Refuse unauthenticated callers before touching the file system
-            const QString sExpectedToken = m_pServer->authToken();
-
-            if (not sExpectedToken.isEmpty() && not tokensMatch(sExpectedToken, authorizationBearerToken(tContext.m_mRequestHeaders)))
-            {
-                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotAuthorized).toJsonString();
-                sCustomResponseMIME = MIME_Content_JSON;
-                return;
-            }
-
             // Confine the requested repository under the base folder
             QString sRepositoryPath;
 
@@ -125,52 +115,6 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 }
 
 //-------------------------------------------------------------------------------------------------
-
-/*!
-    Extracts the bearer token from generic request headers in \a mHeaders. \br\br
-    The header name match is case-insensitive and the \c Bearer scheme prefix is stripped.
-    Returns an empty string when no authorization header is present.
-*/
-QString CAzeServerProcessor::authorizationBearerToken(const QMap<QString, QString>& mHeaders)
-{
-    QString sValue;
-
-    for (auto iHeader = mHeaders.constBegin(); iHeader != mHeaders.constEnd(); iHeader++)
-    {
-        if (iHeader.key().compare(QStringLiteral("Authorization"), Qt::CaseInsensitive) == 0)
-        {
-            sValue = iHeader.value().trimmed();
-            break;
-        }
-    }
-
-    if (sValue.startsWith(QStringLiteral("Bearer "), Qt::CaseInsensitive))
-        return sValue.mid(7).trimmed();
-
-    return sValue;
-}
-
-/************************************************************************/
-
-/*!
-    Compares \a sExpected with \a sProvided without early exit on content. \br\br
-    Returns false when the sizes differ or when the expected token is empty.
-*/
-bool CAzeServerProcessor::tokensMatch(const QString& sExpected, const QString& sProvided)
-{
-    const QByteArray aExpected = sExpected.toUtf8();
-    const QByteArray aProvided = sProvided.toUtf8();
-
-    if (aExpected.isEmpty() || aExpected.size() != aProvided.size())
-        return false;
-
-    int iDiff = 0;
-
-    for (int iIndex = 0; iIndex < aExpected.size(); iIndex++)
-        iDiff |= (aExpected[iIndex] ^ aProvided[iIndex]);
-
-    return iDiff == 0;
-}
 
 /************************************************************************/
 

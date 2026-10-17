@@ -28,7 +28,6 @@ class CAzeServer : public QCoreApplication
     //-------------------------------------------------------------------------------------------------
 
     Q_FAST_PROPERTY(QString, s, repositoriesBasePath, RepositoriesBasePath)
-    Q_FAST_PROPERTY(QString, s, authToken, AuthToken)
 
 public:
 

@@ -31,8 +31,6 @@ class CServePushProbe : public CAzeServerProcessor
 public:
     using CAzeServerProcessor::servePush;
     using CAzeServerProcessor::serveDeleteBranch;
-    using CAzeServerProcessor::authorizationBearerToken;
-    using CAzeServerProcessor::tokensMatch;
     using CAzeServerProcessor::resolveRepositoryPath;
 };
 
@@ -1478,35 +1476,6 @@ void CTestAze::testServePathIsolation()
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a/b", sResolved));
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a\\b", sResolved));
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "C:", sResolved));
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void CTestAze::testServeAuth()
-{
-    // Bearer scheme prefix is stripped, header name match is case-insensitive
-    QMap<QString, QString> mBearer;
-    mBearer["Authorization"] = "Bearer s3cret";
-    QCOMPARE(CServePushProbe::authorizationBearerToken(mBearer), QString("s3cret"));
-
-    QMap<QString, QString> mLower;
-    mLower["authorization"] = "Bearer s3cret";
-    QCOMPARE(CServePushProbe::authorizationBearerToken(mLower), QString("s3cret"));
-
-    // A raw token without scheme is accepted as-is
-    QMap<QString, QString> mRaw;
-    mRaw["Authorization"] = "s3cret";
-    QCOMPARE(CServePushProbe::authorizationBearerToken(mRaw), QString("s3cret"));
-
-    // A missing header yields an empty token
-    QCOMPARE(CServePushProbe::authorizationBearerToken(QMap<QString, QString>()), QString());
-
-    // Comparison accepts the expected token only
-    QVERIFY(CServePushProbe::tokensMatch("s3cret", "s3cret"));
-    QVERIFY(not CServePushProbe::tokensMatch("s3cret", "wrong"));
-    QVERIFY(not CServePushProbe::tokensMatch("s3cret", "s3cret-longer"));
-    QVERIFY(not CServePushProbe::tokensMatch("s3cret", QString()));
-    QVERIFY(not CServePushProbe::tokensMatch(QString(), QString()));
 }
 
 //-------------------------------------------------------------------------------------------------

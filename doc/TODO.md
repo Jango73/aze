@@ -49,7 +49,6 @@
 - [x] TODO-026 - Route `delete-branch` requests in `CAzeServerProcessor` which handles only `pull`, `push` and `clone`.
 - [x] TODO-027 - Return a structured error for an unknown action instead of an empty node in `serveRequest`.
 - [x] TODO-028 - Serve non JSON or empty requests with an error code instead of a silent empty response.
-- [x] TODO-029 - Add authentication and per repository isolation in `CAzeServerProcessor::getContent` which composes the path from the address without validation.
 - [x] TODO-030 - Avoid `qFatal` in `CAzeServer` on invalid HTTPS configuration and return a clean error code.
 
 ## Index and acceleration
@@ -63,5 +62,5 @@
 
 ## Housekeeping
 - [ ] TODO-047 - Implement `prune` mark-and-sweep in the engine with dry-run and a modification-time grace period because `deleteBranch`, `amend` and refused `CPushCommand` payloads leave unreachable commit and object files with no deletion path (`CCleanUpCommand` only reverts the working folder) and requests run in worker threads concurrent with a prune.
-- [ ] TODO-048 - Trigger `prune` automatically with a conditional best-effort hook after `push` and `delete-branch` (threshold-gated, never failing the originating request) plus a periodic `QTimer` sweep over the repositories base path as complement, and expose a manual local `prune` for the server operator, because housekeeping must not depend on a manual client call, a timer alone lets repositories grow between passes, and the single bearer token carries no roles so no unprivileged network client may trigger deletion (see TODO-029).
+- [ ] TODO-048 - Trigger `prune` automatically with a conditional best-effort hook after `push` and `delete-branch` (threshold-gated, never failing the originating request) plus a periodic `QTimer` sweep over the repositories base path as complement, and expose a manual local `prune` for the server operator, because housekeeping must not depend on a manual client call, a timer alone lets repositories grow between passes, and no unprivileged network client may trigger deletion.
 - [ ] TODO-049 - Add a `prune` test which creates dangling commits and objects via force `delete-branch` or `amend` then verifies only unreachable files are removed with reachable tips and referenced objects preserved.

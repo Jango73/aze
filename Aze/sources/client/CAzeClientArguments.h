@@ -40,7 +40,6 @@ public:
     QCommandLineOption      m_oSilent;
     QCommandLineOption      m_oDebug;
     QCommandLineOption      m_oTextCache;
-    QCommandLineOption      m_oAuthToken;
     CConstants::ECommand    m_eCommand;
     QStringList             m_lFilesAndIds;
 };
