@@ -60,3 +60,8 @@
 - [x] TODO-036 - Copy `m_mCommitParentList` and flags in the assignment operator and copy constructor of `CCommitTreeList`.
 - [x] TODO-037 - Invalidate the commit cache and the working folder cache after commit, merge, received push and branch switch.
 - [x] TODO-038 - Handle files missing left or right in `threeWayMerge` as indicated by the TODO marker in `CCommitFunctions`.
+
+## Housekeeping
+- [ ] TODO-047 - Implement `prune` mark-and-sweep in the engine with dry-run and a modification-time grace period because `deleteBranch`, `amend` and refused `CPushCommand` payloads leave unreachable commit and object files with no deletion path (`CCleanUpCommand` only reverts the working folder) and requests run in worker threads concurrent with a prune.
+- [ ] TODO-048 - Trigger `prune` automatically with a conditional best-effort hook after `push` and `delete-branch` (threshold-gated, never failing the originating request) plus a periodic `QTimer` sweep over the repositories base path as complement, and expose a manual local `prune` for the server operator, because housekeeping must not depend on a manual client call, a timer alone lets repositories grow between passes, and the single bearer token carries no roles so no unprivileged network client may trigger deletion (see TODO-029).
+- [ ] TODO-049 - Add a `prune` test which creates dangling commits and objects via force `delete-branch` or `amend` then verifies only unreachable files are removed with reachable tips and referenced objects preserved.
