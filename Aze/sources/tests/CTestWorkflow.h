@@ -31,8 +31,11 @@ private slots:
     //! Test file move with history preservation
     void testMove();
 
-    //! Tests functionalities under heavy load
-    void testHeavy();
+    //! Test revert of working folder files to the tip commit
+    void testRevert();
+
+    //! Test clean-up clearing the stage and reverting all files
+    void testCleanUp();
 };
 
 //-------------------------------------------------------------------------------------------------

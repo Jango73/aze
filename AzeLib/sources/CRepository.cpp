@@ -704,12 +704,15 @@ QString CRepository::diffWorkingDirectory()
 
 /*!
     Reads the current branch file.
+    Drops the cached tip and root commits, which derive from the branch tip.
+    The staging commit is working state and never derives from the branch,
+    so it is preserved: dropping it here would resurrect stale stage content
+    from disk on next access whenever the stage was cleared without write.
 */
 CBranch* CRepository::readCurrentBranch(void* pContext)
 {
     CRepository* pRepository = static_cast<CRepository*>(pContext);
 
-    pRepository->m_pStagingCommit.clear();
     pRepository->m_pRootCommit.clear();
     pRepository->m_pTipCommit.clear();
 

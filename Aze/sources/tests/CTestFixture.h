@@ -4,9 +4,6 @@
 // Qt
 #include <QtTest/QtTest>
 
-// qt-plus
-#include "CTextGenerator.h"
-
 // AzeLib
 #include "CRepository.h"
 
@@ -33,9 +30,6 @@ protected:
     QString testDirectoryPath();
 
     //!
-    QMap<QString, QString> generateFiles(int iCount);
-
-    //!
     bool createFile(const QString& sName, const QString& sContent);
 
     //!
@@ -43,9 +37,6 @@ protected:
 
     //!
     bool readFile(const QString& sName, QString& sContent);
-
-    //!
-    void createManyFiles();
 
     //! Executes a command
     QString exec(const QStringList& lInputArguments);
@@ -59,8 +50,6 @@ protected:
 
 protected:
 
-    CTextGenerator m_tTextGenerator;
-    QStringList lStage;
     QString m_sArgument0;
     QString m_sRootPath;
     QString m_sDataPath;
@@ -74,7 +63,6 @@ protected:
     QString m_sFilesSubFolderPath;
     QString m_sBranch1;
     QString m_sBranch2;
-    int m_iCommitIndex;
 };
 
 //-------------------------------------------------------------------------------------------------

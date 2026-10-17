@@ -1,7 +1,20 @@
 
 // Qt
+#include <QCoreApplication>
 #include <QDir>
+#include <QEventLoop>
 #include <QFile>
+#include <QHostAddress>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QProcess>
+#include <QSslConfiguration>
+#include <QSslError>
+#include <QSslSocket>
+#include <QTcpServer>
+#include <QTimer>
+#include <QUrl>
 
 // AzeLib
 #include "CRepository.h"
@@ -25,6 +38,130 @@ public:
     using CAzeServerProcessor::serveDeleteBranch;
     using CAzeServerProcessor::resolveRepositoryPath;
 };
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Returns a free local TCP port, 0 when none is available.
+*/
+/***************************************************************************/
+static quint16 connectivityFreePort()
+{
+    QTcpServer tServer;
+
+    if (not tServer.listen(QHostAddress::LocalHost, 0))
+        return 0;
+
+    quint16 uiPort = tServer.serverPort();
+    tServer.close();
+
+    return uiPort;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Generates a self-signed certificate for local HTTPS tests.
+* \param sCertPath Output certificate file in PEM format.
+* \param sKeyPath Output private key file in PEM format.
+* \return True when openssl wrote both files.
+*/
+/***************************************************************************/
+static bool generateConnectivityCertificate(const QString& sCertPath, const QString& sKeyPath)
+{
+    QProcess tProcess;
+    tProcess.start(QStringLiteral("openssl"), QStringList()
+        << QStringLiteral("req")
+        << QStringLiteral("-x509")
+        << QStringLiteral("-newkey")
+        << QStringLiteral("rsa:2048")
+        << QStringLiteral("-nodes")
+        << QStringLiteral("-keyout") << sKeyPath
+        << QStringLiteral("-out") << sCertPath
+        << QStringLiteral("-days") << QStringLiteral("2")
+        << QStringLiteral("-subj") << QStringLiteral("/CN=localhost")
+        << QStringLiteral("-addext") << QStringLiteral("subjectAltName=DNS:localhost,IP:127.0.0.1"));
+
+    if (not tProcess.waitForFinished(30000))
+        return false;
+
+    return tProcess.exitCode() == 0 && QFile::exists(sCertPath) && QFile::exists(sKeyPath);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Performs a synchronous HTTP request against the test server.
+* \param pManager Network access manager running in the test thread.
+* \param tRequest Request holding the URL, headers and TLS configuration.
+* \param baPostContent POST body, null for a GET request.
+* \param baBody Receives the response body.
+* \param sError Receives the failure reason.
+* \return True when the reply completes without error nor timeout.
+*/
+/***************************************************************************/
+static bool fetchConnectivityResponse(QNetworkAccessManager* pManager, const QNetworkRequest& tRequest, const QByteArray& baPostContent, QByteArray& baBody, QString& sError)
+{
+    QEventLoop tLoop;
+    QTimer tTimer;
+    tTimer.setSingleShot(true);
+    QObject::connect(&tTimer, &QTimer::timeout, &tLoop, &QEventLoop::quit);
+
+    QNetworkReply* pReply = baPostContent.isNull() ? pManager->get(tRequest) : pManager->post(tRequest, baPostContent);
+    QObject::connect(pReply, &QNetworkReply::sslErrors, pReply, [pReply](const QList<QSslError>& lErrors) {
+        Q_UNUSED(lErrors);
+        pReply->ignoreSslErrors();
+    });
+    QObject::connect(pReply, &QNetworkReply::finished, &tLoop, &QEventLoop::quit);
+
+    tTimer.start(10000);
+    tLoop.exec();
+
+    bool bTimedOut = not tTimer.isActive();
+    tTimer.stop();
+
+    if (bTimedOut)
+    {
+        sError = QStringLiteral("Request timed out");
+        pReply->abort();
+        pReply->deleteLater();
+        return false;
+    }
+
+    if (pReply->error() != QNetworkReply::NoError)
+    {
+        sError = pReply->errorString();
+        pReply->deleteLater();
+        return false;
+    }
+
+    baBody = pReply->readAll();
+    pReply->deleteLater();
+
+    return true;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tells if a response body holds the empty-request JSON result.
+* \param baBody Response body.
+* \return True when the body parses to eEmptyRequest.
+*/
+/***************************************************************************/
+static bool isEmptyRequestResponse(const QByteArray& baBody)
+{
+    if (baBody.isEmpty())
+        return false;
+
+    CXMLNode xNode = CXMLNode::parseJSON(QString::fromUtf8(baBody));
+
+    return Aze::CError::fromResultNode(xNode) == Aze::CError::eEmptyRequest;
+}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -288,6 +425,94 @@ void CTestServe::testServePathIsolation()
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a/b", sResolved));
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "a\\b", sResolved));
     QVERIFY(not CServePushProbe::resolveRepositoryPath(m_sRootPath, QStringList() << "C:", sResolved));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests HTTP and HTTPS connectivity against a live server processor.
+*
+* Starts a CAzeServerProcessor without a parent server and checks that both
+* listeners answer: requests without a repository path are refused with the
+* empty-request JSON result, which proves the TCP, HTTP framing, TLS and
+* JSON layers carry a request and its response. Request handling itself is
+* covered by the direct servePush and serveDeleteBranch tests.
+*/
+/***************************************************************************/
+void CTestServe::testServeConnectivity()
+{
+    quint16 uiHttpPort = connectivityFreePort();
+    quint16 uiHttpsPort = connectivityFreePort();
+    QVERIFY(uiHttpPort != 0);
+    QVERIFY(uiHttpsPort != 0);
+    QVERIFY(uiHttpPort != uiHttpsPort);
+
+    // Generate a short-lived development certificate in scratch space
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sCertFolder = oParent.absoluteFilePath("aze-tests-connectivity");
+    QDir oCertFolder(sCertFolder);
+
+    if (oCertFolder.exists())
+        QVERIFY(oCertFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sCertFolder));
+
+    QString sCertPath = QString("%1/localhost.crt").arg(sCertFolder);
+    QString sKeyPath = QString("%1/localhost.key").arg(sCertFolder);
+
+    if (not generateConnectivityCertificate(sCertPath, sKeyPath))
+    {
+        QVERIFY(QDir(sCertFolder).removeRecursively());
+        QSKIP("openssl is unavailable, cannot generate the HTTPS test certificate");
+    }
+
+    // Network stacks need an event dispatcher: the test process runs
+    // without an application object, so a local one is created here.
+    // Stack allocation restores the previous state on any return path.
+    int iArgc = 1;
+    QByteArray baBinaryPath = m_sArgument0.toLocal8Bit();
+    char* sBinaryPath = baBinaryPath.data();
+    char* lArgv[1] = { sBinaryPath };
+    QCoreApplication tApplication(iArgc, lArgv);
+
+    // A null parent server is enough: pathless requests are refused
+    // before the repositories base path is resolved
+    CAzeServerProcessor tServer(nullptr, uiHttpPort);
+    QVERIFY(tServer.isListening());
+    QVERIFY(tServer.enableHttps(sCertPath, sKeyPath, uiHttpsPort));
+    QVERIFY(tServer.isHttpsEnabled());
+
+    QNetworkAccessManager tManager;
+    QByteArray baBody;
+    QString sError;
+
+    // Plain HTTP GET reaches the processor
+    QVERIFY2(fetchConnectivityResponse(&tManager,
+        QNetworkRequest(QUrl(QString("http://127.0.0.1:%1/").arg(uiHttpPort))),
+        QByteArray(), baBody, sError), qPrintable(sError));
+    QVERIFY(isEmptyRequestResponse(baBody));
+
+    // Plain HTTP POST with a JSON body reaches the processor
+    QNetworkRequest tPostRequest(QUrl(QString("http://127.0.0.1:%1/").arg(uiHttpPort)));
+    tPostRequest.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    QVERIFY2(fetchConnectivityResponse(&tManager, tPostRequest,
+        QByteArray("{\"request\":\"connectivity\"}"), baBody, sError), qPrintable(sError));
+    QVERIFY(isEmptyRequestResponse(baBody));
+
+    // HTTPS GET reaches the processor, the self-signed certificate is accepted by the test client
+    QNetworkRequest tSecureRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+    QSslConfiguration tSslConfiguration = QSslConfiguration::defaultConfiguration();
+    tSslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
+    tSecureRequest.setSslConfiguration(tSslConfiguration);
+    QVERIFY2(fetchConnectivityResponse(&tManager, tSecureRequest,
+        QByteArray(), baBody, sError), qPrintable(sError));
+    QVERIFY(isEmptyRequestResponse(baBody));
+
+    tServer.close();
+
+    QVERIFY(QDir(sCertFolder).removeRecursively());
 }
 
 //-------------------------------------------------------------------------------------------------

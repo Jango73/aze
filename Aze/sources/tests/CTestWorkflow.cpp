@@ -291,24 +291,128 @@ void CTestWorkflow::testMove()
 
 /***************************************************************************/
 /*!
-* \brief Tests functionalities under heavy load.
+* \brief Test revert of working folder files to the tip commit.
 */
 /***************************************************************************/
-void CTestWorkflow::testHeavy()
+void CTestWorkflow::testRevert()
 {
-//     INIT();
+    QString sFilePath = "Files/RevertTest.txt";
+    QString sUntrackedPath = "Files/RevertUntracked.txt";
+    QString sResult, sFileContent;
 
-//    createManyFiles();
+    QString sC1("R1\n--");
+    QString sC2("R2\n--");
+    QString sUntracked("U1\n--");
 
-//    exec({ CConstants::s_sSwitchCreateBranch, m_sBranch1 });
-//    exec({ CConstants::s_sSwitchSwitchToBranch, m_sBranch1 });
+    INIT();
 
-//    createManyFiles();
+    QVERIFY(createFile(sFilePath, sC1));
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
+    COMMIT("R1");
 
-//    exec({ CConstants::s_sSwitchCreateBranch, m_sBranch2 });
-//    exec({ CConstants::s_sSwitchSwitchToBranch, m_sBranch2 });
+    QString sTipBefore;
 
-//    createManyFiles();
+    {
+        Aze::CRepository oRepository(m_sRootPath);
+        QVERIFY(oRepository.ok());
+        sTipBefore = oRepository.tipCommit()->id();
+        QVERIFY(not sTipBefore.isEmpty());
+    }
+
+    // Reverting without a file name is refused
+    QVERIFY(exec({ CConstants::s_sSwitchRevert }) == expectedCode(Aze::CError::eNoFileNameGiven));
+
+    // A modified tracked file goes back to the tip content
+    QVERIFY(createFile(sFilePath, sC2));
+    QVERIFY(readFile(sFilePath, sFileContent));
+    QVERIFY(sFileContent == sC2);
+    QVERIFY(REVERT(sFilePath) == expectedCode(Aze::CError::eNone));
+    QVERIFY(readFile(sFilePath, sFileContent));
+    QVERIFY(sFileContent == sC1);
+
+    // A deleted tracked file is restored from the tip commit
+    QVERIFY(deleteFile(sFilePath));
+    QVERIFY(not QFile(sFilePath).exists());
+    QVERIFY(REVERT(sFilePath) == expectedCode(Aze::CError::eNone));
+    QVERIFY(readFile(sFilePath, sFileContent));
+    QVERIFY(sFileContent == sC1);
+
+    // An untracked file is kept without --allow-delete
+    QVERIFY(createFile(sUntrackedPath, sUntracked));
+    QVERIFY(REVERT(sUntrackedPath) == expectedCode(Aze::CError::eNone));
+    QVERIFY(readFile(sUntrackedPath, sFileContent));
+    QVERIFY(sFileContent == sUntracked);
+
+    // An untracked file is deleted with --allow-delete
+    QVERIFY(REVERT_ALLOW_DELETE(sUntrackedPath) == expectedCode(Aze::CError::eNone));
+    QVERIFY(not QFile(sUntrackedPath).exists());
+
+    // Revert creates no commit
+    {
+        Aze::CRepository oRepository(m_sRootPath);
+        QVERIFY(oRepository.ok());
+        QCOMPARE(oRepository.tipCommit()->id(), sTipBefore);
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Test clean-up clearing the stage and reverting all files.
+*/
+/***************************************************************************/
+void CTestWorkflow::testCleanUp()
+{
+    QString sFilePath = "Files/CleanUpTest.txt";
+    QString sLoosePath = "Files/CleanUpLoose.txt";
+    QString sResult, sFileContent;
+
+    QString sC1("CU1\n--");
+    QString sC2("CU2\n--");
+    QString sLoose("LOOSE\n--");
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sC1));
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
+    COMMIT("CU1");
+
+    QString sTipBefore;
+
+    {
+        Aze::CRepository oRepository(m_sRootPath);
+        QVERIFY(oRepository.ok());
+        sTipBefore = oRepository.tipCommit()->id();
+        QVERIFY(not sTipBefore.isEmpty());
+    }
+
+    // Dirty working folder with a non-empty stage
+    QVERIFY(createFile(sFilePath, sC2));
+    QVERIFY(createFile(sLoosePath, sLoose));
+    QVERIFY(STAGE(sLoosePath) == expectedCode(Aze::CError::eNone));
+    STATUS(sResult);
+    QVERIFY(sResult.contains(sFilePath));
+    QVERIFY(sResult.contains(sLoosePath));
+
+    QVERIFY(CLEAN_UP() == expectedCode(Aze::CError::eNone));
+
+    // Tracked content is restored, loose files are deleted
+    QVERIFY(readFile(sFilePath, sFileContent));
+    QVERIFY(sFileContent == sC1);
+    QVERIFY(not QFile(sLoosePath).exists());
+
+    // The stage is cleared and the working folder is clean
+    {
+        Aze::CRepository oRepository(m_sRootPath);
+        QVERIFY(oRepository.ok());
+        QVERIFY(oRepository.stagingCommit()->files().isEmpty());
+        QCOMPARE(oRepository.tipCommit()->id(), sTipBefore);
+    }
+
+    STATUS(sResult);
+    QVERIFY(not sResult.contains(sFilePath));
+    QVERIFY(not sResult.contains(sLoosePath));
 }
 
 //-------------------------------------------------------------------------------------------------

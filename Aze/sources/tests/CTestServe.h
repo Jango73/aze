@@ -24,6 +24,9 @@ private slots:
 
     //! Tests repository path confinement under the server base folder
     void testServePathIsolation();
+
+    //! Tests HTTP and HTTPS connectivity against a live server processor
+    void testServeConnectivity();
 };
 
 //-------------------------------------------------------------------------------------------------

@@ -1,6 +1,4 @@
 
-// std
-#include "stdlib.h"
 
 // Qt
 #include <QCoreApplication>
@@ -25,7 +23,6 @@
 /***************************************************************************/
 CTestFixture::CTestFixture(const QString& sArgument0)
     : m_sArgument0(sArgument0)
-    , m_iCommitIndex(0)
 {
     // Tests manipulate and delete files: run them in an isolated folder
     // under <repository>/tmp, never in the current working folder
@@ -109,27 +106,6 @@ QString CTestFixture::testDirectoryPath()
 
 /***************************************************************************/
 /*!
-* \brief Generates random file names and contents.
-* \param iCount Number of files to generate.
-* \return Map of file name to file content.
-*/
-/***************************************************************************/
-QMap<QString, QString> CTestFixture::generateFiles(int iCount)
-{
-    QMap<QString, QString> mFiles;
-
-    for (int i = 0; i < iCount; i++)
-    {
-        mFiles[QString("%1.txt").arg(m_tTextGenerator.word())] = m_tTextGenerator.text();
-    }
-
-    return mFiles;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-/***************************************************************************/
-/*!
 * \brief Creates a file with the given content.
 * \param sName File name.
 * \param sContent File content.
@@ -189,53 +165,6 @@ bool CTestFixture::readFile(const QString& sName, QString& sContent)
     }
 
     return false;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-/***************************************************************************/
-/*!
-* \brief Creates many random files and commits them.
-*/
-/***************************************************************************/
-void CTestFixture::createManyFiles()
-{
-    QDir filesDir(m_sFilesFolderPath);
-
-    for (int iIndex = 0; iIndex < 5; iIndex++)
-    {
-        // Create some folder
-        QString sNewFolder = m_tTextGenerator.word();
-        QString sNewFolderPath = QString("%1/%2").arg(m_sFilesFolderName).arg(sNewFolder);
-
-        QDir newFolder(sNewFolderPath);
-        if (not newFolder.exists())
-            QVERIFY(filesDir.mkdir(sNewFolder));
-
-        // Create some files
-        lStage.clear();
-        QMap<QString, QString> mNewFiles = generateFiles(20 + rand() % 30);
-
-        for (QString sNewFile : mNewFiles.keys())
-        {
-            lStage << QString("%1/%2")
-                      .arg(sNewFolderPath)
-                      .arg(sNewFile);
-
-            QVERIFY(createFile(lStage.last(), mNewFiles[sNewFile]));
-        }
-
-        lStage.prepend(CConstants::s_sSwitchStage);
-
-        exec(lStage);
-        exec({
-                 CConstants::s_sSwitchCommit,
-                 QString("--%1").arg(CConstants::s_sSwitchMessage),
-                 QString("Commit%1\nMultiline commit").arg(m_iCommitIndex++),
-                 QString("--%1").arg(CConstants::s_sSwitchAuthor),
-                 m_sAuthor
-             });
-    }
 }
 
 //-------------------------------------------------------------------------------------------------

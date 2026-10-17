@@ -166,6 +166,27 @@
     QString("--%1").arg(SILENT_OR_DEBUG) \
     })
 
+#define REVERT(...) \
+    exec({ \
+    CConstants::s_sSwitchRevert, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    __VA_ARGS__ \
+    })
+
+#define REVERT_ALLOW_DELETE(...) \
+    exec({ \
+    CConstants::s_sSwitchRevert, \
+    QString("--%1").arg(CConstants::s_sSwitchAllowFileDelete), \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    __VA_ARGS__ \
+    })
+
+#define CLEAN_UP() \
+    exec({ \
+    CConstants::s_sSwitchCleanUp, \
+    QString("--%1").arg(SILENT_OR_DEBUG) \
+    })
+
 #define PRUNE(a) \
     a = exec({ \
     CConstants::s_sSwitchPrune, \
