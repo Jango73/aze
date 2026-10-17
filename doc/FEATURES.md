@@ -66,4 +66,4 @@ Test file root: `Aze/sources/tests/`.
 | Cache invalidation | Tip and hash caches follow commit, amend, merge, received push and branch switch on the same repository instance | `CTestCache::testCacheInvalidation` |
 | Commit parent cache, binary format | Persisted parent list through the destructor, reused by `log` and ancestor search | `CTestCache::testCommitTreeListBinaryCache` |
 | Commit parent cache, text format | Same persistence with `--text-cache` (compressed `XML` instead of binary) | `CTestCache::testCommitTreeListTextCache` |
-| Massive repository | Around 29 megabytes of deterministic files across commits, branches, merges with and without fast forward, amend; final working folder and tip commit verified by hash | `CTestMassive::testMassive` |
+| Massive repository | Around 29 megabytes of deterministic files across commits, branches, merges with and without fast forward, amend, plus intermittent pushes of the current branch with final remote tip and content verification | `CTestMassive::testMassive` |

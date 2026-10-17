@@ -6,7 +6,12 @@
 #include <QFile>
 
 // AzeLib
+#include "CError.h"
+#include "CRemoteRepository.h"
 #include "CRepository.h"
+
+// qt-plus
+#include <CXMLNode.h>
 
 // Application
 #include "CTestMassive.h"
@@ -146,6 +151,68 @@ static QByteArray massiveFileHash(
 
 /***************************************************************************/
 /*!
+* \brief Returns the sibling folder used as push target for the massive test.
+* \param sLocalRootPath Isolated local test folder path.
+* \return Sibling remote folder path under tmp.
+*/
+/***************************************************************************/
+static QString massiveRemotePath(const QString& sLocalRootPath)
+{
+    QDir oParent(sLocalRootPath);
+    oParent.cdUp();
+
+    return oParent.absoluteFilePath("aze-tests-remote-massive");
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Pushes the current local branch to the massive remote repository.
+* \param sLocalRootPath Isolated local test folder path.
+* \param sRemotePath Remote repository folder path.
+* \param sDetail Receives message detail on failure.
+* \return eNone on success, the precise failure reason otherwise.
+*/
+/***************************************************************************/
+static Aze::CError::EErrorCode pushMassiveCurrentBranch(
+        const QString& sLocalRootPath,
+        const QString& sRemotePath,
+        QString& sDetail)
+{
+    Aze::CRepository oSourceRepository(sLocalRootPath);
+
+    if (not oSourceRepository.ok())
+    {
+        sDetail = QString("Source repository not ok");
+
+        return Aze::CError::ePushRequestInvalid;
+    }
+
+    Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+    CXMLNode xRequest = oSourceRemote.getPushRequest();
+
+    // Simulate the wire with a JSON round-trip, like CTestRemote does
+    CXMLNode xReceived = CXMLNode::parseJSON(xRequest.toJsonString());
+
+    Aze::CRepository oTargetRepository(sRemotePath);
+
+    if (not oTargetRepository.ok())
+    {
+        sDetail = QString("Remote repository not ok");
+
+        return Aze::CError::ePushRequestInvalid;
+    }
+
+    Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
+
+    return oTargetRemote.applyPushRequest(xReceived, sDetail);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
 * \brief Constructor.
 * \param sArgument0 Binary path, forwarded to the fixture.
 */
@@ -163,9 +230,11 @@ CTestMassive::CTestMassive(const QString& sArgument0)
 *
 * Builds around 29 megabytes of deterministic text files, then drives commits,
 * branches, merges with and without fast forward, and an amend without checking
-* the intermediate steps.
+* the intermediate steps. The current branch is pushed at some steps only
+* (base commit, side branch tip, amended trunk tip, final trunk tip), never
+* between a commit and its amend so every push stays fast forward.
 * The final working folder and the tip commit are compared against the
-* expected deterministic content.
+* expected deterministic content, locally and on the remote repository.
 */
 /***************************************************************************/
 void CTestMassive::testMassive()
@@ -185,7 +254,21 @@ void CTestMassive::testMassive()
 
     INIT();
 
-    QVERIFY(QDir().mkpath("Files/Massive"));
+    // Prepare an empty remote repository outside of the source folder
+    QString sRemotePath = massiveRemotePath(m_sRootPath);
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    {
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.init() == Aze::CError::eNone);
+    }
+
+    QDir().mkpath("Files/Massive");
 
     auto stagePaths = [&](const QStringList& lPaths) -> QString {
         QStringList lArguments;
@@ -213,6 +296,13 @@ void CTestMassive::testMassive()
         QVERIFY(stagePaths(lPaths) == expectedCode(Aze::CError::eNone));
     }
     COMMIT("Massive base commit");
+
+    // Push the trunk base so the remote repository is created early
+    {
+        QString sDetail;
+        Aze::CError::EErrorCode eCode = pushMassiveCurrentBranch(m_sRootPath, sRemotePath, sDetail);
+        QVERIFY2(eCode == Aze::CError::eNone, qPrintable(Aze::CError::message(eCode, sDetail)));
+    }
 
     // Side branch rewrites the first 20 files with generation 1
     CREATE_BRANCH("massive-side");
@@ -255,6 +345,13 @@ void CTestMassive::testMassive()
     }
     COMMIT("Massive side files commit");
 
+    // Push the side branch tip, the trunk is left alone on the remote
+    {
+        QString sDetail;
+        Aze::CError::EErrorCode eCode = pushMassiveCurrentBranch(m_sRootPath, sRemotePath, sDetail);
+        QVERIFY2(eCode == Aze::CError::eNone, qPrintable(Aze::CError::message(eCode, sDetail)));
+    }
+
     // Trunk rewrites files 40 to 58 with generation 2, file 59 is left for amend
     SWITCH_TO_BRANCH("trunk");
 
@@ -284,6 +381,14 @@ void CTestMassive::testMassive()
     QVERIFY(writeMassiveFile(massiveBaseFilePath(59), 59, 4, iLineCount, iLineWidth));
     QVERIFY(stagePaths(QStringList() << massiveBaseFilePath(59)) == expectedCode(Aze::CError::eNone));
     QVERIFY(AMEND("Massive trunk file amended", m_sAuthor) == expectedCode(Aze::CError::eNone));
+
+    // Push the amended trunk tip, no push ran between the commit and its amend
+    // so the remote trunk moves fast forward from the base commit
+    {
+        QString sDetail;
+        Aze::CError::EErrorCode eCode = pushMassiveCurrentBranch(m_sRootPath, sRemotePath, sDetail);
+        QVERIFY2(eCode == Aze::CError::eNone, qPrintable(Aze::CError::message(eCode, sDetail)));
+    }
 
     // Merge the side branch on trunk without fast forward so a merge commit is created,
     // file sets are disjoint so no conflict occurs
@@ -346,6 +451,14 @@ void CTestMassive::testMassive()
     SWITCH_TO_BRANCH("trunk");
     MERGE_BRANCH(sResult, "massive-fast");
     QVERIFY(sResult == expectedCode(Aze::CError::eNone));
+
+    // Push the final trunk tip, it descends from the amended tip so the
+    // remote trunk moves fast forward and receives every merged commit
+    {
+        QString sDetail;
+        Aze::CError::EErrorCode eCode = pushMassiveCurrentBranch(m_sRootPath, sRemotePath, sDetail);
+        QVERIFY2(eCode == Aze::CError::eNone, qPrintable(Aze::CError::message(eCode, sDetail)));
+    }
 
     // Expected final state, each path maps to its file number and generation
     QMap<QString, QPair<int, int>> mExpectedFiles;
@@ -449,6 +562,53 @@ void CTestMassive::testMassive()
             QCOMPARE(bStoredHash, bExpectedHash);
         }
     }
+
+    // The remote repository mirrors the pushed trunk tip and the side branch,
+    // stored objects are read back from the database, not the working folder
+    {
+        Aze::CRepository oLocalRepository(m_sRootPath);
+        QVERIFY(oLocalRepository.ok());
+        QVERIFY(not oLocalRepository.tipCommit().isNull());
+
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.ok());
+        QVERIFY(not oRemoteRepository.tipCommit().isNull());
+
+        QCOMPARE(oRemoteRepository.currentBranchName(), oLocalRepository.currentBranchName());
+        QCOMPARE(oRemoteRepository.tipCommit()->id(), oLocalRepository.tipCommit()->id());
+        QCOMPARE(oRemoteRepository.tipCommit()->message(), QString("Massive fast commit"));
+        QCOMPARE(oRemoteRepository.tipCommit()->files().count(), mExpectedFiles.count());
+
+        for (auto iIterator = mExpectedFiles.constBegin();
+            iIterator != mExpectedFiles.constEnd();
+            iIterator++)
+        {
+            QVERIFY(oRemoteRepository.tipCommit()->files().contains(iIterator.key()));
+
+            QByteArray bStoredContent = oRemoteRepository.tipCommit()->fileContent(
+                oRemoteRepository.database(),
+                iIterator.key());
+
+            QByteArray bStoredHash = QCryptographicHash::hash(bStoredContent, QCryptographicHash::Sha256).toHex();
+            QByteArray bExpectedHash = massiveFileHash(
+                iIterator.value().first,
+                iIterator.value().second,
+                iLineCount,
+                iLineWidth);
+
+            QCOMPARE(bStoredHash, bExpectedHash);
+        }
+
+        Aze::CBranch* pLocalSide = oLocalRepository.database()->getBranch("massive-side", this);
+        Aze::CBranch* pRemoteSide = oRemoteRepository.database()->getBranch("massive-side", this);
+        QVERIFY(pLocalSide != nullptr);
+        QVERIFY(pRemoteSide != nullptr);
+        QCOMPARE(pRemoteSide->tipCommitId(), pLocalSide->tipCommitId());
+        delete pLocalSide;
+        delete pRemoteSide;
+    }
+
+    QVERIFY(QDir(sRemotePath).removeRecursively());
 }
 
 //-------------------------------------------------------------------------------------------------
