@@ -14,6 +14,7 @@
 
 // Application
 #include "../common/CConstants.h"
+#include "CAzeHousekeeper.h"
 #include "CAzeServerArguments.h"
 #include "CAzeServerProcessor.h"
 
@@ -62,6 +63,7 @@ protected:
 
     CAzeServerArguments     m_tArguments;
     CAzeServerProcessor*    m_pProcessor;
+    CAzeHousekeeper*        m_pHousekeeper;
     Aze::CError::EErrorCode m_eInitializationError;
     QString                 m_sInitializationDetail;
 };

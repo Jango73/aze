@@ -37,6 +37,8 @@ public:
     QCommandLineOption      m_oAllowFileDelete;
     QCommandLineOption      m_oGraph;
     QCommandLineOption      m_oNoFastForward;
+    QCommandLineOption      m_oDryRun;
+    QCommandLineOption      m_oRetention;
     QCommandLineOption      m_oSilent;
     QCommandLineOption      m_oDebug;
     QCommandLineOption      m_oTextCache;

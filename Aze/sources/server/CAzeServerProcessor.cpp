@@ -61,6 +61,22 @@ CAzeServerProcessor::CAzeServerProcessor(CAzeServer* parent, quint16 iPort)
 
 //-------------------------------------------------------------------------------------------------
 
+/************************************************************************/
+
+/*!
+    Sets the post-serve hook invoked after each served repository request. \br\br
+    The hook receives the served repository folder path and the request
+    action once the response is built. It runs best-effort and never alters
+    the response. Set once before serving. \br
+    \a tHook is the hook to invoke, empty clears it \br
+*/
+void CAzeServerProcessor::setPostServeHook(const PostServeHook& tHook)
+{
+    m_tPostServeHook = tHook;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 CAzeServerProcessor::~CAzeServerProcessor()
 {
 }
@@ -92,7 +108,12 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 
             if (repository.ok())
             {
-                sCustomResponse = serveRequest(tContext, xRequest, &repository).toJsonString();
+                CXMLNode xResponse = serveRequest(tContext, xRequest, &repository);
+
+                sCustomResponse = xResponse.toJsonString();
+
+                if (m_tPostServeHook)
+                    m_tPostServeHook(sRepositoryPath, xRequest.attributes()[Aze::CStrings::s_sParamRequest]);
             }
             else
             {

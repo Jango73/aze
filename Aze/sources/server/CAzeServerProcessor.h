@@ -4,6 +4,9 @@
 // Qt
 #include <QObject>
 
+// Standard
+#include <functional>
+
 // qt-plus
 #include "Web/CDynamicHTTPServer.h"
 
@@ -24,6 +27,16 @@ class CAzeServerProcessor : public CDynamicHTTPServer
 public:
 
     //-------------------------------------------------------------------------------------------------
+    // Type definitions
+    //-------------------------------------------------------------------------------------------------
+
+    //! Generic post-serve hook, receives the served repository folder path and the request action
+    //! Set once before serving, invoked best-effort after the response is built, never altering it
+    typedef std::function<void(const QString&, const QString&)> PostServeHook;
+
+public:
+
+    //-------------------------------------------------------------------------------------------------
     // Constructor & destructor
     //-------------------------------------------------------------------------------------------------
 
@@ -39,6 +52,9 @@ public:
 
     //!
     virtual void getContent(CWebContext& tContext, QString& sHead, QString& sBody, QString& sCustomResponse, QString& sCustomResponseMIME) override;
+
+    //! Sets the post-serve hook invoked after each served repository request
+    void setPostServeHook(const PostServeHook& tHook);
 
 protected:
 
@@ -74,6 +90,7 @@ protected:
 
     CAzeServer*                     m_pServer;
     QMap<QString, RequestServing>   m_mRequestFunctionMap;
+    PostServeHook                   m_tPostServeHook;
 };
 
 //-------------------------------------------------------------------------------------------------

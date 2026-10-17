@@ -41,6 +41,7 @@ public:
         eCommandMove,
         eCommandPatch,
         eCommandPopStash,
+        eCommandPrune,
         eCommandPull,
         eCommandPush,
         eCommandRemove,
@@ -72,6 +73,7 @@ public:
     static const char* s_sSwitchMove;
     static const char* s_sSwitchPatch;
     static const char* s_sSwitchPopStash;
+    static const char* s_sSwitchPrune;
     static const char* s_sSwitchPull;
     static const char* s_sSwitchPush;
     static const char* s_sSwitchRemove;
@@ -100,6 +102,8 @@ public:
     static const char* s_sSwitchMissing;
     static const char* s_sSwitchModified;
     static const char* s_sSwitchNoFastForward;
+    static const char* s_sSwitchDryRun;
+    static const char* s_sSwitchRetention;
     static const char* s_sSwitchStart;
     static const char* s_sSwitchSilent;
     static const char* s_sSwitchDebug;

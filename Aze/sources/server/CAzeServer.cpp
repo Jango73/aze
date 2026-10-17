@@ -27,9 +27,16 @@ CAzeServer::CAzeServer(int argc, char *argv[])
     , m_sRepositoriesBasePath(".")
     , m_tArguments(*this)
     , m_pProcessor(new CAzeServerProcessor(this, m_tArguments.m_tParser.value(m_tArguments.m_oHttpPort).toInt()))
+    , m_pHousekeeper(new CAzeHousekeeper(m_sRepositoriesBasePath, this))
     , m_eInitializationError(Aze::CError::eNone)
     , m_sInitializationDetail()
 {
+    CAzeHousekeeper* pHousekeeper = m_pHousekeeper;
+
+    m_pProcessor->setPostServeHook([pHousekeeper](const QString& sRepositoryPath, const QString& sAction) {
+        pHousekeeper->handleServedRepository(sRepositoryPath, sAction);
+    });
+
     const quint16 uiHttpsPort = static_cast<quint16>(m_tArguments.m_tParser.value(m_tArguments.m_oHttpsPort).toUInt());
 
     if (uiHttpsPort > 0)

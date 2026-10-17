@@ -2,6 +2,7 @@
 # Sources
 
 HEADERS += \
+    sources/server/CAzeHousekeeper.h \
     sources/server/CAzeServer.h \
     sources/server/CAzeServerArguments.h \
     sources/server/CAzeServerProcessor.h \
@@ -19,6 +20,7 @@ HEADERS += \
     sources/tests/CTestWorkflow.h \
 
 SOURCES += \
+    sources/server/CAzeHousekeeper.cpp \
     sources/server/CAzeServer.cpp \
     sources/server/CAzeServerArguments.cpp \
     sources/server/CAzeServerProcessor.cpp \

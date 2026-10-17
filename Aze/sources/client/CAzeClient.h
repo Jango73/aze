@@ -107,6 +107,9 @@ public:
     //!
     Aze::CError::EErrorCode popStash();
 
+    //! Deletes unreachable commits and objects from the local repository
+    Aze::CError::EErrorCode prune();
+
     //!
     Aze::CError::EErrorCode patch();
 

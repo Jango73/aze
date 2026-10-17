@@ -33,6 +33,8 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
     , m_oAllowFileDelete(QStringList() << "d" << CConstants::s_sSwitchAllowFileDelete, TRT("Allow Aze to delete files."))
     , m_oGraph(QStringList() << "g" << CConstants::s_sSwitchGraph, TRT("Show log as a graph."))
     , m_oNoFastForward(QStringList() << CConstants::s_sSwitchNoFastForward, TRT("Merge without fast forward, creating a merge commit."))
+    , m_oDryRun(QStringList() << CConstants::s_sSwitchDryRun, TRT("List unreachable files without deleting them."))
+    , m_oRetention(QStringList() << CConstants::s_sSwitchRetention, TRT("Grace period in seconds protecting recent files."), TRT(CConstants::s_sSwitchRetention))
     , m_oSilent(QStringList() << CConstants::s_sSwitchSilent, TRT("Silent mode (no messages)."))
     , m_oDebug(QStringList() << CConstants::s_sSwitchDebug, TRT("Debug mode (tons of messages)."))
     , m_oTextCache(QStringList() << CConstants::s_sSwitchTextCache, TRT("Use text format for the commit cache."))
@@ -60,9 +62,11 @@ CAzeClientArguments::CAzeClientArguments(QCoreApplication& app)
                              m_oStart,
                              m_oCount,
                              m_oAllowFileDelete,
-                             m_oGraph,
-                             m_oNoFastForward,
-                              m_oSilent,
+                              m_oGraph,
+                              m_oNoFastForward,
+                              m_oDryRun,
+                              m_oRetention,
+                               m_oSilent,
                                m_oDebug,
                                m_oTextCache
                            });

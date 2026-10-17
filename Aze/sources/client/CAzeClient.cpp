@@ -90,6 +90,7 @@ Aze::CError::EErrorCode CAzeClient::run()
     case CConstants::eCommandMove:              return move();
     case CConstants::eCommandPatch:             return patch();
     case CConstants::eCommandPopStash:          return popStash();
+    case CConstants::eCommandPrune:             return prune();
     case CConstants::eCommandRemove:            return remove();
     case CConstants::eCommandRevert:            return revert();
     case CConstants::eCommandSaveStash:         return saveStash();

@@ -10,6 +10,7 @@
 
 // Aze
 #include "CUtils.h"
+#include "commands/CPruneCommand.h"
 
 // Application
 #include "CAzeClient.h"
@@ -452,6 +453,57 @@ Aze::CError::EErrorCode CAzeClient::patch()
     {
         RETURN_WHEN_ERROR(m_pRepository->patch(sFilename), Aze::CError::eCouldNotPatch);
     }
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/************************************************************************/
+
+/*!
+    Deletes unreachable commits and objects from the local repository. \br\br
+    Supports dry-run listing through --dry-run and a grace period override
+    through --retention in seconds. Prints the removed identifiers so a server
+    operator verifies housekeeping without a network client. \br
+*/
+Aze::CError::EErrorCode CAzeClient::prune()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    bool bDryRun = m_tArguments.m_tParser.isSet(m_tArguments.m_oDryRun);
+
+    qint64 iRetentionSeconds = Aze::CPruneCommand::s_iDefaultRetentionSeconds;
+
+    if (m_tArguments.m_tParser.isSet(m_tArguments.m_oRetention))
+    {
+        bool bConverted = false;
+        qint64 iParsed = m_tArguments.m_tParser.value(m_tArguments.m_oRetention).toLongLong(&bConverted);
+
+        if (not bConverted || iParsed < 0)
+        {
+            OUT_ERROR(Aze::CError::message(Aze::CError::eCouldNotPrune));
+            return Aze::CError::eCouldNotPrune;
+        }
+
+        iRetentionSeconds = iParsed;
+    }
+
+    QStringList lRemovedCommits;
+    QStringList lRemovedObjects;
+
+    RETURN_WHEN_ERROR(m_pRepository->prune(bDryRun, iRetentionSeconds, &lRemovedCommits, &lRemovedObjects), Aze::CError::eCouldNotPrune);
+
+    (*m_pOutStream) << QStringLiteral("Pruned %1 commits and %2 objects.\n").arg(lRemovedCommits.count()).arg(lRemovedObjects.count());
+
+    for (const QString& sCommitId : lRemovedCommits)
+        (*m_pOutStream) << QStringLiteral("Commit %1\n").arg(sCommitId);
+
+    for (const QString& sObjectId : lRemovedObjects)
+        (*m_pOutStream) << QStringLiteral("Object %1\n").arg(sObjectId);
+
+    m_pOutStream->flush();
 
     return Aze::CError::eNone;
 }
