@@ -9,9 +9,9 @@
 
 // Application
 #include "CCommitTreeList.h"
-#include "CEnums.h"
-#include "CStrings.h"
-#include "CUtils.h"
+#include "../CEnums.h"
+#include "../CStrings.h"
+#include "../CUtils.h"
 
 namespace Aze {
 

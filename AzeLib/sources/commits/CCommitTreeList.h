@@ -2,7 +2,7 @@
 #pragma once
 
 // Global
-#include "Aze_global.h"
+#include "../Aze_global.h"
 
 // Qt
 #include <QObject>
@@ -12,9 +12,9 @@
 #include "Macros.h"
 
 // Application
-#include "objects/CCommit.h"
-#include "objects/CFile.h"
-#include "objects/CDatabase.h"
+#include "../objects/CCommit.h"
+#include "../objects/CFile.h"
+#include "../objects/CDatabase.h"
 
 //-------------------------------------------------------------------------------------------------
 

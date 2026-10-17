@@ -14,7 +14,7 @@
 
 // Application
 #include "CRemoteHostInfo.h"
-#include "CCommitFunctions.h"
+#include "commits/CCommitFunctions.h"
 #include "CEnums.h"
 #include "CError.h"
 #include "CStrings.h"

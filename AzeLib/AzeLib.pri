@@ -1,7 +1,9 @@
 
 HEADERS += \
-    sources/CCommitFunctions.h \
-    sources/CCommitTreeList.h \
+    sources/commits/CCommitDiffFunctions.h \
+    sources/commits/CCommitFunctions.h \
+    sources/commits/CCommitMergeFunctions.h \
+    sources/commits/CCommitTreeList.h \
     sources/CEnums.h \
     sources/CError.h \
     sources/CFileHashCache.h \
@@ -53,8 +55,10 @@ HEADERS += \
     sources/dtl/dtl/variables.hpp \
 
 SOURCES += \
-    sources/CCommitFunctions.cpp \
-    sources/CCommitTreeList.cpp \
+    sources/commits/CCommitDiffFunctions.cpp \
+    sources/commits/CCommitFunctions.cpp \
+    sources/commits/CCommitMergeFunctions.cpp \
+    sources/commits/CCommitTreeList.cpp \
     sources/CEnums.cpp \
     sources/CError.cpp \
     sources/CFileHashCache.cpp \

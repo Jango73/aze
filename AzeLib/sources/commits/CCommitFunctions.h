@@ -2,7 +2,7 @@
 #pragma once
 
 // Global
-#include "Aze_global.h"
+#include "../Aze_global.h"
 
 // Qt
 #include <QObject>
@@ -12,12 +12,14 @@
 #include "Macros.h"
 
 // Application
+#include "CCommitDiffFunctions.h"
+#include "CCommitMergeFunctions.h"
 #include "CCommitTreeList.h"
-#include "CError.h"
-#include "CFileHashCache.h"
-#include "objects/CCommit.h"
-#include "objects/CFile.h"
-#include "objects/CDatabase.h"
+#include "../CError.h"
+#include "../CFileHashCache.h"
+#include "../objects/CCommit.h"
+#include "../objects/CFile.h"
+#include "../objects/CDatabase.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -38,6 +40,8 @@ public:
     Q_FAST_PROPERTY(bool, b, debug, Debug)
     Q_FAST_PROPERTY(CCommitTreeList* , p, commitTreeList, CommitTreeList)
     Q_FAST_PROPERTY(CFileHashCache*, p, fileHashCache, FileHashCache)
+    Q_FAST_PROPERTY(CCommitDiffFunctions*, p, diffFunctions, DiffFunctions)
+    Q_FAST_PROPERTY(CCommitMergeFunctions*, p, mergeFunctions, MergeFunctions)
 
 public:
 

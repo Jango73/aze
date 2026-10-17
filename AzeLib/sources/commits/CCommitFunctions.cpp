@@ -1,18 +1,15 @@
 
 // Qt
 #include <QDebug>
-#include <QDir>
 #include <QFile>
-#include <QSet>
 
 // qt-plus
 #include "File/CDirectoryListing.h"
 
 // Application
 #include "CCommitFunctions.h"
-#include "CEnums.h"
-#include "CStrings.h"
-#include "CUtils.h"
+#include "../CStrings.h"
+#include "../CUtils.h"
 
 namespace Aze {
 
@@ -25,6 +22,8 @@ CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool b
     , m_bDebug(bDebug)
     , m_pCommitTreeList(new CCommitTreeList(pDatabase, parent, bSilent, bDebug, bTextCache))
     , m_pFileHashCache(new CFileHashCache(this))
+    , m_pDiffFunctions(new CCommitDiffFunctions(pDatabase, m_pFileHashCache, this, bSilent, bDebug))
+    , m_pMergeFunctions(new CCommitMergeFunctions(pDatabase, m_pFileHashCache, this, bSilent, bDebug))
 {
 }
 
@@ -32,6 +31,8 @@ CCommitFunctions::CCommitFunctions(CDatabase* pDatabase, QObject* parent, bool b
 
 CCommitFunctions::~CCommitFunctions()
 {
+    delete m_pMergeFunctions;
+    delete m_pDiffFunctions;
     delete m_pFileHashCache;
     delete m_pCommitTreeList;
 }
@@ -465,443 +466,88 @@ QString CCommitFunctions::getCommonCommitChains(
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Appends the unified diff between two commits to sOutput, resolving ancestor deltas first. \br\br
+    \a sOutput receives the diff text \br
+    \a pCommit1 is the first commit \br
+    \a pCommit2 is the second commit \br
+    \a lIgnoreFiles are the file names excluded from the diff \br
+    \a iDelta1 walks pCommit1 back by first parents before diffing \br
+    \a iDelta2 walks pCommit2 back by first parents before diffing \br
+*/
 void CCommitFunctions::diffCommits(QString& sOutput, CCommit* pCommit1, CCommit* pCommit2, const QStringList& lIgnoreFiles, int iDelta1, int iDelta2)
 {
-    if (iDelta1 != 0)
-        pCommit1 = getCommitAncestor(m_pDatabase, pCommit1, this, iDelta1);
-
-    if (iDelta2 != 0)
-        pCommit2 = getCommitAncestor(m_pDatabase, pCommit2, this, iDelta2);
-
-    if (IS_NOT_NULL(pCommit1) && IS_NOT_NULL(pCommit2))
-    {
-        QHash<QString, int> lProcessedFiles;
-
-        for (QString sName : pCommit2->files().keys())
-        {
-            if (not lIgnoreFiles.contains(sName) && not lProcessedFiles.contains(sName))
-            {
-                QByteArray baContent1 = pCommit1->fileContent(m_pDatabase, sName);
-                QByteArray baContent2 = pCommit2->fileContent(m_pDatabase, sName);
-
-                QString sDiffText = CUtils::unifiedDiff(QString(baContent1), QString(baContent2));
-
-                if (not sDiffText.isEmpty())
-                {
-                    sOutput += CUtils::fileDiffHeader(sName, sName);
-                    sOutput += sDiffText;
-                }
-
-                lProcessedFiles[sName] = 0;
-            }
-        }
-
-        for (QString sName : pCommit1->files().keys())
-        {
-            if (not lIgnoreFiles.contains(sName) && not lProcessedFiles.contains(sName))
-            {
-                QByteArray baContent1 = pCommit1->fileContent(m_pDatabase, sName);
-                QByteArray baContent2 = pCommit2->fileContent(m_pDatabase, sName);
-
-                QString sDiffText = CUtils::unifiedDiff(QString(baContent1), QString(baContent2));
-
-                if (not sDiffText.isEmpty())
-                {
-                    sOutput += CUtils::fileDiffHeader(sName, sName);
-                    sOutput += sDiffText;
-                }
-
-                lProcessedFiles[sName] = 0;
-            }
-        }
-    }
+    CCommit* pResolvedCommit1 = pCommit1;
+    CCommit* pResolvedCommit2 = pCommit2;
 
     if (iDelta1 != 0)
-        delete pCommit1;
+        pResolvedCommit1 = getCommitAncestor(m_pDatabase, pCommit1, this, iDelta1);
 
     if (iDelta2 != 0)
-        delete pCommit2;
+        pResolvedCommit2 = getCommitAncestor(m_pDatabase, pCommit2, this, iDelta2);
+
+    m_pDiffFunctions->diffCommits(sOutput, pResolvedCommit1, pResolvedCommit2, lIgnoreFiles);
+
+    if (iDelta1 != 0)
+        delete pResolvedCommit1;
+
+    if (iDelta2 != 0)
+        delete pResolvedCommit2;
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Appends the unified diff of commits in lToList missing from lFromList to sOutput. \br\br
+    Delegates to CCommitDiffFunctions. \br
+*/
 void CCommitFunctions::diffCommitLists(QString& sOutput, const QList<CCommit*>& lToList, const QList<CCommit*>& lFromList)
 {
-    if (m_bDebug)
-    {
-        OUT_DEBUG("--------------------");
-        OUT_DEBUG("To list:");
-        for (CCommit* pCommit : lToList)
-            OUT_DEBUG(QString("%1 %2").arg(pCommit->shortId()).arg(pCommit->message()));
-        OUT_DEBUG("--------------------");
-        OUT_DEBUG("From list:");
-        for (CCommit* pCommit : lFromList)
-            OUT_DEBUG(QString("%1 %2").arg(pCommit->shortId()).arg(pCommit->message()));
-        OUT_DEBUG("--------------------");
-    }
-
-    for (int index = 1; index < lFromList.count(); index++)
-    {
-        CCommit* pCommit1 = lFromList[index - 1];
-        CCommit* pCommit2 = lFromList[index];
-
-        //        QList<CCommit*>::const_iterator foundCommit = std::find_if(
-        //                    lIgnoreList.begin(),
-        //                    lIgnoreList.end(),
-        //                    [&](const CCommit*& c) { return c->id() == pCommit2->id(); }
-        //        );
-
-        bool bFound = false;
-
-        for (CCommit* pCommit : lToList)
-            if (CUtils::sameIds(pCommit->id(), pCommit2->id()))
-            {
-                bFound = true;
-                break;
-            }
-
-        //        if (foundCommit == lIgnoreList.end())
-        if (bFound == false)
-        {
-            for (QString sName : pCommit2->files().keys())
-            {
-                QByteArray baContent1 = pCommit1->fileContent(m_pDatabase, sName);
-                QByteArray baContent2 = pCommit2->fileContent(m_pDatabase, sName);
-
-                if (m_bDebug)
-                {
-                    OUT_DEBUG(QString("X (%1): %2").arg(pCommit1->message()).arg(QString(baContent1)));
-                    OUT_DEBUG(QString("Y (%1): %2").arg(pCommit2->message()).arg(QString(baContent2)));
-                }
-
-                QString sDiffText = CUtils::unifiedDiff(QString(baContent1), QString(baContent2));
-
-                if (m_bDebug)
-                {
-                    OUT_DEBUG(QString("Diff: %1").arg(CUtils::printableUnifiedDiff(sDiffText)));
-                }
-
-                if (not sDiffText.isEmpty())
-                {
-                    sOutput += CUtils::fileDiffHeader(sName, sName);
-                    sOutput += sDiffText;
-                }
-            }
-        }
-    }
+    m_pDiffFunctions->diffCommitLists(sOutput, lToList, lFromList);
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Appends the unified diff between two files on the file system to sOutput. \br\br
+    Delegates to CCommitDiffFunctions. \br
+*/
 void CCommitFunctions::diffFiles(QString& sOutput, const QString& sFile1, const QString& sFile2)
 {
-    // Get text content of both files
-    QString sText1 = CUtils::getTextFileContent(sFile1);
-    QString sText2 = CUtils::getTextFileContent(sFile2);
-
-    // Diff text contents
-    QString sDiffText = CUtils::unifiedDiff(sText1, sText2);
-
-    // Output diff
-    if (not sDiffText.isEmpty())
-    {
-        sOutput += CUtils::fileDiffHeader(sFile1, sFile2);
-        sOutput += sDiffText;
-    }
+    m_pDiffFunctions->diffFiles(sOutput, sFile1, sFile2);
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Returns the difference between two text files. \br\br
+    Delegates to CCommitDiffFunctions. \br
+*/
 void CCommitFunctions::diffText(QString& sOutput, const QString& sFileName, const QString& sText1, const QString& sText2)
 {
-    QString sDiffText = CUtils::unifiedDiff(sText1, sText2);
-
-    if (not sDiffText.isEmpty())
-    {
-        sOutput += CUtils::fileDiffHeader(sFileName, sFileName);
-        sOutput += sDiffText;
-    }
+    m_pDiffFunctions->diffText(sOutput, sFileName, sText1, sText2);
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Applies a diff to the working directory. \br\br
+    Delegates to CCommitDiffFunctions. \br
+*/
 CError::EErrorCode CCommitFunctions::applyDiff(const QString& sFullDiff, bool bAddToStage, CCommit* pStagingCommit)
 {
-    // Keep track of merged files
-    QDictionary mProcessedFiles;
-    QStringList mMovedFiles;
-
-    // Get a list of diffs per file
-    QList<QPair<QString, QString> > mFileDiffs = CUtils::splitDiff(sFullDiff);
-
-    for (QPair<QString, QString> tPair : mFileDiffs)
-    {
-        QString sFileName = tPair.first;
-        QString sFileDiff = tPair.second;
-
-        // Read the file, apply the diff and write to merge directory
-        QString sFullSourceName = m_pDatabase->composeLocalFileName(sFileName);
-        QString sFullTargetName = m_pDatabase->composeMergeFileName(sFileName);
-
-        // Check if file is already present in merge directory
-        bool bMergedFileExists = QFile(sFullTargetName).exists();
-
-        if (bMergedFileExists)
-            sFullSourceName = sFullTargetName;
-
-        // Get the content of the file
-        QString sPreviousContent = CUtils::getTextFileContent(sFullSourceName);
-        QString sNewContent;
-
-        bool bApplyOk = CUtils::applyUnifiedDiff(sPreviousContent, sFileDiff, sNewContent);
-
-        if (m_bDebug)
-        {
-            OUT_DEBUG(QString("A: %1").arg(sPreviousContent));
-            OUT_DEBUG(QString("B: %1").arg(CUtils::printableUnifiedDiff(sFileDiff)));
-            OUT_DEBUG(QString("C: %1").arg(sNewContent));
-            OUT_DEBUG("----------------------------------------");
-        }
-
-        if (not bApplyOk)
-        {
-            if (not m_bSilent)
-            {
-                OUT_ERROR(CError::message(CError::eCouldNotApplyPatch, sFileName));
-            }
-            return CError::eCouldNotApplyPatch;
-        }
-
-        CUtils::putTextFileContent(sFullTargetName, sNewContent);
-        QString sId = CUtils::idFromByteArray(sNewContent.toUtf8());
-        mProcessedFiles[sFileName] = sId;
-    }
-
-    // Stage the merged files
-    if (bAddToStage && IS_NOT_NULL(pStagingCommit))
-    {
-        for (QString sFileName : mProcessedFiles.keys())
-        {
-            QString sId = mProcessedFiles[sFileName];
-            pStagingCommit->addFile(m_pDatabase, sFileName, sId);
-        }
-    }
-
-    // Move the merged files
-    for (QString sFileName : mProcessedFiles.keys())
-    {
-        QString sFullSourceName = m_pDatabase->composeMergeFileName(sFileName);
-        QString sFullTargetName = m_pDatabase->composeLocalFileName(sFileName);
-
-        if (not mMovedFiles.contains(sFullSourceName))
-        {
-            if (not CUtils::moveFile(sFullSourceName, sFullTargetName))
-            {
-                if (not m_bSilent)
-                {
-                    OUT_ERROR(CError::message(CError::eCouldNotMoveFiles, sFullSourceName));
-                }
-                return CError::eCouldNotMoveFiles;
-            }
-
-            mMovedFiles << sFullSourceName;
-        }
-    }
-
-    m_pFileHashCache->clear();
-
-    return CError::eNone;
+    return m_pDiffFunctions->applyDiff(sFullDiff, bAddToStage, pStagingCommit);
 }
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Do a 3-way merge and add (if requested) the modified files to the stage. \br\br
+    Delegates to CCommitMergeFunctions. \br
+*/
 CError::EErrorCode CCommitFunctions::threeWayMerge(CCommit* pBaseCommit, CCommit* pFromTipCommit, CCommit* pToTipCommit, bool bAddToStage, CCommit* pStagingCommit)
 {
-    bool bHasConflicts = false;
-
-    if (IS_NULL(pBaseCommit) || IS_NULL(pFromTipCommit) || IS_NULL(pToTipCommit))
-        return CError::eCouldNotMerge;
-
-    QDictionary mBaseFiles = pBaseCommit->files();
-    QDictionary mFromFiles = pFromTipCommit->files();
-    QDictionary mToFiles = pToTipCommit->files();
-
-    QSet<QString> sAllFileNames;
-    for (const QString& sName : mBaseFiles.keys())
-        sAllFileNames.insert(sName);
-    for (const QString& sName : mFromFiles.keys())
-        sAllFileNames.insert(sName);
-    for (const QString& sName : mToFiles.keys())
-        sAllFileNames.insert(sName);
-
-    // Keep track of merged files
-    QMap<QPair<QString, bool>, QString> mProcessedFiles;    // Maps relative file names to IDs
-
-    for (const QString& sFileName : sAllFileNames)
-    {
-        bool bInBase = mBaseFiles.contains(sFileName);
-        bool bInFrom = mFromFiles.contains(sFileName);
-        bool bInTo = mToFiles.contains(sFileName);
-
-        QString sIdBase = mBaseFiles.value(sFileName);
-        QString sIdFrom = mFromFiles.value(sFileName);
-        QString sIdTo = mToFiles.value(sFileName);
-
-        bool bChangedFrom = (bInFrom != bInBase) || (bInFrom && bInBase && sIdFrom != sIdBase);
-        bool bChangedTo = (bInTo != bInBase) || (bInTo && bInBase && sIdTo != sIdBase);
-
-        if (not bChangedFrom && not bChangedTo)
-            continue;
-
-        QString sFullLocalName = m_pDatabase->composeLocalFileName(sFileName);
-
-        // Changed only on the from side: take the from side, deletions included
-        if (bChangedFrom && not bChangedTo)
-        {
-            if (bInFrom)
-            {
-                QString sFromContent = QString(pFromTipCommit->fileContent(m_pDatabase, sFileName));
-                CUtils::putTextFileContent(sFullLocalName, sFromContent);
-                mProcessedFiles[QPair<QString, bool>(sFileName, true)] = sIdFrom;
-            }
-            else
-            {
-                QFile::remove(sFullLocalName);
-                mProcessedFiles[QPair<QString, bool>(sFileName, true)] = "";
-            }
-            continue;
-        }
-
-        // Changed only on the to side: take the to side, deletions included
-        if (not bChangedFrom && bChangedTo)
-        {
-            if (bInTo)
-            {
-                QString sToContent = QString(pToTipCommit->fileContent(m_pDatabase, sFileName));
-                CUtils::putTextFileContent(sFullLocalName, sToContent);
-                mProcessedFiles[QPair<QString, bool>(sFileName, true)] = sIdTo;
-            }
-            else
-            {
-                QFile::remove(sFullLocalName);
-                mProcessedFiles[QPair<QString, bool>(sFileName, true)] = "";
-            }
-            continue;
-        }
-
-        // Changed on both sides
-        // Deleted on both sides: remove the file without conflict
-        if (not bInFrom && not bInTo)
-        {
-            QFile::remove(sFullLocalName);
-            mProcessedFiles[QPair<QString, bool>(sFileName, true)] = "";
-            continue;
-        }
-
-        // Changed identically on both sides: take either side without conflict
-        if (bInFrom && bInTo && sIdFrom == sIdTo)
-        {
-            QString sSameContent = QString(pFromTipCommit->fileContent(m_pDatabase, sFileName));
-            CUtils::putTextFileContent(sFullLocalName, sSameContent);
-            mProcessedFiles[QPair<QString, bool>(sFileName, true)] = sIdFrom;
-            continue;
-        }
-
-        // Deleted on one side and changed on the other: conflict with markers
-        if (not bInFrom || not bInTo)
-        {
-            QString sBaseContent = bInBase ? QString(pBaseCommit->fileContent(m_pDatabase, sFileName)) : "";
-            QString sFromContent = bInFrom ? QString(pFromTipCommit->fileContent(m_pDatabase, sFileName)) : "";
-            QString sToContent = bInTo ? QString(pToTipCommit->fileContent(m_pDatabase, sFileName)) : "";
-            QString sNewContent;
-
-            QString sFromMarker = QString("%1 %2").arg(pFromTipCommit->shortId()).arg(pFromTipCommit->message().left(16));
-            QString sToMarker = QString("%1 %2").arg(pToTipCommit->shortId()).arg(pToTipCommit->message().left(16));
-
-            CUtils::applyThreeWayMerge(sBaseContent, sFromMarker, sFromContent, sToMarker, sToContent, sNewContent);
-
-            // Deletion against modification never auto merges
-            bHasConflicts = true;
-            CUtils::putTextFileContent(sFullLocalName, sNewContent);
-            mProcessedFiles[QPair<QString, bool>(sFileName, false)] = "";
-            continue;
-        }
-
-        // Modified on both sides: text three-way merge
-        if (m_bDebug)
-        {
-            OUT_DEBUG(QString("3-way merging: %1").arg(sFileName));
-        }
-
-        QString sBaseContent = bInBase ? QString(pBaseCommit->fileContent(m_pDatabase, sFileName)) : "";
-        QString sFromContent = QString(pFromTipCommit->fileContent(m_pDatabase, sFileName));
-        QString sToContent = QString(pToTipCommit->fileContent(m_pDatabase, sFileName));
-        QString sNewContent;
-
-        QString sFromMarker = QString("%1 %2").arg(pFromTipCommit->shortId()).arg(pFromTipCommit->message().left(16));
-        QString sToMarker = QString("%1 %2").arg(pToTipCommit->shortId()).arg(pToTipCommit->message().left(16));
-
-        // Do the actual merge
-        bool bMergeOk = CUtils::applyThreeWayMerge(sBaseContent, sFromMarker, sFromContent, sToMarker, sToContent, sNewContent);
-
-        if (m_bDebug)
-        {
-            OUT_DEBUG(QString("AC: %1").arg(sFromContent));
-            OUT_DEBUG(QString("BC: %1").arg(sBaseContent));
-            OUT_DEBUG(QString("CC: %1").arg(sToContent));
-            OUT_DEBUG(QString("NC: %1").arg(sNewContent));
-            OUT_DEBUG("----------------------------------------");
-        }
-
-        if (not bMergeOk)
-            bHasConflicts = true;
-
-        CUtils::putTextFileContent(sFullLocalName, sNewContent);
-        QString sId = CUtils::idFromByteArray(sNewContent.toUtf8());
-        mProcessedFiles[QPair<QString, bool>(sFileName, bMergeOk)] = sId;
-    }
-
-    // Bail out if nothing changed
-    // An empty merge is reported as conflicts to preserve the historical
-    // bHasConflicts semantics of the caller
-    if (mProcessedFiles.isEmpty())
-    {
-        return CError::eMergeHasConflicts;
-    }
-
-    // Stage the merged files
-    if (bAddToStage && IS_NOT_NULL(pStagingCommit))
-    {
-        for (QPair<QString, bool> pFile : mProcessedFiles.keys())
-        {
-            QString sKey = mProcessedFiles[pFile];
-
-            // Stage only if merge ok
-            if (pFile.second)
-            {
-                pStagingCommit->addFile(m_pDatabase, pFile.first, sKey, true);
-            }
-        }
-    }
-
-    m_pFileHashCache->clear();
-
-    // Warn about conflict files
-    if (bHasConflicts && not m_bSilent)
-    {
-        OUT_ERROR(QString("/!\\ Merge cannot be finished automatically. /!\\"));
-        OUT_ERROR(QString("Files that are in conflict state:"));
-
-        for (QPair<QString, bool> pFile : mProcessedFiles.keys())
-        {
-            if (not pFile.second)
-            {
-                OUT_ERROR(pFile.first);
-            }
-        }
-    }
-
-    return bHasConflicts ? CError::eMergeHasConflicts : CError::eNone;
+    return m_pMergeFunctions->threeWayMerge(pBaseCommit, pFromTipCommit, pToTipCommit, bAddToStage, pStagingCommit);
 }
 
 //-------------------------------------------------------------------------------------------------
