@@ -341,17 +341,17 @@ QString CDatabase::printableFileContentById(const QString& sId)
     QString sText;
     QString sFileName;
 
-    // Try in commits
+    // Try in commits, stored as compressed XML so load and serialize back to text
     sFileName = composeCommitFileName(sId);
 
     if (QFile(sFileName).exists())
-        return CUtils::getTextFileContent(sFileName);
+        return CXMLNode::load(sFileName).toString();
 
-    // Try in stash
+    // Try in stash, stored as compressed XML so load and serialize back to text
     sFileName = composeStashFileName(sId);
 
     if (QFile(sFileName).exists())
-        return CUtils::getTextFileContent(sFileName);
+        return CXMLNode::load(sFileName).toString();
 
     // Try in objects
     sFileName = composeObjectFileName(sId);

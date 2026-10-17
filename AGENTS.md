@@ -71,10 +71,16 @@ qmake for Qt6 (see `README.md`). Layout:
   - No "directory" : use "folder".
 
 ### Commit message
-The agent always signs its commits: append a last line `Agent: <agent-name>`
+Describe the changes in a short sentence.
+
+Test: append a second line with the test results: `Tests: <passed>/<total>`
+Omit the line only when no test ran.
+
+Sign: append a last line `Agent: <agent-name>`
 (for example `Agent: opencode/muse-spark`) so authorship stays identifiable
-in the log, whatever the commit prefix above. Never leave a blank line in
-the commit message: lines follow each other directly.
+in the log, whatever the commit prefix above.
+
+Never leave a blank line in the commit message: lines follow each other directly.
 
 ## Common Build Commands
 - Dependencies: `./scripts/linux/deps.sh` (submodules + apt/dnf/pacman packages;
