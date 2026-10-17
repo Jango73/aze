@@ -21,6 +21,9 @@ private slots:
 
     //! Tests diff variants (no argument, one id, file name)
     void testDiff();
+
+    //! Tests show variants (commit id, file object id, unknown id)
+    void testShow();
 };
 
 //-------------------------------------------------------------------------------------------------

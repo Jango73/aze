@@ -44,7 +44,7 @@ Test file root: `Aze/sources/tests/`.
 | `clone` (engine) | Creates `.aze` in the target folder and copies branches, commits and objects from the server response | `CTestRemote::testClone` (branch tips, file content, missing target folder argument, duplicate target refusal) |
 | `set-remote-host` | Stores the remote host name in repository information | No dedicated test |
 | Network `push`, `pull`, `clone` through `CAzeClient` | Sends requests over `HTTP` and stores the server response | No dedicated test; engine and server layers are tested separately (see above and below) |
-| `show` (`dump`) | Dumps the content of a database object | No dedicated test |
+| `show` (`dump`) | Dumps the content of a database object by identifier: commit identifier dumps the stored commit document, file object identifier dumps the stored file content, several identifiers are concatenated, unknown identifier yields empty output | `CTestDiffPatch::testShow` (`CTestDiffPatch.cpp`) |
 | `help`, `--version`, `--silent`, `--debug` | Help text and global output flags | No dedicated test |
 
 ## Server

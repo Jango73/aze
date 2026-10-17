@@ -153,3 +153,54 @@ void CTestDiffPatch::testDiff()
 }
 
 //-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests show variants (commit id, file object id, unknown id).
+*/
+/***************************************************************************/
+void CTestDiffPatch::testShow()
+{
+    QString sFilePath = "Files/ShowTest.txt";
+    QString sContent("S1\n--");
+    QString sMessage("ShowMessage");
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, sContent));
+    QVERIFY(STAGE(sFilePath) == expectedCode(Aze::CError::eNone));
+    COMMIT(sMessage);
+
+    QString sTipId;
+    QString sObjectId;
+
+    {
+        Aze::CRepository oRepository(m_sRootPath);
+        QVERIFY(oRepository.ok());
+        sTipId = oRepository.tipCommit()->id();
+        QVERIFY(not sTipId.isEmpty());
+        QVERIFY(oRepository.tipCommit()->files().contains(sFilePath));
+        sObjectId = oRepository.tipCommit()->files()[sFilePath];
+        QVERIFY(not sObjectId.isEmpty());
+    }
+
+    // Commit identifier dumps the stored commit document
+    QString sCommitDump = exec({ CConstants::s_sSwitchDump, sTipId });
+    QVERIFY(sCommitDump.contains(sMessage));
+    QVERIFY(sCommitDump.contains(m_sAuthor));
+    QVERIFY(sCommitDump.contains(sFilePath));
+    QVERIFY(sCommitDump.contains(sObjectId));
+
+    // File object identifier dumps the stored file content
+    QString sObjectDump = exec({ CConstants::s_sSwitchDump, sObjectId });
+    QVERIFY(sObjectDump == sContent);
+
+    // Several identifiers are concatenated in order
+    QString sBothDump = exec({ CConstants::s_sSwitchDump, sTipId, sObjectId });
+    QVERIFY(sBothDump == sCommitDump + sObjectDump);
+
+    // Unknown identifier yields empty output
+    QVERIFY(exec({ CConstants::s_sSwitchDump, "no-such-id" }) == expectedCode(Aze::CError::eNone));
+}
+
+//-------------------------------------------------------------------------------------------------
