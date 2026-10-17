@@ -2,8 +2,7 @@
 // Qt
 #include <QDebug>
 #include <QDir>
-#include <QMutex>
-#include <QWaitCondition>
+#include <QEventLoop>
 
 // qt-plus
 #include <CXMLNode.h>
@@ -13,21 +12,6 @@
 
 // Application
 #include "CAzeClient.h"
-
-//-------------------------------------------------------------------------------------------------
-
-static void msleep(unsigned long msecs)
-{
-    QMutex mutex;
-    mutex.lock();
-
-    QWaitCondition waitCondition;
-    waitCondition.wait(&mutex, msecs);
-
-    mutex.unlock(); // Not necessary since new mutex will always be created,
-    // but since destroying locked mutex
-    // is bringing undefined behavior, let's follow some ethics
-}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -112,7 +96,6 @@ Aze::CError::EErrorCode CAzeClient::clone()
 Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
 {
     m_eLastError = Aze::CError::eNone;
-    m_bNetworkAccessFinished = false;
 
     if (IS_NOT_NULL(m_pRepository))
     {
@@ -134,13 +117,17 @@ Aze::CError::EErrorCode CAzeClient::postNetworkRequest(CXMLNode xRequest)
     if (not sAuthToken.isEmpty())
         m_tNetworkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(sAuthToken).toUtf8());
 
-    m_pNetworkAccessManager->post(m_tNetworkRequest, xRequest.toJsonString().simplified().toUtf8());
+    QNetworkReply* pReply = m_pNetworkAccessManager->post(m_tNetworkRequest, xRequest.toJsonString().simplified().toUtf8());
 
-    while (not m_bNetworkAccessFinished)
-    {
-        msleep(10);
-        QCoreApplication::processEvents();
-    }
+    // Wait for the matching manager response without busy wait, the quit
+    // handler is connected after onNetworkAccessFinished so m_eLastError
+    // is stored before the local event loop returns
+    QEventLoop oWaitLoop;
+    QObject::connect(m_pNetworkAccessManager, &QNetworkAccessManager::finished, &oWaitLoop, [&](QNetworkReply* pFinishedReply) {
+        if (pFinishedReply == pReply)
+            oWaitLoop.quit();
+    });
+    oWaitLoop.exec();
 
     return m_eLastError;
 }
@@ -161,7 +148,7 @@ void CAzeClient::onNetworkAccessFinished(QNetworkReply* pReply)
         m_eLastError = Aze::CError::eNetworkError;
     }
 
-    m_bNetworkAccessFinished = true;
+    pReply->deleteLater();
 }
 
 //-------------------------------------------------------------------------------------------------

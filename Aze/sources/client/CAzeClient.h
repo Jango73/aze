@@ -150,7 +150,6 @@ protected:
     Aze::CError::EErrorCode m_eLastError;
     CXMLNode                m_xLastResponse;
     bool                    m_bOutputStreamIsMine;
-    bool                    m_bNetworkAccessFinished;
 };
 
 //-------------------------------------------------------------------------------------------------

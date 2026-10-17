@@ -35,7 +35,6 @@ CAzeClient::CAzeClient(int argc, char *argv[], QTextStream* pOutStream)
     , m_pNetworkAccessManager(new QNetworkAccessManager(this))
     , m_eLastError(Aze::CError::eNone)
     , m_bOutputStreamIsMine(false)
-    , m_bNetworkAccessFinished(false)
 {
     if (IS_NULL(m_pOutStream))
     {
