@@ -34,8 +34,6 @@ public:
     static const QString s_sParamClone;
     static const QString s_sParamCommit;
     static const QString s_sParamCommitChain;
-    static const QString s_sParamCommitParentList;
-    static const QString s_sParamCommitTreeList;
     static const QString s_sParamCurrent;
     static const QString s_sParamDate;
     static const QString s_sParamDeleteBranch;

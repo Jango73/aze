@@ -27,6 +27,9 @@ private slots:
 
     //! Tests that the commit parent cache persists in text format
     void testCommitTreeListTextCache();
+
+    //! Tests that log stays correct with a cold cache and re-warms the shards
+    void testCommitTreeListCacheFallback();
 };
 
 //-------------------------------------------------------------------------------------------------

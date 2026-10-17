@@ -204,7 +204,7 @@ void CTestCache::testCacheInvalidation()
 
 /***************************************************************************/
 /*!
-* \brief Tests that the commit parent cache persists in binary format.
+* \brief Tests that the commit parent cache persists in sharded binary format.
 */
 /***************************************************************************/
 void CTestCache::testCommitTreeListBinaryCache()
@@ -222,25 +222,39 @@ void CTestCache::testCommitTreeListBinaryCache()
     LOG(sLogResult);
     QVERIFY(sLogResult.contains("C2"));
 
-    // The parent cache is persisted in binary format through the destructor
+    // Parent identifiers persist through the sharded store destructor, one
+    // file per shard, no legacy monolithic cache file
     QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
     QStringList lBinaries = tCacheDir.entryList(
-        QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
-    QCOMPARE(lBinaries.count(), 1);
+        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
+    QVERIFY(not lBinaries.isEmpty());
+    QCOMPARE(tCacheDir.entryList(
+        QStringList() << QString("*CCommitTreeList%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
 
-    QString sError;
-    CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(lBinaries.first()), &sError);
-    QVERIFY2(sError.isEmpty(), qPrintable(sError));
-    QVERIFY(not xCache.isEmpty());
-    QVERIFY(xCache.attributes().contains(Aze::CStrings::s_sParamCommitParentList));
-    QVERIFY(not xCache.attributes()[Aze::CStrings::s_sParamCommitParentList].isEmpty());
+    int iEntryCount = 0;
+
+    for (const QString& sShard : lBinaries)
+    {
+        QString sError;
+        CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(sShard), &sError);
+        QVERIFY2(sError.isEmpty(), qPrintable(sError));
+        QVERIFY(not xCache.isEmpty());
+
+        for (const CXMLNode& xEntry : xCache.nodes())
+        {
+            if (xEntry.tag() == "entry" && not xEntry.attributes().value("key").isEmpty())
+                iEntryCount++;
+        }
+    }
+
+    QVERIFY(iEntryCount >= 2);
 }
 
 //-------------------------------------------------------------------------------------------------
 
 /***************************************************************************/
 /*!
-* \brief Tests that the commit parent cache persists in text format.
+* \brief Tests that the commit parent cache persists in sharded text format.
 */
 /***************************************************************************/
 void CTestCache::testCommitTreeListTextCache()
@@ -281,20 +295,64 @@ void CTestCache::testCommitTreeListTextCache()
     sLogResult = exec({ CConstants::s_sSwitchLog, sTextCache });
     QVERIFY(sLogResult.contains("C2"));
 
-    // The parent cache is persisted in text format through the destructor
+    // Parent identifiers persist in sharded text format through the destructor
     QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
     QStringList lTextCaches = tCacheDir.entryList(
-        QStringList() << QString("*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension), QDir::Files);
-    QCOMPARE(lTextCaches.count(), 1);
+        QStringList() << QString("Aze::CShardFileStore*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension), QDir::Files);
+    QVERIFY(not lTextCaches.isEmpty());
     QCOMPARE(tCacheDir.entryList(
         QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
 
-    QString sError;
-    CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(lTextCaches.first()), &sError);
-    QVERIFY2(sError.isEmpty(), qPrintable(sError));
-    QVERIFY(not xCache.isEmpty());
-    QVERIFY(xCache.attributes().contains(Aze::CStrings::s_sParamCommitParentList));
-    QVERIFY(not xCache.attributes()[Aze::CStrings::s_sParamCommitParentList].isEmpty());
+    int iEntryCount = 0;
+
+    for (const QString& sShard : lTextCaches)
+    {
+        QString sError;
+        CXMLNode xCache = CXMLNode::load(tCacheDir.absoluteFilePath(sShard), &sError);
+        QVERIFY2(sError.isEmpty(), qPrintable(sError));
+        QVERIFY(not xCache.isEmpty());
+
+        for (const CXMLNode& xEntry : xCache.nodes())
+        {
+            if (xEntry.tag() == "entry" && not xEntry.attributes().value("key").isEmpty())
+                iEntryCount++;
+        }
+    }
+
+    QVERIFY(iEntryCount >= 2);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests that log stays correct with a cold cache and re-warms the shards.
+*/
+/***************************************************************************/
+void CTestCache::testCommitTreeListCacheFallback()
+{
+    QString sFilePath = "Files/CacheTest.txt";
+    QString sLogResult;
+
+    INIT();
+    QVERIFY(createFile(sFilePath, "C1\n--"));
+    STAGE(sFilePath);
+    COMMIT("C1");
+    QVERIFY(createFile(sFilePath, "C2\n--"));
+    STAGE(sFilePath);
+    COMMIT("C2");
+
+    // A cold cache resolves through commit files, then re-warms the shards
+    QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
+    QVERIFY(tCacheDir.removeRecursively());
+
+    LOG(sLogResult);
+    QVERIFY(sLogResult.contains("C1"));
+    QVERIFY(sLogResult.contains("C2"));
+
+    QStringList lBinaries = tCacheDir.entryList(
+        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
+    QVERIFY(not lBinaries.isEmpty());
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 
 // qt-plus
 #include "Macros.h"
+#include "File/CShardFileStore.h"
 
 // Application
 #include "../objects/CCommit.h"
@@ -19,11 +20,6 @@
 //-------------------------------------------------------------------------------------------------
 
 namespace Aze {
-
-// A map of commit parent Ids
-// Key is commit Id
-// Value is the commit's parent Ids
-typedef QMap<QString, QStringList> QCommitParentList;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -40,7 +36,6 @@ public:
     Q_FAST_PROPERTY(CDatabase*, p, database, Database)
     Q_FAST_PROPERTY(bool, b, silent, Silent)
     Q_FAST_PROPERTY(bool, b, debug, Debug)
-    Q_FAST_PROPERTY(bool, b, dirty, Dirty)
 
 public:
 
@@ -52,30 +47,11 @@ public:
     CCommitTreeList(CDatabase* pDatabase, QObject* parent = nullptr, bool bSilent = false, bool bDebug = false, bool bTextCache = false);
 
     //!
-    CCommitTreeList(const CCommitTreeList& target);
-
-    //!
-    ~CCommitTreeList();
-
-    //-------------------------------------------------------------------------------------------------
-    // Operators
-    //-------------------------------------------------------------------------------------------------
-
-    //!
-    CCommitTreeList& operator = (const CCommitTreeList& target);
-
-    //!
-    bool operator == (const CCommitTreeList& target);
+    ~CCommitTreeList() override;
 
     //-------------------------------------------------------------------------------------------------
     // Control methods
     //-------------------------------------------------------------------------------------------------
-
-    //!
-    CXMLNode toNode();
-
-    //!
-    void fromNode(const CXMLNode& xNode);
 
     //!
     bool containsCommit(const QString& sCommitId) const;
@@ -101,8 +77,7 @@ public:
 
 protected:
 
-    QString             m_sFileName;
-    QCommitParentList   m_mCommitParentList;
+    CShardFileStore*    m_pShardStore;
 };
 
 }
