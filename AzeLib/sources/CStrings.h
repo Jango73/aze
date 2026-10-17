@@ -49,6 +49,7 @@ public:
     static const QString s_sParamObject;
     static const QString s_sParamParents;
     static const QString s_sParamPull;
+    static const QString s_sParamPushAnnounce;
     static const QString s_sParamPush;
     static const QString s_sParamRemoteHost;
     static const QString s_sParamRepository;

@@ -54,6 +54,12 @@ protected:
     //! Updates the pushed branch, refusing history loss without fast forward
     CError::EErrorCode updateBranch();
 
+    //! Accepts an empty payload when the pushed tip matches the branch tip
+    CError::EErrorCode acceptEmptyPayload();
+
+    //! Returns true when the pushed tip descends from the commit
+    bool pushedTipContains(const QString& sCommitId);
+
     //! Returns the root identifier for a created branch, with fallback on oldest parentless commit
     QString resolveRootCommitId();
 

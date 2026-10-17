@@ -33,7 +33,8 @@ CPushCommand::CPushCommand(CRepository* pTargetRepository, const CXMLNode& xRequ
     Applies the push request to the target repository. \br\br
     Stores received objects and commits, then updates the pushed branch.
     History loss is refused when the current tip is missing from the
-    pushed commits. \br
+    pushed history. An empty payload converges already and succeeds when
+    the pushed tip matches the branch tip. \br
     Returns eNone on success, the precise failure reason otherwise. \br
 */
 CError::EErrorCode CPushCommand::execute()
@@ -53,7 +54,12 @@ CError::EErrorCode CPushCommand::execute()
     if (eCode != CError::eNone)
         return eCode;
 
-    if (m_lCommitIds.isEmpty() || not m_lCommitIds.contains(m_sTipId))
+    if (m_lCommitIds.isEmpty())
+    {
+        return acceptEmptyPayload();
+    }
+
+    if (not m_lCommitIds.contains(m_sTipId))
     {
         m_sDetail = CError::message(CError::ePushRequestInvalid);
         return CError::ePushRequestInvalid;
@@ -114,9 +120,10 @@ CError::EErrorCode CPushCommand::storeCommits()
 
 /*!
     Updates the pushed branch from the stored commits. \br\br
-    Refuses to overwrite history that the pushed commits do not contain.
-    A created branch keeps the requested root so the branch point is
-    preserved. \br
+    Refuses to overwrite history that the pushed tip does not contain.
+    The current tip is searched through the pushed tip ancestors so partial
+    payloads carrying missing commits only stay accepted. A created branch
+    keeps the requested root so the branch point is preserved. \br
     Sets \a m_sDetail and returns the failure reason when refused. \br
 */
 CError::EErrorCode CPushCommand::updateBranch()
@@ -130,10 +137,10 @@ CError::EErrorCode CPushCommand::updateBranch()
     {
         pBranch = pDatabase->getBranch(m_sBranchName, this);
 
-        // Refuse to overwrite history that the pushed commits do not contain
+        // Refuse to overwrite history that the pushed tip does not contain
         if (not pBranch->tipCommitId().isEmpty()
                 && pBranch->tipCommitId() != m_sTipId
-                && not m_lCommitIds.contains(pBranch->tipCommitId()))
+                && not pushedTipContains(pBranch->tipCommitId()))
         {
             m_sDetail = CError::message(CError::ePushNotFastForward);
             delete pBranch;
@@ -174,6 +181,60 @@ CError::EErrorCode CPushCommand::updateBranch()
     }
 
     return CError::eNone;
+}
+
+/************************************************************************/
+
+/*!
+    Accepts an empty data payload when the branch already converges. \br\br
+    The announce follow-up carries attributes only when both tips match,
+    anything else is an invalid payload. \br
+    Sets \a m_sDetail and returns the failure reason when refused. \br
+*/
+CError::EErrorCode CPushCommand::acceptEmptyPayload()
+{
+    CDatabase* pDatabase = m_pRepository->database();
+    QString sBranchFileName = pDatabase->composeBranchFileName(m_sBranchName);
+
+    if (QFile(sBranchFileName).exists())
+    {
+        CBranch* pBranch = pDatabase->getBranch(m_sBranchName, this);
+
+        bool bConverged = IS_NOT_NULL(pBranch) && pBranch->tipCommitId() == m_sTipId;
+        delete pBranch;
+
+        if (bConverged)
+            return CError::eNone;
+    }
+
+    m_sDetail = CError::message(CError::ePushRequestInvalid);
+    return CError::ePushRequestInvalid;
+}
+
+/************************************************************************/
+
+/*!
+    Returns true when \a sCommitId is reachable from the pushed tip. \br\br
+    Walks the first parent ancestors through stored and existing commits so
+    partial payloads are checked against the full server history, not the
+    received commit list alone. \br
+*/
+bool CPushCommand::pushedTipContains(const QString& sCommitId)
+{
+    if (sCommitId.isEmpty() || sCommitId == m_sTipId)
+        return true;
+
+    QList<QPair<int, QString>> lAncestors = m_pRepository->commitFunctions()->getCommitAncestorList(
+                m_sTipId,
+                true,
+                0
+                );
+
+    for (const QPair<int, QString>& tAncestor : lAncestors)
+        if (tAncestor.second == sCommitId)
+            return true;
+
+    return false;
 }
 
 /************************************************************************/

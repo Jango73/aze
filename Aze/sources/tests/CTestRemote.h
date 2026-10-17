@@ -19,6 +19,9 @@ private slots:
     //! Tests push request building and applying to another repository
     void testRemotePush();
 
+    //! Tests delta push carrying missing commits only after an announce
+    void testPushDelta();
+
     //! Tests pull convergence after push then pull
     void testPull();
 

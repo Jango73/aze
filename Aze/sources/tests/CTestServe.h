@@ -19,6 +19,9 @@ private slots:
     //! Tests push request applying through the server layer
     void testServePush();
 
+    //! Tests push announce and delta data through the server layer
+    void testServePushAnnounce();
+
     //! Tests delete-branch request applying through the server layer
     void testServeDeleteBranch();
 

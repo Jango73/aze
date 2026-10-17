@@ -39,7 +39,7 @@ Test file root: `Aze/sources/tests/`.
 
 | Feature | Description | Covering test |
 | --- | --- | --- |
-| `push` (engine) | Builds a push request (branch, root, tip, commits, objects); applies it fast forward only; refuses rewritten tips and unknown tips | `CTestRemote::testRemotePush`; push path also in `CTestRemote::testPull`, `CTestCache::testCacheInvalidation` |
+| `push` (engine) | Announces branch and tip, answers the server tip, then builds a data request with missing commits and unshared objects only; applies it fast forward only; refuses rewritten tips and unknown tips; full requests stay accepted | `CTestRemote::testRemotePush` (full requests); `CTestRemote::testPushDelta` (announce, single-commit data, converged no-op, early rewritten-tip refusal); push path also in `CTestRemote::testPull`, `CTestCache::testCacheInvalidation` |
 | `pull` (engine) | Pull request carries branch and local tip; response applies fast forward or three-way merge; divergent histories produce conflict markers | `CTestRemote::testPull` (convergence, second fast forward, up-to-date pull, divergent conflict, single-line conflict, unknown branch) |
 | `clone` (engine) | Creates `.aze` in the target folder and copies branches, commits and objects from the server response | `CTestRemote::testClone` (branch tips, file content, missing target folder argument, duplicate target refusal) |
 | `set-remote-host` | Stores the remote host name in repository information | No dedicated test |
@@ -51,7 +51,7 @@ Test file root: `Aze/sources/tests/`.
 
 | Feature | Description | Covering test |
 | --- | --- | --- |
-| `serve push` | Applies a push request through `CAzeServerProcessor::servePush`, including `JSON` round trip | `CTestServe::testServePush` (success, duplicate tip, non fast forward refusal, invalid tip refusal) |
+| `serve push` | Applies a push request through `CAzeServerProcessor::servePush`, including `JSON` round trip; answers announces through `servePushAnnounce` | `CTestServe::testServePush` (success, duplicate tip, non fast forward refusal, invalid tip refusal); `CTestServe::testServePushAnnounce` (empty tip, invalid announce, full then delta data, converged announce) |
 | `serve delete-branch` | Applies a delete-branch request with branch name and force flag through the server layer | `CTestServe::testServeDeleteBranch` (success, unknown branch, missing name, current branch, unmerged branch, forced deletion) |
 | Repository path confinement | Resolves the request path under the server base folder; refuses parent markers, empty segments, embedded separators, drive specifications | `CTestServe::testServePathIsolation` |
 | `HTTP` and `HTTPS` connectivity | Listeners accept `GET` and `POST` and return the empty-request `JSON` result; covers `TCP`, `HTTP` framing, `TLS` and `JSON` layers | `CTestServe::testServeConnectivity` |
@@ -66,4 +66,4 @@ Test file root: `Aze/sources/tests/`.
 | Cache invalidation | Tip and hash caches follow commit, amend, merge, received push and branch switch on the same repository instance | `CTestCache::testCacheInvalidation` |
 | Commit parent cache, binary format | Persisted parent list through the destructor, reused by `log` and ancestor search | `CTestCache::testCommitTreeListBinaryCache` |
 | Commit parent cache, text format | Same persistence with `--text-cache` (compressed `XML` instead of binary) | `CTestCache::testCommitTreeListTextCache` |
-| Massive repository | Around 29 megabytes of deterministic files across commits, branches, merges with and without fast forward, amend, plus intermittent pushes of the current branch with final remote tip and content verification | `CTestMassive::testMassive` |
+| Massive repository | Around 29 megabytes of deterministic files across commits, branches, merges with and without fast forward, amend, plus intermittent delta pushes of the current branch with final remote tip and content verification | `CTestMassive::testMassive` |

@@ -49,9 +49,50 @@ Aze::CError::EErrorCode CAzeClient::push()
 {
     RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPushRequest();
+    Aze::CRemoteRepository oRemoteRepository(m_pRepository);
 
-    return postNetworkRequest(xRequest);
+    // Phase 1: announce the branch tip so the server answers its own tip
+    CXMLNode xAnnounce = oRemoteRepository.getPushAnnounce();
+
+    postNetworkRequest(xAnnounce);
+
+    if (m_eLastError == Aze::CError::eNetworkError)
+        return m_eLastError;
+
+    Aze::CError::EErrorCode eAnnounceCode = Aze::CError::fromResultNode(m_xLastResponse);
+
+    // Old servers know push only, fall back to the full history request
+    if (eAnnounceCode == Aze::CError::eUnknownAction)
+    {
+        CXMLNode xFallback = oRemoteRepository.getPushRequest();
+
+        return postNetworkRequest(xFallback);
+    }
+
+    // A push announce payload carries no result attribute, anything else is a server error
+    if (eAnnounceCode != Aze::CError::eInvalidResponse)
+        return eAnnounceCode;
+
+    QString sServerTipId = m_xLastResponse.attributes()[Aze::CStrings::s_sParamTip];
+
+    // Phase 2: send missing commits only, refused early without sending
+    // when the known server tip is not an ancestor of the local tip
+    CXMLNode xData;
+    QString sDetail;
+    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushDataRequest(sServerTipId, xData, sDetail);
+
+    if (eBuildCode != Aze::CError::eNone)
+    {
+        OUT_ERROR(Aze::CError::message(eBuildCode, sDetail));
+
+        return eBuildCode;
+    }
+
+    // Branches already converge, nothing travels
+    if (xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty())
+        return Aze::CError::eNone;
+
+    return postNetworkRequest(xData);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -46,6 +46,7 @@ const QString CStrings::s_sParamName                            = "name";
 const QString CStrings::s_sParamObject                          = "object";
 const QString CStrings::s_sParamParents                         = "parents";
 const QString CStrings::s_sParamPull                            = "pull";
+const QString CStrings::s_sParamPushAnnounce                   = "push-announce";
 const QString CStrings::s_sParamPush                            = "push";
 const QString CStrings::s_sParamRemoteHost                      = "remoteHost";
 const QString CStrings::s_sParamRepository                      = "repository";

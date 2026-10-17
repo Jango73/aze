@@ -35,6 +35,7 @@ class CServePushProbe : public CAzeServerProcessor
 {
 public:
     using CAzeServerProcessor::servePush;
+    using CAzeServerProcessor::servePushAnnounce;
     using CAzeServerProcessor::serveDeleteBranch;
     using CAzeServerProcessor::resolveRepositoryPath;
 };
@@ -274,6 +275,128 @@ void CTestServe::testServePush()
         QVERIFY(oFreshTarget.ok());
         CXMLNode xBadResponse = CServePushProbe::servePush(&oFreshTarget, tContext, xBadRequest);
         QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xBadResponse.toJsonString())) == Aze::CError::ePushRequestInvalid);
+    }
+
+    QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests push announce and delta data through the server layer.
+*/
+/***************************************************************************/
+void CTestServe::testServePushAnnounce()
+{
+    QString sFilePath = "Files/ServePushAnnounce.txt";
+    QString sDetail;
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, "Announced v1."));
+    STAGE(sFilePath);
+    COMMIT("A1");
+
+    // Prepare an empty target repository outside of the source folder
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sRemotePath = oParent.absoluteFilePath("aze-tests-remote");
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    {
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.init() == Aze::CError::eNone);
+    }
+
+    CWebContext tContext;
+
+    // Unknown branch announces an empty tip through the server layer
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xResponse = CServePushProbe::servePushAnnounce(&oTargetRepository, tContext, xAnnounce);
+        CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xDelivered) == Aze::CError::eInvalidResponse);
+        QVERIFY(xDelivered.attributes()[Aze::CStrings::s_sParamTip].isEmpty());
+    }
+
+    // Invalid announce answers an error node
+    {
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xBad("");
+        xBad.attributes()[Aze::CStrings::s_sParamRequest] = Aze::CStrings::s_sParamPushAnnounce;
+        CXMLNode xError = CServePushProbe::servePushAnnounce(&oTargetRepository, tContext, xBad);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xError.toJsonString())) == Aze::CError::ePushRequestInvalid);
+    }
+
+    // First data carries the full history through the server layer
+    QString sTip1;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        sTip1 = oSourceRepository.tipCommit()->id();
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest("", xData, sDetail) == Aze::CError::eNone);
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xApplied = CServePushProbe::servePush(&oTargetRepository, tContext, CXMLNode::parseJSON(xData.toJsonString()));
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xApplied.toJsonString())) == Aze::CError::eNone);
+    }
+
+    // Second commit: delta data carries the new commit only
+    QVERIFY(createFile(sFilePath, "Announced v2."));
+    STAGE(sFilePath);
+    COMMIT("A2");
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest(sTip1, xData, sDetail) == Aze::CError::eNone);
+        QCOMPARE(xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).count(), 1);
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xApplied = CServePushProbe::servePush(&oTargetRepository, tContext, CXMLNode::parseJSON(xData.toJsonString()));
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xApplied.toJsonString())) == Aze::CError::eNone);
+    }
+
+    // Remote tip converges, announce answers the pushed tip
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+
+        Aze::CRepository oCheckRepository(sRemotePath);
+        QVERIFY(oCheckRepository.ok());
+        QCOMPARE(oCheckRepository.tipCommit()->id(), oSourceRepository.tipCommit()->id());
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xResponse = CServePushProbe::servePushAnnounce(&oTargetRepository, tContext, xAnnounce);
+        CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+        QCOMPARE(xDelivered.attributes()[Aze::CStrings::s_sParamTip], oSourceRepository.tipCommit()->id());
     }
 
     QVERIFY(QDir(sRemotePath).removeRecursively());

@@ -75,6 +75,9 @@ protected:
     static CXMLNode servePush(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
     //!
+    static CXMLNode servePushAnnounce(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
+
+    //!
     static CXMLNode serveClone(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
     //!

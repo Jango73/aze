@@ -62,22 +62,199 @@ CXMLNode CRemoteRepository::getPushRequest()
     QString sTipId = m_pLocalRepository->tipCommit()->id();
     xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
 
-    QList<QPair<int, QString>> lCommitList = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
-                sTipId,
-                true,
-                0
-                );
+    appendPushCommitNodes(xRequest, pushCommitIds(sTipId, ""), QSet<QString>());
 
+    return xRequest;
+}
+
+/************************************************************************/
+
+/*!
+    Returns the push announce for the local branch. \br\br
+    The announce carries the branch name and the local tip only, the server
+    answers its own tip so the data request carries missing commits only. \br
+*/
+CXMLNode CRemoteRepository::getPushAnnounce()
+{
+    CXMLNode xAnnounce("");
+
+    xAnnounce.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPushAnnounce;
+    xAnnounce.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
+
+    if (not m_pLocalRepository->tipCommit().isNull())
+    {
+        xAnnounce.attributes()[CStrings::s_sParamTip] = m_pLocalRepository->tipCommit()->id();
+    }
+
+    return xAnnounce;
+}
+
+/************************************************************************/
+
+/*!
+    Returns the push announce response for \a xAnnounce. \br\br
+    The response carries the branch name and the server tip, empty when the
+    branch is unknown so the data request falls back to the full history. \br
+    Returns an error node when the announce carries no branch name. \br
+*/
+CXMLNode CRemoteRepository::getPushAnnounceResponse(const CXMLNode& xAnnounce)
+{
+    QString sBranchName = xAnnounce.attributes()[CStrings::s_sParamBranch];
+
+    if (xAnnounce.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamPushAnnounce
+            || sBranchName.isEmpty())
+    {
+        return CError::toResultNode(CError::ePushRequestInvalid);
+    }
+
+    QString sServerTipId;
+
+    CBranch* pBranch = nullptr;
+
+    if (QFile(m_pLocalRepository->database()->composeBranchFileName(sBranchName)).exists())
+    {
+        pBranch = m_pLocalRepository->database()->getBranch(sBranchName, nullptr);
+
+        if (IS_NOT_NULL(pBranch))
+        {
+            sServerTipId = pBranch->tipCommitId();
+            delete pBranch;
+        }
+    }
+
+    CXMLNode xResponse("");
+
+    xResponse.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPushAnnounce;
+    xResponse.attributes()[CStrings::s_sParamBranch] = sBranchName;
+    xResponse.attributes()[CStrings::s_sParamTip] = sServerTipId;
+
+    return xResponse;
+}
+
+/************************************************************************/
+
+/*!
+    Builds the push data request for \a sServerTipId into \a xRequest. \br\br
+    Only commits past the server tip travel, with objects unreferenced by the
+    shared history. An empty server tip sends everything, a server tip equal
+    to the local tip sends attributes only as the branches already converge. \br
+    Refuses without building when the locally known server tip is not an
+    ancestor of the local tip, the server would refuse the same push. An
+    unknown server tip falls back to the full history and lets the server
+    decide. Sets \a sDetail and returns the failure reason when refused. \br
+*/
+CError::EErrorCode CRemoteRepository::buildPushDataRequest(const QString& sServerTipId, CXMLNode& xRequest, QString& sDetail)
+{
+    xRequest = CXMLNode("");
+
+    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
+    xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
+
+    if (not m_pLocalRepository->currentBranch().isNull())
+    {
+        xRequest.attributes()[CStrings::s_sParamRoot] = m_pLocalRepository->currentBranch()->rootCommitId();
+    }
+
+    if (m_pLocalRepository->tipCommit().isNull())
+    {
+        sDetail = CError::message(CError::ePushRequestInvalid);
+
+        return CError::ePushRequestInvalid;
+    }
+
+    QString sTipId = m_pLocalRepository->tipCommit()->id();
+    xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
+
+    if (xRequest.attributes()[CStrings::s_sParamBranch].isEmpty())
+    {
+        sDetail = CError::message(CError::ePushRequestInvalid);
+
+        return CError::ePushRequestInvalid;
+    }
+
+    // Branches already converge, attributes only, the server accepts it as a no-op
+    if (not sServerTipId.isEmpty() && sServerTipId == sTipId)
+        return CError::eNone;
+
+    QStringList lFullCommitIds = pushCommitIds(sTipId, "");
+
+    bool bServerTipKnown = not sServerTipId.isEmpty()
+        && QFile::exists(m_pLocalRepository->database()->composeCommitFileName(sServerTipId));
+
+    // The server refuses the same push, save both payloads
+    if (bServerTipKnown && not lFullCommitIds.contains(sServerTipId))
+    {
+        sDetail = CError::message(CError::ePushNotFastForward);
+
+        return CError::ePushNotFastForward;
+    }
+
+    QStringList lMissingCommitIds = pushCommitIds(sTipId, bServerTipKnown ? sServerTipId : QString());
+
+    QSet<QString> lKnownObjectIds;
+
+    if (bServerTipKnown)
+    {
+        QStringList lKnownCommitIds = pushCommitIds(sServerTipId, "");
+        lKnownCommitIds.prepend(sServerTipId);
+        lKnownObjectIds = pushReferencedObjectIds(lKnownCommitIds);
+    }
+
+    appendPushCommitNodes(xRequest, lMissingCommitIds, lKnownObjectIds);
+
+    return CError::eNone;
+}
+
+/************************************************************************/
+
+QStringList CRemoteRepository::pushCommitIds(const QString& sTipId, const QString& sStopAtCommitId) const
+{
     QStringList lCommitIds;
+
+    if (sTipId.isEmpty())
+        return lCommitIds;
+
     lCommitIds << sTipId;
 
-    for (QPair<int, QString> pCommit : lCommitList)
-        if (not lCommitIds.contains(pCommit.second))
-            lCommitIds << pCommit.second;
+    QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
+                sTipId,
+                true,
+                0,
+                sStopAtCommitId
+                );
+
+    for (const QPair<int, QString>& tAncestor : lAncestors)
+        if (not lCommitIds.contains(tAncestor.second))
+            lCommitIds << tAncestor.second;
+
+    return lCommitIds;
+}
+
+/************************************************************************/
+
+QSet<QString> CRemoteRepository::pushReferencedObjectIds(const QStringList& lCommitIds) const
+{
+    QSet<QString> lObjectIds;
 
     QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
 
-    QStringList lSentObjectIds;
+    for (CCommit* pCommit : lCommits)
+        for (QString sObjectId : pCommit->files().values())
+            if (not sObjectId.isEmpty())
+                lObjectIds << sObjectId;
+
+    qDeleteAll(lCommits);
+
+    return lObjectIds;
+}
+
+/************************************************************************/
+
+void CRemoteRepository::appendPushCommitNodes(CXMLNode& xRequest, const QStringList& lCommitIds, const QSet<QString>& lKnownObjectIds)
+{
+    QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
+
+    QSet<QString> lSentObjectIds;
 
     for (CCommit* pCommit : lCommits)
     {
@@ -87,7 +264,9 @@ CXMLNode CRemoteRepository::getPushRequest()
 
         for (QString sObjectId : pCommit->files().values())
         {
-            if (not sObjectId.isEmpty() and not lSentObjectIds.contains(sObjectId))
+            if (not sObjectId.isEmpty()
+                    and not lKnownObjectIds.contains(sObjectId)
+                    and not lSentObjectIds.contains(sObjectId))
             {
                 lSentObjectIds << sObjectId;
 
@@ -100,8 +279,6 @@ CXMLNode CRemoteRepository::getPushRequest()
     }
 
     qDeleteAll(lCommits);
-
-    return xRequest;
 }
 
 /************************************************************************/

@@ -190,11 +190,6 @@ static Aze::CError::EErrorCode pushMassiveCurrentBranch(
     }
 
     Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
-    CXMLNode xRequest = oSourceRemote.getPushRequest();
-
-    // Simulate the wire with a JSON round-trip, like CTestRemote does
-    CXMLNode xReceived = CXMLNode::parseJSON(xRequest.toJsonString());
-
     Aze::CRepository oTargetRepository(sRemotePath);
 
     if (not oTargetRepository.ok())
@@ -205,6 +200,31 @@ static Aze::CError::EErrorCode pushMassiveCurrentBranch(
     }
 
     Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
+
+    // Phase 1: announce, the server answers its own tip with JSON round-trips
+    CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
+    CXMLNode xResponse = CXMLNode::parseJSON(oTargetRemote.getPushAnnounceResponse(xAnnounce).toJsonString());
+
+    if (Aze::CError::fromResultNode(xResponse) != Aze::CError::eInvalidResponse)
+    {
+        sDetail = QString("Announce refused");
+
+        return Aze::CError::fromResultNode(xResponse);
+    }
+
+    QString sServerTipId = xResponse.attributes()[Aze::CStrings::s_sParamTip];
+
+    // Phase 2: send missing commits only, skip the post when converged
+    CXMLNode xData;
+    Aze::CError::EErrorCode eBuildCode = oSourceRemote.buildPushDataRequest(sServerTipId, xData, sDetail);
+
+    if (eBuildCode != Aze::CError::eNone)
+        return eBuildCode;
+
+    if (xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty())
+        return Aze::CError::eNone;
+
+    CXMLNode xReceived = CXMLNode::parseJSON(xData.toJsonString());
 
     return oTargetRemote.applyPushRequest(xReceived, sDetail);
 }

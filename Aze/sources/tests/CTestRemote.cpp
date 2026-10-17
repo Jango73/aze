@@ -473,3 +473,149 @@ void CTestRemote::testClone()
 }
 
 //-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests delta push carrying missing commits only after an announce.
+*/
+/***************************************************************************/
+void CTestRemote::testPushDelta()
+{
+    QString sFilePath = "Files/PushDelta.txt";
+    QString sDetail;
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, "Delta v1."));
+    STAGE(sFilePath);
+    COMMIT("D1");
+
+    // Prepare an empty target repository outside of the source folder
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sRemotePath = oParent.absoluteFilePath("aze-tests-remote");
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    {
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.init() == Aze::CError::eNone);
+    }
+
+    // Unknown branch announces an empty tip, data carries the full history
+    QString sTip1;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        sTip1 = oSourceRepository.tipCommit()->id();
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
+        QVERIFY(xAnnounce.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamPushAnnounce);
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+
+        Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
+        CXMLNode xResponse = CXMLNode::parseJSON(oTargetRemote.getPushAnnounceResponse(xAnnounce).toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xResponse) == Aze::CError::eInvalidResponse);
+        QVERIFY(xResponse.attributes()[Aze::CStrings::s_sParamTip].isEmpty());
+
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest("", xData, sDetail) == Aze::CError::eNone);
+        QCOMPARE(xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).count(), 1);
+
+        CXMLNode xReceived = CXMLNode::parseJSON(xData.toJsonString());
+        QVERIFY(oTargetRemote.applyPushRequest(xReceived, sDetail) == Aze::CError::eNone);
+    }
+
+    // Second commit: data carries the new commit and its object only
+    QVERIFY(createFile(sFilePath, "Delta v2."));
+    STAGE(sFilePath);
+    COMMIT("D2");
+
+    QString sTip2;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        sTip2 = oSourceRepository.tipCommit()->id();
+        QVERIFY(sTip2 != sTip1);
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        QCOMPARE(oTargetRepository.tipCommit()->id(), sTip1);
+
+        Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
+        CXMLNode xResponse = CXMLNode::parseJSON(oTargetRemote.getPushAnnounceResponse(xAnnounce).toJsonString());
+        QCOMPARE(xResponse.attributes()[Aze::CStrings::s_sParamTip], sTip1);
+
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest(sTip1, xData, sDetail) == Aze::CError::eNone);
+        QCOMPARE(xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).count(), 1);
+        QCOMPARE(xData.getNodesByTagName(Aze::CStrings::s_sParamObject).count(), 1);
+
+        CXMLNode xReceived = CXMLNode::parseJSON(xData.toJsonString());
+        QVERIFY(oTargetRemote.applyPushRequest(xReceived, sDetail) == Aze::CError::eNone);
+    }
+
+    {
+        Aze::CRepository oCheckRepository(sRemotePath);
+        QVERIFY(oCheckRepository.ok());
+        QCOMPARE(oCheckRepository.tipCommit()->id(), sTip2);
+        QCOMPARE(QString(oCheckRepository.tipCommit()->fileContent(oCheckRepository.database(), sFilePath)), QString("Delta v2."));
+    }
+
+    // Converged branches: data carries attributes only and applies as a no-op
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest(sTip2, xData, sDetail) == Aze::CError::eNone);
+        QVERIFY(xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+
+        Aze::CRemoteRepository oTargetRemote(&oTargetRepository);
+        CXMLNode xReceived = CXMLNode::parseJSON(xData.toJsonString());
+        QVERIFY(oTargetRemote.applyPushRequest(xReceived, sDetail) == Aze::CError::eNone);
+    }
+
+    // Rewritten tip: refused locally without sending anything
+    {
+        Aze::CRepository oAmendedRepository(m_sRootPath);
+        QVERIFY(oAmendedRepository.amend("CTestAze", "Rewritten") == Aze::CError::eNone);
+        QVERIFY(oAmendedRepository.writeCurrentBranch() == Aze::CError::eNone);
+    }
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        QVERIFY(oSourceRepository.tipCommit()->id() != sTip2);
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xData;
+        QVERIFY(oSourceRemote.buildPushDataRequest(sTip2, xData, sDetail) == Aze::CError::ePushNotFastForward);
+    }
+
+    {
+        Aze::CRepository oCheckRepository(sRemotePath);
+        QVERIFY(oCheckRepository.ok());
+        QCOMPARE(oCheckRepository.tipCommit()->id(), sTip2);
+    }
+
+    QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
