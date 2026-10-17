@@ -9,6 +9,14 @@ HEADERS += \
     sources/client/CAzeClientArguments.h \
     sources/common/CConstants.h \
     sources/tests/CTestAze.h \
+    sources/tests/CTestCache.h \
+    sources/tests/CTestDiffPatch.h \
+    sources/tests/CTestFixture.h \
+    sources/tests/CTestMacros.h \
+    sources/tests/CTestMerge.h \
+    sources/tests/CTestRemote.h \
+    sources/tests/CTestServe.h \
+    sources/tests/CTestWorkflow.h \
 
 SOURCES += \
     sources/server/CAzeServer.cpp \
@@ -20,6 +28,13 @@ SOURCES += \
     sources/client/CAzeClientArguments.cpp \
     sources/common/CConstants.cpp \
     sources/tests/CTestAze.cpp \
+    sources/tests/CTestCache.cpp \
+    sources/tests/CTestDiffPatch.cpp \
+    sources/tests/CTestFixture.cpp \
+    sources/tests/CTestMerge.cpp \
+    sources/tests/CTestRemote.cpp \
+    sources/tests/CTestServe.cpp \
+    sources/tests/CTestWorkflow.cpp \
     sources/main.cpp \
 
 # Deployment
