@@ -2,26 +2,31 @@
 
 [![Build](https://github.com/Jango73/aze/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/Jango73/aze/actions/workflows/build.yml)
 
-A versioning system (just for pleasure of coding)
+A versioning system
 
 ## Dependencies
 
-* Qt 5.13
-* QtCreator 4.9.1
-* qt-plus - Copyright myself
-  * https://github.com/Jango73/qt-plus
-* Diff template library - Copyright (c) 2015 Tatsuhiko Kubo <cubicdaiya@gmail.com>
-  * https://github.com/cubicdaiya/dtl
+* Qt 6 (modules `core`, `xml`, `network`, `testlib`), `qmake6`, C++ compiler, `git`
+  * Debian/Ubuntu: `build-essential git qt6-base-dev qt6-base-dev-tools`
+  * Fedora: `gcc-c++ git qt6-qtbase-devel`
+  * Arch: `base-devel git qt6-base`
+  * Reference list per package manager: `scripts/linux/deps.sh`
+* Submodules (fetched by `scripts/linux/deps.sh` via `git submodule update --init --recursive`)
+  * qt-plus (`master`)
+    * https://github.com/Jango73/qt-plus
+  * dtl fork (`dev/conflict-v121`)
+    * https://github.com/Jango73/dtl
 
 ## Building
 
-* Make sure to update submodules
+* Install dependencies and submodules
 ```
-    git submodule init
-    git submodule update
+    ./scripts/linux/deps.sh
 ```
-* Open /Aze.pro in QtCreator
-* Build and run
+* Build (shadow build with `qmake6` + `make`)
+```
+    ./scripts/linux/build.sh [--debug|--release]
+```
 
 ## Running tests
 
