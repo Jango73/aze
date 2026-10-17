@@ -215,7 +215,7 @@ CError::EErrorCode CPushCommand::acceptEmptyPayload()
 
 /*!
     Returns true when \a sCommitId is reachable from the pushed tip. \br\br
-    Walks the first parent ancestors through stored and existing commits so
+    Walks every parent ancestor through stored and existing commits so
     partial payloads are checked against the full server history, not the
     received commit list alone. \br
 */
@@ -226,7 +226,7 @@ bool CPushCommand::pushedTipContains(const QString& sCommitId)
 
     QList<QPair<int, QString>> lAncestors = m_pRepository->commitFunctions()->getCommitAncestorList(
                 m_sTipId,
-                true,
+                false,
                 0
                 );
 

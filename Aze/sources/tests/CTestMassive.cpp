@@ -205,18 +205,9 @@ static Aze::CError::EErrorCode pushMassiveCurrentBranch(
     CXMLNode xAnnounce = CXMLNode::parseJSON(oSourceRemote.getPushAnnounce().toJsonString());
     CXMLNode xResponse = CXMLNode::parseJSON(oTargetRemote.getPushAnnounceResponse(xAnnounce).toJsonString());
 
-    if (Aze::CError::fromResultNode(xResponse) != Aze::CError::eInvalidResponse)
-    {
-        sDetail = QString("Announce refused");
-
-        return Aze::CError::fromResultNode(xResponse);
-    }
-
-    QString sServerTipId = xResponse.attributes()[Aze::CStrings::s_sParamTip];
-
     // Phase 2: send missing commits only, skip the post when converged
     CXMLNode xData;
-    Aze::CError::EErrorCode eBuildCode = oSourceRemote.buildPushDataRequest(sServerTipId, xData, sDetail);
+    Aze::CError::EErrorCode eBuildCode = oSourceRemote.buildPushDataRequestFromAnnounceResponse(xResponse, xData, sDetail);
 
     if (eBuildCode != Aze::CError::eNone)
         return eBuildCode;

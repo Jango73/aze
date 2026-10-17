@@ -69,17 +69,11 @@ Aze::CError::EErrorCode CAzeClient::push()
         return postNetworkRequest(xFallback);
     }
 
-    // A push announce payload carries no result attribute, anything else is a server error
-    if (eAnnounceCode != Aze::CError::eInvalidResponse)
-        return eAnnounceCode;
-
-    QString sServerTipId = m_xLastResponse.attributes()[Aze::CStrings::s_sParamTip];
-
     // Phase 2: send missing commits only, refused early without sending
     // when the known server tip is not an ancestor of the local tip
     CXMLNode xData;
     QString sDetail;
-    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushDataRequest(sServerTipId, xData, sDetail);
+    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushDataRequestFromAnnounceResponse(m_xLastResponse, xData, sDetail);
 
     if (eBuildCode != Aze::CError::eNone)
     {

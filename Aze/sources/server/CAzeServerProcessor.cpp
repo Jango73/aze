@@ -44,9 +44,10 @@
     carries the branch and the server tip so the data request carries
     missing commits only.
     A pull request carries the requested branch and the client tip.
-    A pull response carries the requested branch with its name plus
-    every commit reachable from the server tip and every object
-    referenced by those commits.
+    A pull response carries the requested branch with its name, the server
+    tip plus the commits missing on the client and the objects unreferenced
+    by the shared history. Attributes only travel when both tips match,
+    the full history travels on unknown or divergent client tip.
     A delete-branch request carries the branch name and the force flag.
 */
 

@@ -62,7 +62,7 @@ CXMLNode CRemoteRepository::getPushRequest()
     QString sTipId = m_pLocalRepository->tipCommit()->id();
     xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
 
-    appendPushCommitNodes(xRequest, pushCommitIds(sTipId, ""), QSet<QString>());
+    appendCommitAndObjectNodes(xRequest, missingCommitIds(sTipId, ""), QSet<QString>());
 
     return xRequest;
 }
@@ -176,7 +176,7 @@ CError::EErrorCode CRemoteRepository::buildPushDataRequest(const QString& sServe
     if (not sServerTipId.isEmpty() && sServerTipId == sTipId)
         return CError::eNone;
 
-    QStringList lFullCommitIds = pushCommitIds(sTipId, "");
+    QStringList lFullCommitIds = missingCommitIds(sTipId, "");
 
     bool bServerTipKnown = not sServerTipId.isEmpty()
         && QFile::exists(m_pLocalRepository->database()->composeCommitFileName(sServerTipId));
@@ -189,25 +189,49 @@ CError::EErrorCode CRemoteRepository::buildPushDataRequest(const QString& sServe
         return CError::ePushNotFastForward;
     }
 
-    QStringList lMissingCommitIds = pushCommitIds(sTipId, bServerTipKnown ? sServerTipId : QString());
+    QStringList lMissingCommitIds = missingCommitIds(sTipId, bServerTipKnown ? sServerTipId : QString());
 
     QSet<QString> lKnownObjectIds;
 
     if (bServerTipKnown)
     {
-        QStringList lKnownCommitIds = pushCommitIds(sServerTipId, "");
-        lKnownCommitIds.prepend(sServerTipId);
-        lKnownObjectIds = pushReferencedObjectIds(lKnownCommitIds);
+        lKnownObjectIds = referencedObjectIds(missingCommitIds(sServerTipId, ""));
     }
 
-    appendPushCommitNodes(xRequest, lMissingCommitIds, lKnownObjectIds);
+    appendCommitAndObjectNodes(xRequest, lMissingCommitIds, lKnownObjectIds);
 
     return CError::eNone;
 }
 
 /************************************************************************/
 
-QStringList CRemoteRepository::pushCommitIds(const QString& sTipId, const QString& sStopAtCommitId) const
+/*!
+    Builds the push data request from \a xAnnounceResponse into \a xDataRequest. \br\br
+    The announce response carries the branch name and the server tip, the data
+    request then carries missing commits only through buildPushDataRequest. \br
+    Returns the announce error without building when the response carries a
+    result node, so the announce and data phases share one sequence. \br
+    Sets \a sDetail and returns the failure reason when refused. \br
+*/
+CError::EErrorCode CRemoteRepository::buildPushDataRequestFromAnnounceResponse(const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail)
+{
+    CError::EErrorCode eAnnounceCode = CError::fromResultNode(xAnnounceResponse);
+
+    if (eAnnounceCode != CError::eInvalidResponse)
+    {
+        sDetail = CError::message(eAnnounceCode);
+
+        return eAnnounceCode;
+    }
+
+    QString sServerTipId = xAnnounceResponse.attributes()[CStrings::s_sParamTip];
+
+    return buildPushDataRequest(sServerTipId, xDataRequest, sDetail);
+}
+
+/************************************************************************/
+
+QStringList CRemoteRepository::missingCommitIds(const QString& sTipId, const QString& sStopAtCommitId) const
 {
     QStringList lCommitIds;
 
@@ -218,7 +242,7 @@ QStringList CRemoteRepository::pushCommitIds(const QString& sTipId, const QStrin
 
     QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
                 sTipId,
-                true,
+                false,
                 0,
                 sStopAtCommitId
                 );
@@ -232,7 +256,7 @@ QStringList CRemoteRepository::pushCommitIds(const QString& sTipId, const QStrin
 
 /************************************************************************/
 
-QSet<QString> CRemoteRepository::pushReferencedObjectIds(const QStringList& lCommitIds) const
+QSet<QString> CRemoteRepository::referencedObjectIds(const QStringList& lCommitIds) const
 {
     QSet<QString> lObjectIds;
 
@@ -250,7 +274,7 @@ QSet<QString> CRemoteRepository::pushReferencedObjectIds(const QStringList& lCom
 
 /************************************************************************/
 
-void CRemoteRepository::appendPushCommitNodes(CXMLNode& xRequest, const QStringList& lCommitIds, const QSet<QString>& lKnownObjectIds)
+void CRemoteRepository::appendCommitAndObjectNodes(CXMLNode& xResponse, const QStringList& lCommitIds, const QSet<QString>& lKnownObjectIds)
 {
     QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
 
@@ -260,7 +284,7 @@ void CRemoteRepository::appendPushCommitNodes(CXMLNode& xRequest, const QStringL
     {
         CXMLNode xCommit = pCommit->toNode();
         xCommit.attributes()[CStrings::s_sParamId] = pCommit->id();
-        xRequest << xCommit;
+        xResponse << xCommit;
 
         for (QString sObjectId : pCommit->files().values())
         {
@@ -273,7 +297,7 @@ void CRemoteRepository::appendPushCommitNodes(CXMLNode& xRequest, const QStringL
                 CXMLNode xObject(CStrings::s_sParamObject);
                 xObject.attributes()[CStrings::s_sParamId] = sObjectId;
                 xObject.setValue(CStrings::s_sBase64Marker + QString(m_pLocalRepository->database()->getObject(sObjectId).toBase64()));
-                xRequest << xObject;
+                xResponse << xObject;
             }
         }
     }
@@ -375,7 +399,7 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
     if (sServerTipId.isEmpty())
         return xResponse;
 
-    QStringList lServerCommitIds = pullCommitIds(sServerTipId);
+    QStringList lServerCommitIds = missingCommitIds(sServerTipId, "");
     QString sClientTipId = xRequest.attributes()[CStrings::s_sParamTip];
 
     // Branches already converge, attributes only, the client accepts it as a no-op
@@ -390,15 +414,10 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
         return xResponse;
     }
 
-    QStringList lClientCommitIds = pullCommitIds(sClientTipId);
+    QStringList lMissingCommitIds = missingCommitIds(sServerTipId, sClientTipId);
+    QStringList lClientCommitIds = missingCommitIds(sClientTipId, "");
 
-    QStringList lMissingCommitIds;
-
-    for (const QString& sCommitId : lServerCommitIds)
-        if (not lClientCommitIds.contains(sCommitId))
-            lMissingCommitIds << sCommitId;
-
-    appendPushCommitNodes(xResponse, lMissingCommitIds, pushReferencedObjectIds(lClientCommitIds));
+    appendCommitAndObjectNodes(xResponse, lMissingCommitIds, referencedObjectIds(lClientCommitIds));
 
     return xResponse;
 }
@@ -417,30 +436,6 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
 CError::EErrorCode CRemoteRepository::applyPullResponse(const CXMLNode& xResponse, QString& sDetail)
 {
     return CPullCommand(m_pLocalRepository, xResponse, sDetail).execute();
-}
-
-/************************************************************************/
-
-QStringList CRemoteRepository::pullCommitIds(const QString& sTipId) const
-{
-    QStringList lCommitIds;
-
-    if (sTipId.isEmpty())
-        return lCommitIds;
-
-    lCommitIds << sTipId;
-
-    QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
-                sTipId,
-                false,
-                0
-                );
-
-    for (const QPair<int, QString>& tAncestor : lAncestors)
-        if (not lCommitIds.contains(tAncestor.second))
-            lCommitIds << tAncestor.second;
-
-    return lCommitIds;
 }
 
 /************************************************************************/
@@ -481,7 +476,7 @@ QStringList CRemoteRepository::cloneCommitIds(const QStringList& lBranchNames) c
 
             QList<QPair<int, QString>> lAncestors = m_pLocalRepository->commitFunctions()->getCommitAncestorList(
                         sTipId,
-                        true,
+                        false,
                         0
                         );
 
@@ -516,31 +511,7 @@ void CRemoteRepository::appendCloneBranchNodes(CXMLNode& xResponse, const QStrin
 
 void CRemoteRepository::appendCloneCommitNodes(CXMLNode& xResponse, const QStringList& lCommitIds)
 {
-    QList<CCommit*> lCommits = m_pLocalRepository->commitFunctions()->loadCommitList(lCommitIds, nullptr);
-
-    QStringList lSentObjectIds;
-
-    for (CCommit* pCommit : lCommits)
-    {
-        CXMLNode xCommit = pCommit->toNode();
-        xCommit.attributes()[CStrings::s_sParamId] = pCommit->id();
-        xResponse << xCommit;
-
-        for (QString sObjectId : pCommit->files().values())
-        {
-            if (not sObjectId.isEmpty() and not lSentObjectIds.contains(sObjectId))
-            {
-                lSentObjectIds << sObjectId;
-
-                CXMLNode xObject(CStrings::s_sParamObject);
-                xObject.attributes()[CStrings::s_sParamId] = sObjectId;
-                xObject.setValue(CStrings::s_sBase64Marker + QString(m_pLocalRepository->database()->getObject(sObjectId).toBase64()));
-                xResponse << xObject;
-            }
-        }
-    }
-
-    qDeleteAll(lCommits);
+    appendCommitAndObjectNodes(xResponse, lCommitIds, QSet<QString>());
 }
 
 //-------------------------------------------------------------------------------------------------
