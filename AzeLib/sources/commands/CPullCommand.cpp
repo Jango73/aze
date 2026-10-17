@@ -31,8 +31,10 @@ CPullCommand::CPullCommand(CRepository* pLocalRepository, const CXMLNode& xRespo
 /*!
     Applies the pull response to the local repository. \br\br
     Stores received objects and commits, then updates the pulled branch.
-    The current branch is fast forwarded when it is an ancestor of the
-    received tip, merged otherwise through a temporary branch. \br
+    An attributes-only response matches a converged branch and applies
+    as a no-op. The current branch is fast forwarded when it is an
+    ancestor of the received tip, merged otherwise through a temporary
+    branch. \br
     A divergent merge leaves conflict markers in the working folder and
     the merge parents in the stage, like a local merge. \br
     Returns eNone, eMergeHasConflicts or the precise failure reason. \br
@@ -57,7 +59,10 @@ CError::EErrorCode CPullCommand::execute()
     if (eCode != CError::eNone)
         return eCode;
 
-    if (m_lCommitIds.isEmpty() || not m_lCommitIds.contains(m_sServerTipId))
+    if (m_lCommitIds.isEmpty())
+        return acceptEmptyPayload();
+
+    if (not m_lCommitIds.contains(m_sServerTipId))
     {
         m_sDetail = CError::message(CError::ePullRequestInvalid);
         return CError::ePullRequestInvalid;
@@ -120,6 +125,37 @@ CError::EErrorCode CPullCommand::storeCommits()
     m_lCommitIds.clear();
 
     return storePayloadCommits(m_xResponse, m_lCommitIds, m_sDetail, CError::ePullRequestInvalid);
+}
+
+/************************************************************************/
+
+/*!
+    Accepts an attributes-only response when the pulled branch already
+    matches the server tip. \br\br
+    Nothing travels on converged branches, the local tip is compared
+    with the server tip and a mismatch stays an invalid response. \br
+    Sets \a m_sDetail and returns the failure reason when mismatched. \br
+*/
+CError::EErrorCode CPullCommand::acceptEmptyPayload()
+{
+    CBranch* pBranch = m_pRepository->database()->getBranch(m_sBranchName, m_pRepository);
+
+    if (IS_NULL(pBranch))
+    {
+        m_sDetail = m_sBranchName;
+        return CError::ePullRequestInvalid;
+    }
+
+    bool bMatches = (pBranch->tipCommitId() == m_sServerTipId);
+    delete pBranch;
+
+    if (not bMatches)
+    {
+        m_sDetail = CError::message(CError::ePullRequestInvalid);
+        return CError::ePullRequestInvalid;
+    }
+
+    return CError::eNone;
 }
 
 /************************************************************************/

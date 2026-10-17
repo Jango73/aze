@@ -25,6 +25,9 @@ private slots:
     //! Tests pull convergence after push then pull
     void testPull();
 
+    //! Tests delta pull carrying missing commits only
+    void testPullDelta();
+
     //! Tests cloning of branches, branch tips and file contents
     void testClone();
 };

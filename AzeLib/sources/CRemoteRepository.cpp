@@ -326,10 +326,12 @@ CXMLNode CRemoteRepository::getCloneResponse()
 /*!
     Returns the pull payload for \a xRequest. \br\br
     The request carries the requested branch name and the client tip,
-    the response carries the branch name, the server tip plus every
-    commit reachable from the server tip and every object referenced
-    by those commits. Branch author and root travel as attributes so
-    no child node collides with them in JSON. \br
+    the response carries the branch name, the server tip plus the commits
+    missing on the client and the objects unreferenced by the shared
+    history. A client tip matching the server tip answers attributes only
+    as the branches already converge, an unknown or divergent client tip
+    falls back to the full history. Branch author and root travel as
+    attributes so no child node collides with them in JSON. \br
     Returns an error node when the request is invalid or the branch
     is unknown. \br
 */
@@ -373,9 +375,30 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
     if (sServerTipId.isEmpty())
         return xResponse;
 
-    QStringList lCommitIds = pullCommitIds(sServerTipId);
+    QStringList lServerCommitIds = pullCommitIds(sServerTipId);
+    QString sClientTipId = xRequest.attributes()[CStrings::s_sParamTip];
 
-    appendCloneCommitNodes(xResponse, lCommitIds);
+    // Branches already converge, attributes only, the client accepts it as a no-op
+    if (not sClientTipId.isEmpty() && sClientTipId == sServerTipId)
+        return xResponse;
+
+    // Unknown or divergent client tip, send the full history like before
+    if (sClientTipId.isEmpty() || not lServerCommitIds.contains(sClientTipId))
+    {
+        appendCloneCommitNodes(xResponse, lServerCommitIds);
+
+        return xResponse;
+    }
+
+    QStringList lClientCommitIds = pullCommitIds(sClientTipId);
+
+    QStringList lMissingCommitIds;
+
+    for (const QString& sCommitId : lServerCommitIds)
+        if (not lClientCommitIds.contains(sCommitId))
+            lMissingCommitIds << sCommitId;
+
+    appendPushCommitNodes(xResponse, lMissingCommitIds, pushReferencedObjectIds(lClientCommitIds));
 
     return xResponse;
 }

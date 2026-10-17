@@ -51,6 +51,9 @@ protected:
     //! Stores the commit nodes of the response into m_lCommitIds
     CError::EErrorCode storeCommits();
 
+    //! Accepts an attributes-only response on a converged branch
+    CError::EErrorCode acceptEmptyPayload();
+
     //! Updates the pulled branch with fast forward or merge
     CError::EErrorCode updateBranch();
 

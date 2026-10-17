@@ -21,6 +21,7 @@
 #include "CRemoteRepository.h"
 #include "CError.h"
 #include "CStrings.h"
+#include "CUtils.h"
 #include <CXMLNode.h>
 
 // Application
@@ -36,6 +37,7 @@ class CServePushProbe : public CAzeServerProcessor
 public:
     using CAzeServerProcessor::servePush;
     using CAzeServerProcessor::servePushAnnounce;
+    using CAzeServerProcessor::servePull;
     using CAzeServerProcessor::serveDeleteBranch;
     using CAzeServerProcessor::resolveRepositoryPath;
 };
@@ -400,6 +402,181 @@ void CTestServe::testServePushAnnounce()
     }
 
     QVERIFY(QDir(sRemotePath).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests delta pull carrying missing commits only through the server layer.
+*/
+/***************************************************************************/
+void CTestServe::testServePullDelta()
+{
+    QString sFilePath = "Files/ServePullDelta.txt";
+    QString sDetail;
+
+    INIT();
+
+    QVERIFY(createFile(sFilePath, "Served v1."));
+    STAGE(sFilePath);
+    COMMIT("P1");
+
+    QString sTip1;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        sTip1 = oSourceRepository.tipCommit()->id();
+    }
+
+    // Prepare a remote repository with the source tip pushed through the server layer
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sRemotePath = oParent.absoluteFilePath("aze-tests-remote");
+    QDir oRemoteFolder(sRemotePath);
+
+    if (oRemoteFolder.exists())
+        QVERIFY(oRemoteFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sRemotePath));
+
+    {
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.init() == Aze::CError::eNone);
+    }
+
+    CWebContext tContext;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xPush = CXMLNode::parseJSON(oSourceRemote.getPushRequest().toJsonString());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xApplied = CServePushProbe::servePush(&oTargetRepository, tContext, xPush);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xApplied.toJsonString())) == Aze::CError::eNone);
+    }
+
+    // Prepare an empty pull repository outside of the source folder
+    QString sPullPath = oParent.absoluteFilePath("aze-tests-pull");
+    QDir oPullFolder(sPullPath);
+
+    if (oPullFolder.exists())
+        QVERIFY(oPullFolder.removeRecursively());
+
+    QVERIFY(QDir().mkpath(sPullPath));
+
+    {
+        Aze::CRepository oPullRepository(sPullPath);
+        QVERIFY(oPullRepository.init() == Aze::CError::eNone);
+    }
+
+    // Empty client tip pulls the full history through the server layer
+    {
+        Aze::CRepository oPullRepository(sPullPath);
+        QVERIFY(oPullRepository.ok());
+
+        Aze::CRemoteRepository oPullRemote(&oPullRepository);
+        CXMLNode xRequest = CXMLNode::parseJSON(oPullRemote.getPullRequest().toJsonString());
+
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.ok());
+        CXMLNode xResponse = CServePushProbe::servePull(&oRemoteRepository, tContext, xRequest);
+        CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xDelivered) == Aze::CError::eInvalidResponse);
+        QCOMPARE(xDelivered.attributes()[Aze::CStrings::s_sParamTip], sTip1);
+        QCOMPARE(xDelivered.getNodesByTagName(Aze::CStrings::s_sParamCommit).count(), 1);
+
+        QVERIFY(oPullRemote.applyPullResponse(xDelivered, sDetail) == Aze::CError::eNone);
+    }
+
+    // Second commit: behind pull request answers the new commit only
+    QVERIFY(createFile(sFilePath, "Served v2."));
+    STAGE(sFilePath);
+    COMMIT("P2");
+
+    QString sTip2;
+
+    {
+        Aze::CRepository oSourceRepository(m_sRootPath);
+        QVERIFY(oSourceRepository.ok());
+        sTip2 = oSourceRepository.tipCommit()->id();
+
+        Aze::CRemoteRepository oSourceRemote(&oSourceRepository);
+        CXMLNode xPush = CXMLNode::parseJSON(oSourceRemote.getPushRequest().toJsonString());
+
+        Aze::CRepository oTargetRepository(sRemotePath);
+        QVERIFY(oTargetRepository.ok());
+        CXMLNode xApplied = CServePushProbe::servePush(&oTargetRepository, tContext, xPush);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xApplied.toJsonString())) == Aze::CError::eNone);
+    }
+
+    {
+        Aze::CRepository oPullRepository(sPullPath);
+        QVERIFY(oPullRepository.ok());
+
+        Aze::CRemoteRepository oPullRemote(&oPullRepository);
+        CXMLNode xRequest = CXMLNode::parseJSON(oPullRemote.getPullRequest().toJsonString());
+        QCOMPARE(xRequest.attributes()[Aze::CStrings::s_sParamTip], sTip1);
+
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.ok());
+        CXMLNode xResponse = CServePushProbe::servePull(&oRemoteRepository, tContext, xRequest);
+        CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xDelivered) == Aze::CError::eInvalidResponse);
+        QCOMPARE(xDelivered.attributes()[Aze::CStrings::s_sParamTip], sTip2);
+        QCOMPARE(xDelivered.getNodesByTagName(Aze::CStrings::s_sParamCommit).count(), 1);
+        QCOMPARE(xDelivered.getNodesByTagName(Aze::CStrings::s_sParamObject).count(), 1);
+
+        QVERIFY(oPullRemote.applyPullResponse(xDelivered, sDetail) == Aze::CError::eNone);
+    }
+
+    {
+        Aze::CRepository oCheckRepository(sPullPath);
+        QVERIFY(oCheckRepository.ok());
+        QCOMPARE(oCheckRepository.tipCommit()->id(), sTip2);
+        QCOMPARE(Aze::CUtils::getTextFileContent(QString("%1/%2").arg(sPullPath).arg(sFilePath)), QString("Served v2."));
+    }
+
+    // Converged branches: response carries attributes only and applies as a no-op
+    {
+        Aze::CRepository oPullRepository(sPullPath);
+        QVERIFY(oPullRepository.ok());
+
+        Aze::CRemoteRepository oPullRemote(&oPullRepository);
+        CXMLNode xRequest = CXMLNode::parseJSON(oPullRemote.getPullRequest().toJsonString());
+
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.ok());
+        CXMLNode xResponse = CServePushProbe::servePull(&oRemoteRepository, tContext, xRequest);
+        CXMLNode xDelivered = CXMLNode::parseJSON(xResponse.toJsonString());
+        QVERIFY(Aze::CError::fromResultNode(xDelivered) == Aze::CError::eInvalidResponse);
+        QVERIFY(xDelivered.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty());
+
+        QVERIFY(oPullRemote.applyPullResponse(xDelivered, sDetail) == Aze::CError::eNone);
+    }
+
+    // Unknown branch answers an error node through the server layer
+    {
+        Aze::CRepository oPullRepository(sPullPath);
+        QVERIFY(oPullRepository.ok());
+
+        Aze::CRemoteRepository oPullRemote(&oPullRepository);
+        CXMLNode xRequest = CXMLNode::parseJSON(oPullRemote.getPullRequest().toJsonString());
+        xRequest.attributes()[Aze::CStrings::s_sParamBranch] = "no-such-branch";
+
+        Aze::CRepository oRemoteRepository(sRemotePath);
+        QVERIFY(oRemoteRepository.ok());
+        CXMLNode xError = CServePushProbe::servePull(&oRemoteRepository, tContext, xRequest);
+        QVERIFY(Aze::CError::fromResultNode(CXMLNode::parseJSON(xError.toJsonString())) == Aze::CError::eBranchDoesNotExist);
+    }
+
+    QVERIFY(QDir(sRemotePath).removeRecursively());
+    QVERIFY(QDir(sPullPath).removeRecursively());
 }
 
 //-------------------------------------------------------------------------------------------------

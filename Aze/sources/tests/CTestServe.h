@@ -22,6 +22,9 @@ private slots:
     //! Tests push announce and delta data through the server layer
     void testServePushAnnounce();
 
+    //! Tests delta pull carrying missing commits only through the server layer
+    void testServePullDelta();
+
     //! Tests delete-branch request applying through the server layer
     void testServeDeleteBranch();
 
