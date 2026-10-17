@@ -182,6 +182,21 @@ void CCommitTreeList::registerCommitParents(const QString& sCommitId, const QStr
 //-------------------------------------------------------------------------------------------------
 
 /*!
+    Forgets the parent identifiers of a pruned commit. \br\br
+    \a sCommitId is the commit identifier to forget \br
+*/
+void CCommitTreeList::removeCommit(const QString& sCommitId)
+{
+    if (sCommitId.isEmpty())
+        return;
+
+    if (m_mCommitParentList.remove(sCommitId) > 0)
+        m_bDirty = true;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
     Returns the parent commits of an in-memory commit. \br\br
     The parent identifiers are resolved through the cache, then each parent
     commit file is loaded once. The source commit parents seed the cache so

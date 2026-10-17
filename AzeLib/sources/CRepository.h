@@ -160,6 +160,13 @@ public:
     //! Moves the listed files to the target, last entry is the target
     CError::EErrorCode move(const QStringList& lFileNames);
 
+    //! Deletes unreachable commit and object files by mark-and-sweep
+    //! bDryRun lists candidates without deleting them
+    //! iRetentionSeconds is the grace period in seconds protecting files by modification time
+    //! pRemovedCommits receives deleted or dry-run commit identifiers when not null
+    //! pRemovedObjects receives deleted or dry-run object identifiers when not null
+    CError::EErrorCode prune(bool bDryRun = false, qint64 iRetentionSeconds = 86400, QStringList* pRemovedCommits = nullptr, QStringList* pRemovedObjects = nullptr);
+
     //! Returns the printable contents of the listed database objects
     QString dump(const QStringList& lIds);
 

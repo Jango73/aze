@@ -85,7 +85,8 @@ public:
         ePullRequestInvalid                   = 0x3A,
         eDeleteBranchRequestInvalid           = 0x3B,
         eInvalidHttpsConfiguration            = 0x3C,
-        eNotAuthorized                        = 0x3D
+        eNotAuthorized                        = 0x3D,
+        eCouldNotPrune                        = 0x3E
     };
 
     Q_ENUM(EErrorCode)

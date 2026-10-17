@@ -20,6 +20,7 @@ HEADERS += \
     sources/commands/CMoveCommand.h \
     sources/commands/CPatchCommand.h \
     sources/commands/CPopStashCommand.h \
+    sources/commands/CPruneCommand.h \
     sources/commands/CPullCommand.h \
     sources/commands/CPushCommand.h \
     sources/commands/CRemoveCommand.h \
@@ -72,6 +73,7 @@ SOURCES += \
     sources/commands/CMoveCommand.cpp \
     sources/commands/CPatchCommand.cpp \
     sources/commands/CPopStashCommand.cpp \
+    sources/commands/CPruneCommand.cpp \
     sources/commands/CPullCommand.cpp \
     sources/commands/CPushCommand.cpp \
     sources/commands/CRemoveCommand.cpp \

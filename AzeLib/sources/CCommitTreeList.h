@@ -84,6 +84,9 @@ public:
     void registerCommitParents(const QString& sCommitId, const QStringList& lParentIds);
 
     //!
+    void removeCommit(const QString& sCommitId);
+
+    //!
     QList<CCommit*> commitParentList(const CCommit* pCommit, QObject* parent);
 
     //!

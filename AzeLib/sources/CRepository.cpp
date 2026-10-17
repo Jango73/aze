@@ -21,6 +21,7 @@
 #include "commands/CMoveCommand.h"
 #include "commands/CPatchCommand.h"
 #include "commands/CPopStashCommand.h"
+#include "commands/CPruneCommand.h"
 #include "commands/CRemoveCommand.h"
 #include "commands/CRevertCommand.h"
 #include "commands/CSaveStashCommand.h"
@@ -347,6 +348,23 @@ CError::EErrorCode CRepository::cleanUp(const QStringList& lFileNames, bool bAll
 CError::EErrorCode CRepository::move(const QStringList& lFileNames)
 {
     return CMoveCommand(this, lFileNames).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Deletes unreachable commit and object files by mark-and-sweep. \br\br
+    Reachable commits derive from every branch tip through all parents, reachable
+    objects derive from reachable commits plus stage and stashes. Unreachable
+    files younger than \a iRetentionSeconds are kept as protection against
+    payloads stored by worker threads serving push requests concurrent with the
+    prune. \a bDryRun lists candidates without deletion. \br
+    \a pRemovedCommits receives deleted or dry-run commit identifiers when not null \br
+    \a pRemovedObjects receives deleted or dry-run object identifiers when not null \br
+*/
+CError::EErrorCode CRepository::prune(bool bDryRun, qint64 iRetentionSeconds, QStringList* pRemovedCommits, QStringList* pRemovedObjects)
+{
+    return CPruneCommand(this, bDryRun, iRetentionSeconds, pRemovedCommits, pRemovedObjects).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

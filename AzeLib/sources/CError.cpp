@@ -76,6 +76,7 @@ QString CError::message(EErrorCode eCode)
     case eDeleteBranchRequestInvalid: return tr("Invalid delete branch request.");
     case eInvalidHttpsConfiguration: return tr("Invalid HTTPS configuration: %1.");
     case eNotAuthorized: return tr("Not authorized.");
+    case eCouldNotPrune: return tr("Could not prune.");
     }
 
     return tr("Generic error.");
@@ -168,7 +169,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
     if (bOk == false)
         return eGeneric;
 
-    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eNotAuthorized))
+    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eCouldNotPrune))
         return static_cast<EErrorCode>(iCode);
 
     return eGeneric;
