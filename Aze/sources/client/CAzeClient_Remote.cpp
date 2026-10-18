@@ -9,6 +9,7 @@
 
 // Aze
 #include "CRemoteRepository.h"
+#include "objects/CBranch.h"
 
 // Application
 #include "CAzeClient.h"
@@ -83,6 +84,120 @@ Aze::CError::EErrorCode CAzeClient::push()
     }
 
     // Branches already converge, nothing travels
+    if (xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty())
+        return Aze::CError::eNone;
+
+    return postNetworkRequest(xData);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+Aze::CError::EErrorCode CAzeClient::pullTag()
+{
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoTagNameGiven));
+        return Aze::CError::eNoTagNameGiven;
+    }
+
+    QString sTagName = m_tArguments.m_lFilesAndIds[0];
+
+    // The local tip travels when the tag exists, empty pulls everything
+    QString sLocalTipId;
+    Aze::CBranch* pLocalTag = m_pRepository->database()->getBranch(sTagName, this);
+
+    if (IS_NOT_NULL(pLocalTag) && pLocalTag->isTag())
+        sLocalTipId = pLocalTag->tipCommitId();
+
+    delete pLocalTag;
+
+    CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPullRequestFor(sTagName, sLocalTipId);
+
+    postNetworkRequest(xRequest);
+
+    if (m_eLastError == Aze::CError::eNetworkError)
+        return m_eLastError;
+
+    // A pull payload carries no result attribute, anything else is a server error
+    Aze::CError::EErrorCode eResponseCode = Aze::CError::fromResultNode(m_xLastResponse);
+
+    if (eResponseCode != Aze::CError::eInvalidResponse)
+        return eResponseCode;
+
+    QString sDetail;
+    Aze::CError::EErrorCode ePullCode = Aze::CRemoteRepository(m_pRepository).applyPullResponse(m_xLastResponse, sDetail);
+
+    if (ePullCode != Aze::CError::eNone && ePullCode != Aze::CError::eMergeHasConflicts)
+    {
+        OUT_ERROR(Aze::CError::message(ePullCode, sDetail));
+    }
+
+    return ePullCode;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+Aze::CError::EErrorCode CAzeClient::pushTag()
+{
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoTagNameGiven));
+        return Aze::CError::eNoTagNameGiven;
+    }
+
+    QString sTagName = m_tArguments.m_lFilesAndIds[0];
+
+    Aze::CBranch* pLocalTag = m_pRepository->database()->getBranch(sTagName, this);
+
+    if (IS_NULL(pLocalTag) || not pLocalTag->isTag())
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eTagDoesNotExist, sTagName));
+        delete pLocalTag;
+        return Aze::CError::eTagDoesNotExist;
+    }
+
+    QString sRootId = pLocalTag->rootCommitId();
+    QString sTipId = pLocalTag->tipCommitId();
+    delete pLocalTag;
+
+    Aze::CRemoteRepository oRemoteRepository(m_pRepository);
+
+    // Phase 1: announce the tag tip so the server answers its own tip
+    CXMLNode xAnnounce = oRemoteRepository.getPushAnnounceFor(sTagName, sTipId);
+
+    postNetworkRequest(xAnnounce);
+
+    if (m_eLastError == Aze::CError::eNetworkError)
+        return m_eLastError;
+
+    Aze::CError::EErrorCode eAnnounceCode = Aze::CError::fromResultNode(m_xLastResponse);
+
+    // Old servers know push only, fall back to the full history request
+    if (eAnnounceCode == Aze::CError::eUnknownAction)
+    {
+        CXMLNode xFallback = oRemoteRepository.getPushRequestFor(sTagName, sRootId, sTipId, Aze::CEnums::eTag);
+
+        return postNetworkRequest(xFallback);
+    }
+
+    // Phase 2: send missing commits only
+    CXMLNode xData;
+    QString sDetail;
+    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushDataRequestForAnnounceResponse(
+                sTagName, sRootId, sTipId, Aze::CEnums::eTag, m_xLastResponse, xData, sDetail);
+
+    if (eBuildCode != Aze::CError::eNone)
+    {
+        OUT_ERROR(Aze::CError::message(eBuildCode, sDetail));
+
+        return eBuildCode;
+    }
+
+    // Tags already converge, nothing travels
     if (xData.getNodesByTagName(Aze::CStrings::s_sParamCommit).isEmpty())
         return Aze::CError::eNone;
 

@@ -80,6 +80,7 @@ CError::EErrorCode CPushCommand::validateRequest()
     m_sBranchName = m_xRequest.attributes()[CStrings::s_sParamBranch];
     m_sRequestedRootId = m_xRequest.attributes()[CStrings::s_sParamRoot];
     m_sTipId = m_xRequest.attributes()[CStrings::s_sParamTip];
+    m_eType = CBranch::typeFromString(m_xRequest.attributes()[CStrings::s_sParamType]);
 
     if (m_xRequest.attributes()[CStrings::s_sParamRequest] != CStrings::s_sParamPush
             || m_sBranchName.isEmpty()
@@ -137,8 +138,17 @@ CError::EErrorCode CPushCommand::updateBranch()
     {
         pBranch = pDatabase->getBranch(m_sBranchName, this);
 
+        // Tags never move, only a converged push is accepted
+        if (pBranch->isTag() && pBranch->tipCommitId() != m_sTipId)
+        {
+            m_sDetail = CError::message(CError::eTagMoveRefused, m_sBranchName);
+            delete pBranch;
+            return CError::eTagMoveRefused;
+        }
+
         // Refuse to overwrite history that the pushed tip does not contain
-        if (not pBranch->tipCommitId().isEmpty()
+        if (not pBranch->isTag()
+                && not pBranch->tipCommitId().isEmpty()
                 && pBranch->tipCommitId() != m_sTipId
                 && not pushedTipContains(pBranch->tipCommitId()))
         {
@@ -154,7 +164,7 @@ CError::EErrorCode CPushCommand::updateBranch()
     }
     else
     {
-        pBranch = new CBranch(this);
+        pBranch = CBranch::create(m_eType, this);
 
         CCommit* pTipCommit = m_pRepository->commitFunctions()->loadCommit(m_sTipId, this);
         pBranch->setAuthor(pTipCommit->author());

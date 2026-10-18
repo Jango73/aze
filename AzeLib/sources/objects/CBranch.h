@@ -56,11 +56,20 @@ public:
     //!
     virtual CXMLNode toNode() const override;
 
+    //!
+    bool isTag() const { return m_eType == CEnums::eTag; }
+
     //-------------------------------------------------------------------------------------------------
     // Static control methods
     //-------------------------------------------------------------------------------------------------
 
 public:
+
+    //! Creates a branch or a tag from a type value
+    static CBranch* create(CEnums::EBranchType eType, QObject* parent);
+
+    //! Returns the branch type for a stored type name, eBranch by default
+    static CEnums::EBranchType typeFromString(const QString& sType);
 
     //!
     static CBranch* fromNode(const CXMLNode& xNode, QObject* parent);

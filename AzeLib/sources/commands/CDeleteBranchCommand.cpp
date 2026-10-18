@@ -49,8 +49,8 @@ CError::EErrorCode CDeleteBranchCommand::execute()
 
     if (not QFile(sBranchFileName).exists())
     {
-        m_pRepository->tellError(CError::eBranchDoesNotExist, m_sName);
-        return CError::eBranchDoesNotExist;
+        m_pRepository->tellError(missingCode(), m_sName);
+        return missingCode();
     }
 
     CBranch* pBranchToDelete = m_pRepository->database()->getBranch(m_sName, nullptr);
@@ -59,6 +59,13 @@ CError::EErrorCode CDeleteBranchCommand::execute()
     {
         m_pRepository->tellError(CError::eCouldNotDeleteBranch, m_sName);
         return CError::eCouldNotDeleteBranch;
+    }
+
+    if (not acceptsType(pBranchToDelete))
+    {
+        m_pRepository->tellError(missingCode(), m_sName);
+        delete pBranchToDelete;
+        return missingCode();
     }
 
     QString sTargetTipId = pBranchToDelete->tipCommitId();
@@ -76,6 +83,28 @@ CError::EErrorCode CDeleteBranchCommand::execute()
     }
 
     return CError::eNone;
+}
+
+/************************************************************************/
+
+/*!
+    Returns the missing object code. \br\br
+    Subclasses report their own object kind here. \br
+*/
+CError::EErrorCode CDeleteBranchCommand::missingCode() const
+{
+    return CError::eBranchDoesNotExist;
+}
+
+/************************************************************************/
+
+/*!
+    Returns true for a deletable object kind. \br\br
+    Branches refuse tags sharing the name namespace and conversely. \br
+*/
+bool CDeleteBranchCommand::acceptsType(const CBranch* pBranch) const
+{
+    return IS_NOT_NULL(pBranch) && not pBranch->isTag();
 }
 
 /************************************************************************/

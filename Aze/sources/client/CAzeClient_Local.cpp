@@ -59,6 +59,77 @@ Aze::CError::EErrorCode CAzeClient::deleteBranch()
 
 //-------------------------------------------------------------------------------------------------
 
+Aze::CError::EErrorCode CAzeClient::createTag()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+    RETURN_WHEN_FALSE(m_tArguments.m_lFilesAndIds.count() > 0, Aze::CError::eNoTagNameGiven);
+
+    // Create the tag
+    RETURN_WHEN_ERROR(m_pRepository->createTag(m_tArguments.m_lFilesAndIds[0]), Aze::CError::eCouldNotCreateTag);
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+Aze::CError::EErrorCode CAzeClient::deleteTag()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    if (m_tArguments.m_lFilesAndIds.count() == 0)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoTagNameGiven));
+        return Aze::CError::eNoTagNameGiven;
+    }
+
+    QString sTagName = m_tArguments.m_lFilesAndIds[0];
+
+    bool bForce = m_tArguments.m_tParser.isSet(m_tArguments.m_oForce);
+
+    // Delete the tag, engine refuses branches and, without force, unmerged tags with distinct codes
+    return m_pRepository->deleteTag(sTagName, bForce);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+Aze::CError::EErrorCode CAzeClient::listTags()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    QStringList lFilters;
+    lFilters << QString("*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension);
+
+    QDir tBranchFolder(m_pRepository->database()->branchPath());
+    QFileInfoList lFiles = tBranchFolder.entryInfoList(lFilters, QDir::Files | QDir::NoSymLinks);
+
+    // Chop the known suffix instead of baseName, tag names hold dots
+    QString sSuffix = QString(".%1").arg(Aze::CStrings::s_sCompressedXMLExtension);
+
+    for (const QFileInfo& tFile : lFiles)
+    {
+        QString sName = tFile.fileName();
+
+        if (sName.endsWith(sSuffix))
+            sName.chop(sSuffix.count());
+
+        Aze::CBranch* pBranch = m_pRepository->database()->getBranch(sName, this);
+
+        if (IS_NOT_NULL(pBranch) && pBranch->isTag())
+            (*m_pOutStream) << sName << "\n";
+
+        delete pBranch;
+    }
+
+    m_pOutStream->flush();
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 Aze::CError::EErrorCode CAzeClient::switchToBranch()
 {
     // Repository sanity check

@@ -6,6 +6,7 @@
 #include "CTestDiffPatch.h"
 #include "CTestRemote.h"
 #include "CTestServe.h"
+#include "CTestTag.h"
 #include "CTestCache.h"
 #include "CTestPrune.h"
 #include "CTestMassive.h"
@@ -57,6 +58,11 @@ int CTestAze::runAllTests()
 
     {
         CTestServe oTest(m_sArgument0);
+        iStatus |= QTest::qExec(&oTest);
+    }
+
+    {
+        CTestTag oTest(m_sArgument0);
         iStatus |= QTest::qExec(&oTest);
     }
 

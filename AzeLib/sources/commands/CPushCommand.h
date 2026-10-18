@@ -9,6 +9,7 @@
 
 // Application
 #include "CBaseCommand.h"
+#include "../CEnums.h"
 
 // qt-plus
 #include "CXMLNode.h"
@@ -74,6 +75,7 @@ protected:
     QString     m_sBranchName;
     QString     m_sRequestedRootId;
     QString     m_sTipId;
+    CEnums::EBranchType m_eType;
     QStringList m_lCommitIds;
 };
 

@@ -36,11 +36,20 @@ CError::EErrorCode CCreateBranchCommand::execute()
 
     if (QFile(sBranchFileName).exists())
     {
-        m_pRepository->tellInfo(CError::eBranchAlreadyExists, m_sName);
+        CBranch* pExistingBranch = m_pRepository->database()->getBranch(m_sName, this);
+
+        CError::EErrorCode eExistsCode = CError::eBranchAlreadyExists;
+
+        if (IS_NOT_NULL(pExistingBranch) && pExistingBranch->isTag())
+            eExistsCode = CError::eTagAlreadyExists;
+
+        delete pExistingBranch;
+
+        m_pRepository->tellInfo(eExistsCode, m_sName);
     }
     else
     {
-        CBranch* pNewBranch = new CBranch(this);
+        CBranch* pNewBranch = createBranchObject();
 
         if (not m_pRepository->currentBranch().isNull())
         {
@@ -53,6 +62,17 @@ CError::EErrorCode CCreateBranchCommand::execute()
     }
 
     return CError::eNone;
+}
+
+/************************************************************************/
+
+/*!
+    Creates the branch object. \br\br
+    Subclasses materialize their own branch kind here. \br
+*/
+CBranch* CCreateBranchCommand::createBranchObject()
+{
+    return new CBranch(this);
 }
 
 /************************************************************************/

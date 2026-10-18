@@ -99,9 +99,16 @@ public:
     //! Creates a branch as sName
     CError::EErrorCode createBranch(const QString& sName);
 
+    //! Creates a tag as sName from the current branch tip
+    CError::EErrorCode createTag(const QString& sName);
+
     //! Deletes the branch sName
     //! bForce deletes a branch not merged into the current branch
     CError::EErrorCode deleteBranch(const QString& sName, bool bForce = false);
+
+    //! Deletes the tag sName
+    //! bForce deletes a tag not merged into the current branch
+    CError::EErrorCode deleteTag(const QString& sName, bool bForce = false);
 
     //! Sets the current branch to sName
     CError::EErrorCode switchToBranch(const QString& sName, bool bAllowFileDelete = false);

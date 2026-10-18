@@ -190,7 +190,9 @@ CError::EErrorCode CPullCommand::handleEmptyServerTip()
 
     if (not QFile(sBranchFileName).exists())
     {
-        CBranch* pNewBranch = new CBranch(m_pRepository);
+        CBranch* pNewBranch = CBranch::create(
+                    CBranch::typeFromString(m_xResponse.attributes()[CStrings::s_sParamType]),
+                    m_pRepository);
         pNewBranch->toNode().save(sBranchFileName);
         delete pNewBranch;
     }
@@ -210,7 +212,9 @@ CError::EErrorCode CPullCommand::createMissingBranch()
     CDatabase* pDatabase = m_pRepository->database();
     QString sBranchFileName = pDatabase->composeBranchFileName(m_sBranchName);
 
-    CBranch* pNewBranch = new CBranch(m_pRepository);
+    CBranch* pNewBranch = CBranch::create(
+                CBranch::typeFromString(m_xResponse.attributes()[CStrings::s_sParamType]),
+                m_pRepository);
 
     pNewBranch->setAuthor(m_xResponse.attributes()[CStrings::s_sParamAuthor]);
     pNewBranch->setRootCommitId(m_xResponse.attributes()[CStrings::s_sParamRoot]);
@@ -258,6 +262,14 @@ CError::EErrorCode CPullCommand::updateOtherBranch()
     {
         m_sDetail = m_sBranchName;
         return CError::eBranchDoesNotExist;
+    }
+
+    // Tags never move, only a converged pull is accepted
+    if (pBranch->isTag() && pBranch->tipCommitId() != m_sServerTipId)
+    {
+        m_sDetail = CError::message(CError::eTagMoveRefused, m_sBranchName);
+        delete pBranch;
+        return CError::eTagMoveRefused;
     }
 
     pBranch->setTipCommitId(m_sServerTipId);

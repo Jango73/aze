@@ -117,6 +117,33 @@
     QString("--%1").arg(SILENT_OR_DEBUG), a \
     })
 
+#define CREATE_TAG(a) \
+    exec({ \
+    CConstants::s_sSwitchCreateTag, \
+    QString("--%1").arg(SILENT_OR_DEBUG), a \
+    })
+
+#define DELETE_TAG(a, b) \
+    a = exec({ \
+    CConstants::s_sSwitchDeleteTag, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    b \
+    })
+
+#define DELETE_TAG_FORCE(a, b) \
+    a = exec({ \
+    CConstants::s_sSwitchDeleteTag, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    QString("--%1").arg(CConstants::s_sSwitchForce), \
+    b \
+    })
+
+#define LIST_TAGS(a) \
+    a = exec({ \
+    CConstants::s_sSwitchListTags, \
+    QString("--%1").arg(SILENT_OR_DEBUG) \
+    })
+
 #define SWITCH_TO_BRANCH(a) \
     exec({ \
     CConstants::s_sSwitchSwitchToBranch, \

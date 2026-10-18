@@ -11,6 +11,8 @@
 
 namespace Aze {
 
+class CBranch;
+
 class AZE_SHARED_EXPORT CCreateBranchCommand : public CBaseCommand
 {
     Q_OBJECT
@@ -29,6 +31,15 @@ public:
 
     //!
     virtual CError::EErrorCode execute() override;
+
+    //-------------------------------------------------------------------------------------------------
+    // Protected control methods
+    //-------------------------------------------------------------------------------------------------
+
+protected:
+
+    //! Creates the branch object, overridden by tags
+    virtual CBranch* createBranchObject();
 
     //-------------------------------------------------------------------------------------------------
     // Properties

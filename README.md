@@ -166,6 +166,25 @@ Deletes a branch.
 ```
 * `-f`, `--force` : delete the branch even when it is not merged into the current branch.
 
+### `aze create-tag`
+Creates a tag from the current branch tip.
+```
+    aze create-tag <tag-name>
+```
+
+### `aze delete-tag`
+Deletes a tag.
+```
+    aze delete-tag <tag-name> [-f]
+```
+* `-f`, `--force` : delete the tag even when it is not merged into the current branch.
+
+### `aze list-tags`
+Lists the tags.
+```
+    aze list-tags
+```
+
 ### `aze set-branch`
 Switches to a branch.
 ```
@@ -219,6 +238,18 @@ Gets remote changes from a server.
 Sends local changes to a server.
 ```
     aze push
+```
+
+### `aze push-tag`
+Sends a tag to a server.
+```
+    aze push-tag <tag-name>
+```
+
+### `aze pull-tag`
+Gets a tag from a server.
+```
+    aze pull-tag <tag-name>
 ```
 
 ### `aze help`

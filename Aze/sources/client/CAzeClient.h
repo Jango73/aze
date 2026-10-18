@@ -59,8 +59,17 @@ public:
     //! Creates a branch
     Aze::CError::EErrorCode createBranch();
 
+    //! Creates a tag from the current branch tip
+    Aze::CError::EErrorCode createTag();
+
     //! Deletes a branch
     Aze::CError::EErrorCode deleteBranch();
+
+    //! Deletes a tag
+    Aze::CError::EErrorCode deleteTag();
+
+    //! Lists the tags
+    Aze::CError::EErrorCode listTags();
 
     //! Switches to a branch
     Aze::CError::EErrorCode switchToBranch();
@@ -127,7 +136,13 @@ public:
     Aze::CError::EErrorCode pull();
 
     //!
+    Aze::CError::EErrorCode pullTag();
+
+    //!
     Aze::CError::EErrorCode push();
+
+    //!
+    Aze::CError::EErrorCode pushTag();
 
     //! Clones a repository from the server into a new folder
     Aze::CError::EErrorCode clone();

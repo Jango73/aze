@@ -37,6 +37,17 @@ CError::EErrorCode CSwitchToBranchCommand::execute()
     if (not QFile(sFileName).exists())
         return CError::eUnknownBranch;
 
+    CBranch* pTargetBranch = m_pRepository->database()->getBranch(m_sBranchName, this);
+
+    // Tags share the branch namespace but are never checked out
+    if (IS_NOT_NULL(pTargetBranch) && pTargetBranch->isTag())
+    {
+        delete pTargetBranch;
+        return CError::eUnknownBranch;
+    }
+
+    delete pTargetBranch;
+
     // Save stash : diffs between last commit and working directory
     CSaveStashCommand stash(m_pRepository, "");
     stash.setCalledInternally(true);

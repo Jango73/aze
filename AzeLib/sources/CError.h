@@ -86,7 +86,13 @@ public:
         eDeleteBranchRequestInvalid           = 0x3B,
         eInvalidHttpsConfiguration            = 0x3C,
         eNotAuthorized                        = 0x3D,
-        eCouldNotPrune                        = 0x3E
+        eCouldNotPrune                        = 0x3E,
+        eCouldNotCreateTag                    = 0x3F,
+        eCouldNotDeleteTag                    = 0x40,
+        eNoTagNameGiven                       = 0x41,
+        eTagAlreadyExists                     = 0x42,
+        eTagDoesNotExist                      = 0x43,
+        eTagMoveRefused                       = 0x44
     };
 
     Q_ENUM(EErrorCode)

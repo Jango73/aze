@@ -81,7 +81,9 @@ Aze::CError::EErrorCode CAzeClient::run()
     case CConstants::eCommandCleanUp:           return cleanUp();
     case CConstants::eCommandCommit:            return commit();
     case CConstants::eCommandCreateBranch:      return createBranch();
+    case CConstants::eCommandCreateTag:         return createTag();
     case CConstants::eCommandDeleteBranch:      return deleteBranch();
+    case CConstants::eCommandDeleteTag:         return deleteTag();
     case CConstants::eCommandDiff:              return diff();
     case CConstants::eCommandDump:              return dump();
     case CConstants::eCommandInitRepository:    return init();
@@ -98,12 +100,15 @@ Aze::CError::EErrorCode CAzeClient::run()
     case CConstants::eCommandShowStatus:        return status();
     case CConstants::eCommandStage:             return stage();
     case CConstants::eCommandSwitchToBranch:    return switchToBranch();
+    case CConstants::eCommandListTags:          return listTags();
     case CConstants::eCommandUnstage:           return unstage();
 
     // Remote commands
     case CConstants::eCommandClone:          return clone();
     case CConstants::eCommandPull:           return pull();
+    case CConstants::eCommandPullTag:        return pullTag();
     case CConstants::eCommandPush:           return push();
+    case CConstants::eCommandPushTag:        return pushTag();
     }
 
     OUT_ERROR(Aze::CError::message(Aze::CError::eUnknownCommand));

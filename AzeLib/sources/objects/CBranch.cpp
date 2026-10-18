@@ -1,6 +1,7 @@
 
 // Application
 #include "CBranch.h"
+#include "CTag.h"
 #include "../CUtils.h"
 
 namespace Aze {
@@ -39,15 +40,47 @@ CXMLNode CBranch::toNode() const
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Creates a branch or a tag from \a eType. \br\br
+    Centralizes instantiation so stored type values always materialize
+    as the matching class. \br
+*/
+CBranch* CBranch::create(CEnums::EBranchType eType, QObject* parent)
+{
+    if (eType == CEnums::eTag)
+        return new CTag(parent);
+
+    return new CBranch(parent);
+}
+
+/************************************************************************/
+
+/*!
+    Returns the branch type for \a sType. \br\br
+    Unknown or empty names map to eBranch so payloads from older
+    versions keep their historical meaning. \br
+*/
+CEnums::EBranchType CBranch::typeFromString(const QString& sType)
+{
+    if (sType == enumToQString(CEnums, EBranchType, CEnums::eTag))
+        return CEnums::eTag;
+
+    return CEnums::eBranch;
+}
+
+/************************************************************************/
+
 CBranch* CBranch::fromNode(const CXMLNode& xNode, QObject* parent)
 {
     QDictionary mFiles;
     QString sId;
     QString sFilePath;
 
-    CBranch* pBranch = new CBranch(parent);
-
     CXMLNode xInfo = xNode.getNodeByTagName(CStrings::s_sParamInfo);
+
+    QString sType = xInfo.attributes()[CStrings::s_sParamType];
+
+    CBranch* pBranch = create(typeFromString(sType), parent);
 
     if (not xNode.isEmpty())
     {
@@ -55,10 +88,6 @@ CBranch* CBranch::fromNode(const CXMLNode& xNode, QObject* parent)
         pBranch->setDate(xInfo.attributes()[CStrings::s_sParamDate]);
         pBranch->setRootCommitId(xInfo.attributes()[CStrings::s_sParamRoot]);
         pBranch->setTipCommitId(xInfo.attributes()[CStrings::s_sParamTip]);
-
-        QString sType = xInfo.attributes()[CStrings::s_sParamType];
-        if (not sType.isEmpty())
-            pBranch->setType(qStringToEnum(CEnums, EBranchType, sType));
     }
 
     return pBranch;

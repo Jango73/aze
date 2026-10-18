@@ -77,6 +77,12 @@ QString CError::message(EErrorCode eCode)
     case eInvalidHttpsConfiguration: return tr("Invalid HTTPS configuration: %1.");
     case eNotAuthorized: return tr("Not authorized.");
     case eCouldNotPrune: return tr("Could not prune.");
+    case eCouldNotCreateTag: return tr("Could not create tag.");
+    case eCouldNotDeleteTag: return tr("Could not delete tag.");
+    case eNoTagNameGiven: return tr("No tag name specified.");
+    case eTagAlreadyExists: return tr("Tag already exists.");
+    case eTagDoesNotExist: return tr("Tag does not exist.");
+    case eTagMoveRefused: return tr("Cannot move tag.");
     }
 
     return tr("Generic error.");
@@ -169,7 +175,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
     if (bOk == false)
         return eGeneric;
 
-    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eCouldNotPrune))
+    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eTagMoveRefused))
         return static_cast<EErrorCode>(iCode);
 
     return eGeneric;

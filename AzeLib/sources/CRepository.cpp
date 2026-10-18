@@ -12,7 +12,9 @@
 #include "commands/CCloneCommand.h"
 #include "commands/CCommitCommand.h"
 #include "commands/CCreateBranchCommand.h"
+#include "commands/CCreateTagCommand.h"
 #include "commands/CDeleteBranchCommand.h"
+#include "commands/CDeleteTagCommand.h"
 #include "commands/CDiffCommand.h"
 #include "commands/CDumpCommand.h"
 #include "commands/CInitRepositoryCommand.h"
@@ -134,6 +136,16 @@ CError::EErrorCode CRepository::createBranch(const QString& sName)
 //-------------------------------------------------------------------------------------------------
 
 /*!
+    Creates a tag named \a sName.
+*/
+CError::EErrorCode CRepository::createTag(const QString& sName)
+{
+    return CCreateTagCommand(this, sName).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
     Deletes, if it exists, the branch named \a sName. \br\br
     Refuses the current branch to avoid leaving the repository without a branch. \br
     Refuses a branch not merged into the current branch to avoid losing commits,
@@ -144,6 +156,18 @@ CError::EErrorCode CRepository::createBranch(const QString& sName)
 CError::EErrorCode CRepository::deleteBranch(const QString& sName, bool bForce)
 {
     return CDeleteBranchCommand(this, sName, bForce).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Deletes, if it exists, the tag named \a sName. \br\br
+    Refuses a branch sharing the tag namespace, a tag is never the
+    current branch. Otherwise the branch deletion rules apply. \br
+*/
+CError::EErrorCode CRepository::deleteTag(const QString& sName, bool bForce)
+{
+    return CDeleteTagCommand(this, sName, bForce).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

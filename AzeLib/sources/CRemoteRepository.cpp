@@ -29,15 +29,26 @@ CRemoteRepository::~CRemoteRepository()
 
 CXMLNode CRemoteRepository::getPullRequest()
 {
+    QString sTipId;
+
+    if (not m_pLocalRepository->tipCommit().isNull())
+        sTipId = m_pLocalRepository->tipCommit()->id();
+
+    return getPullRequestFor(m_pLocalRepository->currentBranchName(), sTipId);
+}
+
+/*!
+    Returns the pull request for \a sName with \a sTipId. \br\br
+    Tags pull through the branch protocol, the name addresses
+    the shared branch storage on both sides. \br
+*/
+CXMLNode CRemoteRepository::getPullRequestFor(const QString& sName, const QString& sTipId)
+{
     CXMLNode xRequest("");
 
     xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPull;
-    xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
-
-    if (not m_pLocalRepository->tipCommit().isNull())
-    {
-        xRequest.attributes()[CStrings::s_sParamTip] = m_pLocalRepository->tipCommit()->id();
-    }
+    xRequest.attributes()[CStrings::s_sParamBranch] = sName;
+    xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
 
     return xRequest;
 }
@@ -46,21 +57,39 @@ CXMLNode CRemoteRepository::getPullRequest()
 
 CXMLNode CRemoteRepository::getPushRequest()
 {
-    CXMLNode xRequest("");
-
-    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
-    xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
+    QString sRootId;
+    QString sTipId;
+    CEnums::EBranchType eType = CEnums::eBranch;
 
     if (not m_pLocalRepository->currentBranch().isNull())
     {
-        xRequest.attributes()[CStrings::s_sParamRoot] = m_pLocalRepository->currentBranch()->rootCommitId();
+        sRootId = m_pLocalRepository->currentBranch()->rootCommitId();
+        eType = m_pLocalRepository->currentBranch()->type();
     }
 
-    if (m_pLocalRepository->tipCommit().isNull())
-        return xRequest;
+    if (not m_pLocalRepository->tipCommit().isNull())
+        sTipId = m_pLocalRepository->tipCommit()->id();
 
-    QString sTipId = m_pLocalRepository->tipCommit()->id();
+    return getPushRequestFor(m_pLocalRepository->currentBranchName(), sRootId, sTipId, eType);
+}
+
+/*!
+    Returns the push request for \a sName. \br\br
+    The type travels so the receiver materializes the matching
+    class, tags push through the branch protocol. \br
+*/
+CXMLNode CRemoteRepository::getPushRequestFor(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType)
+{
+    CXMLNode xRequest("");
+
+    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
+    xRequest.attributes()[CStrings::s_sParamBranch] = sName;
+    xRequest.attributes()[CStrings::s_sParamRoot] = sRootId;
     xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
+    xRequest.attributes()[CStrings::s_sParamType] = enumToQString(CEnums, EBranchType, eType);
+
+    if (sTipId.isEmpty())
+        return xRequest;
 
     appendCommitAndObjectNodes(xRequest, missingCommitIds(sTipId, ""), QSet<QString>());
 
@@ -76,15 +105,24 @@ CXMLNode CRemoteRepository::getPushRequest()
 */
 CXMLNode CRemoteRepository::getPushAnnounce()
 {
+    QString sTipId;
+
+    if (not m_pLocalRepository->tipCommit().isNull())
+        sTipId = m_pLocalRepository->tipCommit()->id();
+
+    return getPushAnnounceFor(m_pLocalRepository->currentBranchName(), sTipId);
+}
+
+/*!
+    Returns the push announce for \a sName with \a sTipId. \br\br
+*/
+CXMLNode CRemoteRepository::getPushAnnounceFor(const QString& sName, const QString& sTipId)
+{
     CXMLNode xAnnounce("");
 
     xAnnounce.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPushAnnounce;
-    xAnnounce.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
-
-    if (not m_pLocalRepository->tipCommit().isNull())
-    {
-        xAnnounce.attributes()[CStrings::s_sParamTip] = m_pLocalRepository->tipCommit()->id();
-    }
+    xAnnounce.attributes()[CStrings::s_sParamBranch] = sName;
+    xAnnounce.attributes()[CStrings::s_sParamTip] = sTipId;
 
     return xAnnounce;
 }
@@ -145,25 +183,48 @@ CXMLNode CRemoteRepository::getPushAnnounceResponse(const CXMLNode& xAnnounce)
 */
 CError::EErrorCode CRemoteRepository::buildPushDataRequest(const QString& sServerTipId, CXMLNode& xRequest, QString& sDetail)
 {
-    xRequest = CXMLNode("");
-
-    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
-    xRequest.attributes()[CStrings::s_sParamBranch] = m_pLocalRepository->currentBranchName();
+    QString sRootId;
+    QString sTipId;
+    CEnums::EBranchType eType = CEnums::eBranch;
 
     if (not m_pLocalRepository->currentBranch().isNull())
     {
-        xRequest.attributes()[CStrings::s_sParamRoot] = m_pLocalRepository->currentBranch()->rootCommitId();
+        sRootId = m_pLocalRepository->currentBranch()->rootCommitId();
+        eType = m_pLocalRepository->currentBranch()->type();
     }
 
-    if (m_pLocalRepository->tipCommit().isNull())
+    if (not m_pLocalRepository->tipCommit().isNull())
+        sTipId = m_pLocalRepository->tipCommit()->id();
+
+    return buildPushDataRequestFor(m_pLocalRepository->currentBranchName(), sRootId, sTipId, eType, sServerTipId, xRequest, sDetail);
+}
+
+/*!
+    Builds the push data request for \a sName into \a xRequest. \br\br
+    Only commits past \a sServerTipId travel, with objects unreferenced by the
+    shared history. An empty server tip sends everything, a server tip equal
+    to the local tip sends attributes only as both sides already converge. \br
+    Refuses without building when the locally known server tip is not an
+    ancestor of the local tip, the server would refuse the same push. An
+    unknown server tip falls back to the full history and lets the server
+    decide. Sets \a sDetail and returns the failure reason when refused. \br
+*/
+CError::EErrorCode CRemoteRepository::buildPushDataRequestFor(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType, const QString& sServerTipId, CXMLNode& xRequest, QString& sDetail)
+{
+    xRequest = CXMLNode("");
+
+    xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamPush;
+    xRequest.attributes()[CStrings::s_sParamBranch] = sName;
+    xRequest.attributes()[CStrings::s_sParamRoot] = sRootId;
+    xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
+    xRequest.attributes()[CStrings::s_sParamType] = enumToQString(CEnums, EBranchType, eType);
+
+    if (sTipId.isEmpty())
     {
         sDetail = CError::message(CError::ePushRequestInvalid);
 
         return CError::ePushRequestInvalid;
     }
-
-    QString sTipId = m_pLocalRepository->tipCommit()->id();
-    xRequest.attributes()[CStrings::s_sParamTip] = sTipId;
 
     if (xRequest.attributes()[CStrings::s_sParamBranch].isEmpty())
     {
@@ -227,6 +288,32 @@ CError::EErrorCode CRemoteRepository::buildPushDataRequestFromAnnounceResponse(c
     QString sServerTipId = xAnnounceResponse.attributes()[CStrings::s_sParamTip];
 
     return buildPushDataRequest(sServerTipId, xDataRequest, sDetail);
+}
+
+/************************************************************************/
+
+/*!
+    Builds the push data request for \a sName from \a xAnnounceResponse into \a xDataRequest. \br\br
+    The announce response carries the branch name and the server tip, the data
+    request then carries missing commits only through buildPushDataRequestFor. \br
+    Returns the announce error without building when the response carries a
+    result node, so the announce and data phases share one sequence. \br
+    Sets \a sDetail and returns the failure reason when refused. \br
+*/
+CError::EErrorCode CRemoteRepository::buildPushDataRequestForAnnounceResponse(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType, const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail)
+{
+    CError::EErrorCode eAnnounceCode = CError::fromResultNode(xAnnounceResponse);
+
+    if (eAnnounceCode != CError::eInvalidResponse)
+    {
+        sDetail = CError::message(eAnnounceCode);
+
+        return eAnnounceCode;
+    }
+
+    QString sServerTipId = xAnnounceResponse.attributes()[CStrings::s_sParamTip];
+
+    return buildPushDataRequestFor(sName, sRootId, sTipId, eType, sServerTipId, xDataRequest, sDetail);
 }
 
 /************************************************************************/
@@ -386,6 +473,7 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
     QString sServerTipId = pBranch->tipCommitId();
     QString sAuthor = pBranch->author();
     QString sRootId = pBranch->rootCommitId();
+    QString sType = enumToQString(CEnums, EBranchType, pBranch->type());
     delete pBranch;
 
     CXMLNode xResponse("");
@@ -395,6 +483,7 @@ CXMLNode CRemoteRepository::getPullResponse(const CXMLNode& xRequest)
     xResponse.attributes()[CStrings::s_sParamTip] = sServerTipId;
     xResponse.attributes()[CStrings::s_sParamAuthor] = sAuthor;
     xResponse.attributes()[CStrings::s_sParamRoot] = sRootId;
+    xResponse.attributes()[CStrings::s_sParamType] = sType;
 
     if (sServerTipId.isEmpty())
         return xResponse;
@@ -530,16 +619,17 @@ CError::EErrorCode CRemoteRepository::applyPushRequest(const CXMLNode& xRequest,
 
 /*!
     Returns the request for a delete-branch. \br\br
-    The request carries the branch name and the force flag, the server
-    deletes the branch with CRepository::deleteBranch. \br
+    The request carries the branch name, the force flag and the object
+    type, the server deletes the branch or the tag accordingly. \br
 */
-CXMLNode CRemoteRepository::getDeleteBranchRequest(const QString& sBranchName, bool bForce)
+CXMLNode CRemoteRepository::getDeleteBranchRequest(const QString& sBranchName, bool bForce, CEnums::EBranchType eType)
 {
     CXMLNode xRequest("");
 
     xRequest.attributes()[CStrings::s_sParamRequest] = CStrings::s_sParamDeleteBranch;
     xRequest.attributes()[CStrings::s_sParamBranch] = sBranchName;
     xRequest.attributes()[CStrings::s_sParamForce] = bForce ? QStringLiteral("true") : QStringLiteral("false");
+    xRequest.attributes()[CStrings::s_sParamType] = enumToQString(CEnums, EBranchType, eType);
 
     return xRequest;
 }
@@ -547,8 +637,8 @@ CXMLNode CRemoteRepository::getDeleteBranchRequest(const QString& sBranchName, b
 /************************************************************************/
 
 /*!
-    Applies \a xRequest as a branch deletion to the local repository. \br\br
-    The request carries the branch name and the force flag. \br
+    Applies \a xRequest as a branch or tag deletion to the local repository. \br\br
+    The request carries the branch name, the force flag and the object type. \br
     Sets \a sDetail and returns the failure reason when the request is invalid. \br
 */
 CError::EErrorCode CRemoteRepository::applyDeleteBranchRequest(const CXMLNode& xRequest, QString& sDetail)
@@ -565,7 +655,12 @@ CError::EErrorCode CRemoteRepository::applyDeleteBranchRequest(const CXMLNode& x
 
     bool bForce = (sForce == QStringLiteral("true") || sForce == QStringLiteral("1"));
 
-    CError::EErrorCode eCode = m_pLocalRepository->deleteBranch(sBranchName, bForce);
+    CError::EErrorCode eCode;
+
+    if (CBranch::typeFromString(xRequest.attributes()[CStrings::s_sParamType]) == CEnums::eTag)
+        eCode = m_pLocalRepository->deleteTag(sBranchName, bForce);
+    else
+        eCode = m_pLocalRepository->deleteBranch(sBranchName, bForce);
 
     if (eCode != CError::eNone)
         sDetail = sBranchName;

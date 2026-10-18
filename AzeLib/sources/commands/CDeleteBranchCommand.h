@@ -11,6 +11,8 @@
 
 namespace Aze {
 
+class CBranch;
+
 class AZE_SHARED_EXPORT CDeleteBranchCommand : public CBaseCommand
 {
     Q_OBJECT
@@ -38,6 +40,12 @@ protected:
 
     //! Refuses the current branch and, without force, a branch not merged into it
     CError::EErrorCode checkDeletable(const QString& sTargetTipId);
+
+    //! Returns the missing object code, overridden by tags
+    virtual CError::EErrorCode missingCode() const;
+
+    //! Returns true for a deletable object kind, overridden by tags
+    virtual bool acceptsType(const CBranch* pBranch) const;
 
     //-------------------------------------------------------------------------------------------------
     // Properties

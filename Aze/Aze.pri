@@ -19,6 +19,7 @@ HEADERS += \
     sources/tests/CTestPrune.h \
     sources/tests/CTestRemote.h \
     sources/tests/CTestServe.h \
+    sources/tests/CTestTag.h \
     sources/tests/CTestWorkflow.h \
 
 SOURCES += \
@@ -40,6 +41,7 @@ SOURCES += \
     sources/tests/CTestPrune.cpp \
     sources/tests/CTestRemote.cpp \
     sources/tests/CTestServe.cpp \
+    sources/tests/CTestTag.cpp \
     sources/tests/CTestWorkflow.cpp \
     sources/main.cpp \
 

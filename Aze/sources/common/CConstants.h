@@ -31,7 +31,9 @@ public:
         eCommandClone,
         eCommandCommit,
         eCommandCreateBranch,
+        eCommandCreateTag,
         eCommandDeleteBranch,
+        eCommandDeleteTag,
         eCommandDiff,
         eCommandDump,
         eCommandHelp,
@@ -43,7 +45,9 @@ public:
         eCommandPopStash,
         eCommandPrune,
         eCommandPull,
+        eCommandPullTag,
         eCommandPush,
+        eCommandPushTag,
         eCommandRemove,
         eCommandRevert,
         eCommandSaveStash,
@@ -51,6 +55,7 @@ public:
         eCommandShowStatus,
         eCommandStage,
         eCommandSwitchToBranch,
+        eCommandListTags,
         eCommandUnstage,
         eCommandUnknown,
     };
@@ -63,7 +68,9 @@ public:
     static const char* s_sSwitchClone;
     static const char* s_sSwitchCommit;
     static const char* s_sSwitchCreateBranch;
+    static const char* s_sSwitchCreateTag;
     static const char* s_sSwitchDeleteBranch;
+    static const char* s_sSwitchDeleteTag;
     static const char* s_sSwitchDiff;
     static const char* s_sSwitchDump;
     static const char* s_sSwitchHelp;
@@ -75,7 +82,9 @@ public:
     static const char* s_sSwitchPopStash;
     static const char* s_sSwitchPrune;
     static const char* s_sSwitchPull;
+    static const char* s_sSwitchPullTag;
     static const char* s_sSwitchPush;
+    static const char* s_sSwitchPushTag;
     static const char* s_sSwitchRemove;
     static const char* s_sSwitchRevert;
     static const char* s_sSwitchSaveStash;
@@ -83,6 +92,7 @@ public:
     static const char* s_sSwitchShowStatus;
     static const char* s_sSwitchStage;
     static const char* s_sSwitchSwitchToBranch;
+    static const char* s_sSwitchListTags;
     static const char* s_sSwitchUnstage;
     static const char* s_sSwitchVoid;
 

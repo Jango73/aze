@@ -14,6 +14,7 @@
 
 // Application
 #include "CRepository.h"
+#include "CEnums.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -51,13 +52,22 @@ public:
     //! Carries the requested branch name and the local tip identifier
     CXMLNode getPullRequest();
 
+    //! Returns the pull request for a named branch or tag
+    CXMLNode getPullRequestFor(const QString& sName, const QString& sTipId);
+
     //! Returns the request for push
     CXMLNode getPushRequest();
+
+    //! Returns the push request for a named branch or tag
+    CXMLNode getPushRequestFor(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType);
 
     //! Returns the push announce carrying the branch name and the local tip
     //! The server answers with getPushAnnounceResponse so the data request
     //! carries missing commits only
     CXMLNode getPushAnnounce();
+
+    //! Returns the push announce for a named branch or tag
+    CXMLNode getPushAnnounceFor(const QString& sName, const QString& sTipId);
 
     //! Returns the push announce response carrying the branch name and the server tip
     //! An unknown branch answers an empty tip so the data request carries everything
@@ -72,12 +82,18 @@ public:
     //! sDetail optionally receives message detail (branch name, tip identifier)
     CError::EErrorCode buildPushDataRequest(const QString& sServerTipId, CXMLNode& xRequest, QString& sDetail);
 
+    //! Builds the push data request for a named branch or tag
+    CError::EErrorCode buildPushDataRequestFor(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType, const QString& sServerTipId, CXMLNode& xRequest, QString& sDetail);
+
     //! Builds the push data request from a push announce response
     //! Validates the announce response and extracts the server tip before delegating
     //! to buildPushDataRequest so client and helper paths share one sequence
     //! Returns the announce error when the response carries a result node
     //! sDetail optionally receives message detail (branch name, tip identifier)
     CError::EErrorCode buildPushDataRequestFromAnnounceResponse(const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail);
+
+    //! Builds the push data request for a named branch or tag from an announce response
+    CError::EErrorCode buildPushDataRequestForAnnounceResponse(const QString& sName, const QString& sRootId, const QString& sTipId, CEnums::EBranchType eType, const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail);
 
     //! Returns the pull response for a pull request
     //! Branches carry their name, commits their identifier, objects their content
@@ -104,7 +120,7 @@ public:
 
     //! Returns the request for delete-branch
     //! Carries the branch name and the force flag
-    CXMLNode getDeleteBranchRequest(const QString& sBranchName, bool bForce = false);
+    CXMLNode getDeleteBranchRequest(const QString& sBranchName, bool bForce = false, CEnums::EBranchType eType = CEnums::eBranch);
 
     //! Applies a delete-branch request to the local repository
     //! Returns eNone on success, the precise failure reason otherwise
