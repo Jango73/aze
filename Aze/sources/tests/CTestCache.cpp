@@ -295,10 +295,12 @@ void CTestCache::testCommitTreeListTextCache()
     sLogResult = exec({ CConstants::s_sSwitchLog, sTextCache });
     QVERIFY(sLogResult.contains("C2"));
 
-    // Parent identifiers persist in sharded text format through the destructor
+    // Parent identifiers persist in sharded text format through the destructor.
+    // The shard store always uses its own .xmlc extension, while
+    // s_sCompressedXMLExtension is .xml in debug builds, so expect the former
     QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
     QStringList lTextCaches = tCacheDir.entryList(
-        QStringList() << QString("Aze::CShardFileStore*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension), QDir::Files);
+        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_XMLC), QDir::Files);
     QVERIFY(not lTextCaches.isEmpty());
     QCOMPARE(tCacheDir.entryList(
         QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
