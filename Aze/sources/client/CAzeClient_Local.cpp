@@ -105,15 +105,9 @@ Aze::CError::EErrorCode CAzeClient::listTags()
     QDir tBranchFolder(m_pRepository->database()->branchPath());
     QFileInfoList lFiles = tBranchFolder.entryInfoList(lFilters, QDir::Files | QDir::NoSymLinks);
 
-    // Chop the known suffix instead of baseName, tag names hold dots
-    QString sSuffix = QString(".%1").arg(Aze::CStrings::s_sCompressedXMLExtension);
-
     for (const QFileInfo& tFile : lFiles)
     {
-        QString sName = tFile.fileName();
-
-        if (sName.endsWith(sSuffix))
-            sName.chop(sSuffix.count());
+        QString sName = Aze::CUtils::fileNameWithoutExtension(tFile.fileName(), Aze::CStrings::s_sCompressedXMLExtension);
 
         Aze::CBranch* pBranch = m_pRepository->database()->getBranch(sName, this);
 

@@ -113,6 +113,10 @@ public:
     //! 1st = file name, 2nd = diff
     static QList<QPair<QString, QString> > splitDiff(const QString& sFullDiff);
 
+    //! Returns sFileName without a trailing sExtension suffix
+    //! Keeps dotted names intact, unlike QFileInfo::baseName cutting at the first dot
+    static QString fileNameWithoutExtension(const QString& sFileName, const QString& sExtension);
+
     //-------------------------------------------------------------------------------------------------
     // Properties
     //-------------------------------------------------------------------------------------------------

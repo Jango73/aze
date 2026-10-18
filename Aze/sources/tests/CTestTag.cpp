@@ -57,6 +57,20 @@ void CTestTag::testCreateTag()
         QVERIFY(pTag->isTag());
         QCOMPARE(pTag->tipCommitId(), oRepository.tipCommit()->id());
         delete pTag;
+
+        // Dotted names stay intact through the branch folder listing
+        QVector<Aze::CBranch*> lAllBranches = oRepository.database()->getAllBranches(this);
+        bool bTagFound = false;
+
+        for (Aze::CBranch* pListedBranch : lAllBranches)
+        {
+            if (pListedBranch->isTag() && pListedBranch->tipCommitId() == oRepository.tipCommit()->id())
+                bTagFound = true;
+
+            delete pListedBranch;
+        }
+
+        QVERIFY(bTagFound);
     }
 
     LIST_TAGS(sResult);

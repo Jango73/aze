@@ -85,7 +85,7 @@ QVector<CBranch*> CDatabase::getAllBranches(QObject* parent)
 
     for (QFileInfo iFile : lFiles)
     {
-        lReturnValue << getBranch(iFile.baseName(), parent);
+        lReturnValue << getBranch(CUtils::fileNameWithoutExtension(iFile.fileName(), Aze::CStrings::s_sCompressedXMLExtension), parent);
     }
 
     return lReturnValue;

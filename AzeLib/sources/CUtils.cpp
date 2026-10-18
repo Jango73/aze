@@ -481,4 +481,22 @@ QList<QPair<QString, QString> > CUtils::splitDiff(const QString& sFullDiff)
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Returns \a sFileName without a trailing \a sExtension suffix. \br\br
+    Only a trailing ".extension" is removed so dotted names stay intact,
+    unlike QFileInfo::baseName cutting at the first dot. Names without
+    the suffix are returned unchanged. \br
+*/
+QString CUtils::fileNameWithoutExtension(const QString& sFileName, const QString& sExtension)
+{
+    QString sSuffix = QString(".%1").arg(sExtension);
+
+    if (sExtension.isEmpty() || not sFileName.endsWith(sSuffix))
+        return sFileName;
+
+    return sFileName.left(sFileName.count() - sSuffix.count());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 } // namespace Aze

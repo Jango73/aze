@@ -6,6 +6,7 @@
 
 // Application
 #include "CRemoteRepository.h"
+#include "CUtils.h"
 #include "commands/CPullCommand.h"
 #include "commands/CPushCommand.h"
 
@@ -540,7 +541,7 @@ QStringList CRemoteRepository::cloneBranchNames() const
     QFileInfoList lFiles = tBranchFolder.entryInfoList(lFilters, QDir::Files | QDir::NoSymLinks);
 
     for (const QFileInfo& tFile : lFiles)
-        lBranchNames << tFile.baseName();
+        lBranchNames << CUtils::fileNameWithoutExtension(tFile.fileName(), CStrings::s_sCompressedXMLExtension);
 
     return lBranchNames;
 }
