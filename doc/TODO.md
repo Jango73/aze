@@ -64,3 +64,37 @@
 - [x] TODO-047 - Implement `prune` mark-and-sweep in the engine with dry-run and a modification-time grace period because `deleteBranch`, `amend` and refused `CPushCommand` payloads leave unreachable commit and object files with no deletion path (`CCleanUpCommand` only reverts the working folder) and requests run in worker threads concurrent with a prune.
 - [x] TODO-048 - Trigger `prune` automatically with a conditional best-effort hook after `push` and `delete-branch` (threshold-gated, never failing the originating request) plus a periodic `QTimer` sweep over the repositories base path as complement, and expose a manual local `prune` for the server operator, because housekeeping must not depend on a manual client call, a timer alone lets repositories grow between passes, and no unprivileged network client may trigger deletion.
 - [x] TODO-049 - Add a `prune` test which creates dangling commits and objects via force `delete-branch` or `amend` then verifies only unreachable files are removed with reachable tips and referenced objects preserved.
+
+## Branch, tag and stash management
+- [ ] TODO-050 - Add a `list-branches` command which lists local branches with the current branch marked because `list-tags` exists and branches have no inventory command.
+- [ ] TODO-051 - Add a `rename-branch` command which renames the branch file and updates the current branch pointer because branches can only be created and deleted.
+
+## History rewriting and inspection
+- [ ] TODO-057 - Implement a `reset` command which moves the current branch tip to an arbitrary commit with working folder update because `revert` and `clean-up` restore files only from the tip commit.
+- [ ] TODO-058 - Implement a `revert-commit` command which records an inverse commit for a given identifier because the existing `revert` restores working folder files without recording history.
+- [ ] TODO-062 - Add `merge --abort` and `merge --continue` handling around conflict markers because a conflicted merge has no controlled exit or resume path.
+
+## Remote collaboration and server
+- [ ] TODO-064 - Add upstream tracking with push of all branches and tags plus guarded force push, and pull of all tracked branches, because `push` and `pull` operate on the current branch only and `push-tag` handles one tag at a time.
+- [ ] TODO-066 - Add repository creation and deletion through the server protocol with path confinement checks because the server serves only repositories created out of band.
+
+## Files, ignore rules and attributes
+- [ ] TODO-067 - Implement an ignore file read from the working folder which feeds the `eIgnored` status because the ignored state exists in `CEnums` with a `--ignored` filter and no producer assigns it.
+- [ ] TODO-068 - Preserve executable bit, symbolic link target and binary type through stage, commit, merge and checkout because object files store content only and platform attributes are lost.
+- [ ] TODO-069 - Add large file handling with out of band object storage or chunked transfer because every object file travels whole through push, pull and clone payloads.
+- [ ] TODO-070 - Define submodule or nested repository linkage because repositories cannot compose and nested `.aze` folders have no specified behavior.
+
+## Diff, patch and export
+- [ ] TODO-071 - Extend `diff` with staged comparison and summary output (`--cached`, `--stat`) because `diff` compares tip against working folder or two commits only.
+- [ ] TODO-072 - Extend `log` with filters by author, message text, date range and file path plus one line output because `log` supports only branch selection, graph display and pagination.
+- [ ] TODO-073 - Add commit series export and import (`format-patch`, `archive`, `bundle`) because `patch` applies a working folder diff and history cannot be exchanged as files.
+
+## Configuration and user experience
+- [ ] TODO-074 - Add persistent configuration for user identity, editor, aliases and default branch because author passes through `--author` on each `commit` and `amend` without stored defaults.
+- [ ] TODO-075 - Add client and server hooks around commit, merge, push and pull because automation has no extension point.
+- [ ] TODO-076 - Add copy detection to `move` and similarity based rename tracking across commits because only explicit moves preserve the object identifier.
+
+## Documentation, test coverage and platform support
+- [ ] TODO-077 - Document `clone`, `prune`, `serve` and `run-tests` in `README.md` because implemented commands remain absent from the client command reference.
+- [ ] TODO-078 - Add dedicated tests for status filter flags, log pagination, named stashes, `set-remote-host`, network `push` and `pull` through `CAzeClient`, automatic housekeeper prune and global help and version flags because `doc/FEATURES.md` marks each area as indirect coverage only.
+- [ ] TODO-079 - Provide build and service scripts beyond `scripts/linux` with continuous integration coverage because Linux shell scripts are the only supported build, test and serve path.

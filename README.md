@@ -61,13 +61,13 @@ Global options:
 * `--debug` : debug mode (tons of messages).
 * `--version` : show version number.
 
-### `aze init`
+### `init`
 Makes the current folder an Aze repository.
 ```
     aze init
 ```
 
-### `aze status`
+### `status`
 Shows status of files.
 ```
     aze status [files] [--all] [--loose] [--clean] [--modified] [--added] [--deleted] [--missing] [--ignored]
@@ -81,38 +81,38 @@ Shows status of files.
 * `--missing` : include missing files.
 * `--ignored` : include ignored files.
 
-### `aze stage`
+### `stage`
 Adds some files to the stage.
 ```
     aze stage <files>
 ```
 
-### `aze unstage`
+### `unstage`
 Removes some files from the stage.
 ```
     aze unstage <files>
 ```
 
-### `aze revert`
+### `revert`
 Reverts some files using tip commit.
 ```
     aze revert <files> [-d]
 ```
 * `-d`, `--allow-delete` : allow Aze to delete files.
 
-### `aze move`
+### `move`
 Moves some files.
 ```
     aze move
 ```
 
-### `aze remove`
+### `remove`
 Removes some files from tracking.
 ```
     aze remove <files>
 ```
 
-### `aze commit`
+### `commit`
 Creates a commit from the stage.
 ```
     aze commit [-a <author>] [-m <message>]
@@ -120,7 +120,7 @@ Creates a commit from the stage.
 * `-a`, `--author <author>` : set commit author.
 * `-m`, `--message <message>` : set commit message.
 
-### `aze amend`
+### `amend`
 Rewrites the tip commit with the staged files.
 ```
     aze amend [-a <author>] [-m <message>]
@@ -128,13 +128,13 @@ Rewrites the tip commit with the staged files.
 * `-a`, `--author <author>` : set commit author.
 * `-m`, `--message <message>` : set commit message.
 
-### `aze clean-up`
+### `clean-up`
 Clears the stage and reverts all files. Warning: loose files are deleted.
 ```
     aze clean-up
 ```
 
-### `aze log`
+### `log`
 Shows a log of a branch.
 ```
     aze log [branch] [-g] [-s <start>] [-c <count>]
@@ -143,7 +143,7 @@ Shows a log of a branch.
 * `-s`, `--start <start>` : begin listing after `<start>` items.
 * `-c`, `--count <count>` : list `<count>` items.
 
-### `aze diff`
+### `diff`
 Shows a diff between two commits or files.
 ```
     aze diff [<id-1>] [<id-2>]
@@ -153,106 +153,106 @@ Shows a diff between two commits or files.
 * with two commit ids : shows a diff between those two commits.
 * with a file name : shows a diff between the tip commit version and the working folder version of that file.
 
-### `aze create-branch`
+### `create-branch`
 Creates a branch.
 ```
     aze create-branch <branch-name>
 ```
 
-### `aze delete-branch`
+### `delete-branch`
 Deletes a branch.
 ```
     aze delete-branch <branch-name> [-f]
 ```
 * `-f`, `--force` : delete the branch even when it is not merged into the current branch.
 
-### `aze create-tag`
+### `create-tag`
 Creates a tag from the current branch tip.
 ```
     aze create-tag <tag-name>
 ```
 
-### `aze delete-tag`
+### `delete-tag`
 Deletes a tag.
 ```
     aze delete-tag <tag-name> [-f]
 ```
 * `-f`, `--force` : delete the tag even when it is not merged into the current branch.
 
-### `aze list-tags`
+### `list-tags`
 Lists the tags.
 ```
     aze list-tags
 ```
 
-### `aze set-branch`
+### `set-branch`
 Switches to a branch.
 ```
     aze set-branch <branch-name> [-d]
 ```
 * `-d`, `--allow-delete` : allow Aze to delete files.
 
-### `aze merge`
+### `merge`
 Merges a branch onto the current one.
 ```
     aze merge <branch-name>
 ```
 
-### `aze save-stash`
+### `save-stash`
 Saves changed files and cleans up the working folder.
 ```
     aze save-stash [stash-name]
 ```
 
-### `aze pop-stash`
+### `pop-stash`
 Restores the contents of a stash.
 ```
     aze pop-stash [stash-id]
 ```
 
-### `aze patch`
+### `patch`
 Applies a patch (diff) to the repository.
 ```
     aze patch <patch-files>
 ```
 
-### `aze set-remote-host`
+### `set-remote-host`
 Sets the remote host name for this repository (e.g. http://myhost.com:8080).
 ```
     aze set-remote-host <host-name>
 ```
 
-### `aze show`
+### `show`
 Dumps the content of a database object.
 ```
     aze show <ids>
 ```
 
-### `aze pull`
+### `pull`
 Gets remote changes from a server.
 ```
     aze pull
 ```
 
-### `aze push`
+### `push`
 Sends local changes to a server.
 ```
     aze push
 ```
 
-### `aze push-tag`
+### `push-tag`
 Sends a tag to a server.
 ```
     aze push-tag <tag-name>
 ```
 
-### `aze pull-tag`
+### `pull-tag`
 Gets a tag from a server.
 ```
     aze pull-tag <tag-name>
 ```
 
-### `aze help`
+### `help`
 Shows the help text.
 ```
     aze help
