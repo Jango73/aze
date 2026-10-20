@@ -1,6 +1,6 @@
 # Aze
 
-[![Build](https://github.com/Jango73/aze/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/Jango73/aze/actions/workflows/build.yml)
+[![Build](https://github.com/Jango73/aze/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Jango73/aze/actions/workflows/build.yml)
 
 A versioning system
 
