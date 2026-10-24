@@ -166,6 +166,18 @@ Deletes a branch.
 ```
 * `-f`, `--force` : delete the branch even when it is not merged into the current branch.
 
+### `list-branches`
+Lists the branches, marking the current branch with an asterisk.
+```
+    aze list-branches
+```
+
+### `rename-branch`
+Renames a branch, moving the current branch pointer when needed.
+```
+    aze rename-branch <old-name> <new-name>
+```
+
 ### `create-tag`
 Creates a tag from the current branch tip.
 ```

@@ -144,6 +144,20 @@
     QString("--%1").arg(SILENT_OR_DEBUG) \
     })
 
+#define LIST_BRANCHES(a) \
+    a = exec({ \
+    CConstants::s_sSwitchListBranches, \
+    QString("--%1").arg(SILENT_OR_DEBUG) \
+    })
+
+#define RENAME_BRANCH(a, b, c) \
+    a = exec({ \
+    CConstants::s_sSwitchRenameBranch, \
+    QString("--%1").arg(SILENT_OR_DEBUG), \
+    b, \
+    c \
+    })
+
 #define SWITCH_TO_BRANCH(a) \
     exec({ \
     CConstants::s_sSwitchSwitchToBranch, \

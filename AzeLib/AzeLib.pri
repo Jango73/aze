@@ -20,6 +20,8 @@ HEADERS += \
     sources/commands/CDumpCommand.h \
     sources/commands/CInitRepositoryCommand.h \
     sources/commands/CLogCommand.h \
+    sources/commands/CListBranchesCommand.h \
+    sources/commands/CListTagsCommand.h \
     sources/commands/CMergeCommand.h \
     sources/commands/CMoveCommand.h \
     sources/commands/CPatchCommand.h \
@@ -27,6 +29,7 @@ HEADERS += \
     sources/commands/CPruneCommand.h \
     sources/commands/CPullCommand.h \
     sources/commands/CPushCommand.h \
+    sources/commands/CRenameBranchCommand.h \
     sources/commands/CRemoveCommand.h \
     sources/commands/CRevertCommand.h \
     sources/commands/CSaveStashCommand.h \
@@ -78,6 +81,8 @@ SOURCES += \
     sources/commands/CDumpCommand.cpp \
     sources/commands/CInitRepositoryCommand.cpp \
     sources/commands/CLogCommand.cpp \
+    sources/commands/CListBranchesCommand.cpp \
+    sources/commands/CListTagsCommand.cpp \
     sources/commands/CMergeCommand.cpp \
     sources/commands/CMoveCommand.cpp \
     sources/commands/CPatchCommand.cpp \
@@ -85,6 +90,7 @@ SOURCES += \
     sources/commands/CPruneCommand.cpp \
     sources/commands/CPullCommand.cpp \
     sources/commands/CPushCommand.cpp \
+    sources/commands/CRenameBranchCommand.cpp \
     sources/commands/CRemoveCommand.cpp \
     sources/commands/CRevertCommand.cpp \
     sources/commands/CSaveStashCommand.cpp \

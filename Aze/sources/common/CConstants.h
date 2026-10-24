@@ -55,7 +55,9 @@ public:
         eCommandShowStatus,
         eCommandStage,
         eCommandSwitchToBranch,
+        eCommandListBranches,
         eCommandListTags,
+        eCommandRenameBranch,
         eCommandUnstage,
         eCommandUnknown,
     };
@@ -92,7 +94,9 @@ public:
     static const char* s_sSwitchShowStatus;
     static const char* s_sSwitchStage;
     static const char* s_sSwitchSwitchToBranch;
+    static const char* s_sSwitchListBranches;
     static const char* s_sSwitchListTags;
+    static const char* s_sSwitchRenameBranch;
     static const char* s_sSwitchUnstage;
     static const char* s_sSwitchVoid;
 

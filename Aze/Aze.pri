@@ -10,6 +10,7 @@ HEADERS += \
     sources/client/CAzeClientArguments.h \
     sources/common/CConstants.h \
     sources/tests/CTestAze.h \
+    sources/tests/CTestBranch.h \
     sources/tests/CTestCache.h \
     sources/tests/CTestDiffPatch.h \
     sources/tests/CTestFixture.h \
@@ -33,6 +34,7 @@ SOURCES += \
     sources/client/CAzeClientArguments.cpp \
     sources/common/CConstants.cpp \
     sources/tests/CTestAze.cpp \
+    sources/tests/CTestBranch.cpp \
     sources/tests/CTestCache.cpp \
     sources/tests/CTestDiffPatch.cpp \
     sources/tests/CTestFixture.cpp \

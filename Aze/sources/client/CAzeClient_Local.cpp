@@ -1,8 +1,6 @@
 
 // Qt
 #include <QDebug>
-#include <QDir>
-#include <QDirIterator>
 
 // qt-plus
 #include <CXMLNode.h>
@@ -99,25 +97,79 @@ Aze::CError::EErrorCode CAzeClient::listTags()
     // Repository sanity check
     RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
 
-    QStringList lFilters;
-    lFilters << QString("*.%1").arg(Aze::CStrings::s_sCompressedXMLExtension);
+    QStringList lNames;
+    RETURN_WHEN_ERROR(m_pRepository->listTags(&lNames), Aze::CError::eGeneric);
 
-    QDir tBranchFolder(m_pRepository->database()->branchPath());
-    QFileInfoList lFiles = tBranchFolder.entryInfoList(lFilters, QDir::Files | QDir::NoSymLinks);
+    for (const QString& sName : lNames)
+        (*m_pOutStream) << sName << "\n";
 
-    for (const QFileInfo& tFile : lFiles)
+    m_pOutStream->flush();
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/************************************************************************/
+
+/*!
+    Lists the local branches. \br\br
+    Tags share the branch folder but are never listed here. The current
+    branch is marked with an asterisk, other branches with two spaces. \br
+*/
+Aze::CError::EErrorCode CAzeClient::listBranches()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    QStringList lNames;
+    RETURN_WHEN_ERROR(m_pRepository->listBranches(&lNames), Aze::CError::eGeneric);
+
+    QString sCurrentBranchName = m_pRepository->currentBranchName();
+
+    for (const QString& sName : lNames)
     {
-        QString sName = Aze::CUtils::fileNameWithoutExtension(tFile.fileName(), Aze::CStrings::s_sCompressedXMLExtension);
-
-        Aze::CBranch* pBranch = m_pRepository->database()->getBranch(sName, this);
-
-        if (IS_NOT_NULL(pBranch) && pBranch->isTag())
-            (*m_pOutStream) << sName << "\n";
-
-        delete pBranch;
+        if (sName == sCurrentBranchName)
+            (*m_pOutStream) << QStringLiteral("* ") << sName << "\n";
+        else
+            (*m_pOutStream) << QStringLiteral("  ") << sName << "\n";
     }
 
     m_pOutStream->flush();
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/************************************************************************/
+
+/*!
+    Renames a branch. \br\br
+    The engine moves the branch file and the current branch pointer when
+    the renamed branch is checked out. The general information file is
+    written so the moved pointer survives the next repository load. \br
+*/
+Aze::CError::EErrorCode CAzeClient::renameBranch()
+{
+    // Repository sanity check
+    RETURN_WHEN_FALSE(isASainRepository(), Aze::CError::eNotARepository);
+
+    if (m_tArguments.m_lFilesAndIds.count() < 2)
+    {
+        OUT_ERROR(Aze::CError::message(Aze::CError::eNoBranchNameGiven));
+        return Aze::CError::eNoBranchNameGiven;
+    }
+
+    QString sOldName = m_tArguments.m_lFilesAndIds[0];
+    QString sNewName = m_tArguments.m_lFilesAndIds[1];
+
+    Aze::CError::EErrorCode eCode = m_pRepository->renameBranch(sOldName, sNewName);
+
+    if (eCode != Aze::CError::eNone)
+        return eCode;
+
+    RETURN_WHEN_ERROR(m_pRepository->writeGeneralInformation(), Aze::CError::eCouldNotWriteGeneralInformation);
 
     return Aze::CError::eNone;
 }

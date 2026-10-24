@@ -19,12 +19,15 @@
 #include "commands/CDumpCommand.h"
 #include "commands/CInitRepositoryCommand.h"
 #include "commands/CLogCommand.h"
+#include "commands/CListBranchesCommand.h"
+#include "commands/CListTagsCommand.h"
 #include "commands/CMergeCommand.h"
 #include "commands/CMoveCommand.h"
 #include "commands/CPatchCommand.h"
 #include "commands/CPopStashCommand.h"
 #include "commands/CPruneCommand.h"
 #include "commands/CRemoveCommand.h"
+#include "commands/CRenameBranchCommand.h"
 #include "commands/CRevertCommand.h"
 #include "commands/CSaveStashCommand.h"
 #include "commands/CSetRemoteHostCommand.h"
@@ -168,6 +171,39 @@ CError::EErrorCode CRepository::deleteBranch(const QString& sName, bool bForce)
 CError::EErrorCode CRepository::deleteTag(const QString& sName, bool bForce)
 {
     return CDeleteTagCommand(this, sName, bForce).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Renames the branch \a sOldName to \a sNewName. \br\br
+    Moves the current branch pointer when the renamed branch is checked out. \br
+*/
+CError::EErrorCode CRepository::renameBranch(const QString& sOldName, const QString& sNewName)
+{
+    return CRenameBranchCommand(this, sOldName, sNewName).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Lists local branch names into \a pNames. \br\br
+    Tags share the branch folder but are never listed here. \br
+*/
+CError::EErrorCode CRepository::listBranches(QStringList* pNames)
+{
+    return CListBranchesCommand(this, pNames).execute();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Lists local tag names into \a pNames. \br\br
+    Branches sharing the tag namespace are never listed here. \br
+*/
+CError::EErrorCode CRepository::listTags(QStringList* pNames)
+{
+    return CListTagsCommand(this, pNames).execute();
 }
 
 //-------------------------------------------------------------------------------------------------

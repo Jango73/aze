@@ -110,6 +110,15 @@ public:
     //! bForce deletes a tag not merged into the current branch
     CError::EErrorCode deleteTag(const QString& sName, bool bForce = false);
 
+    //! Renames the branch sOldName to sNewName, moving the current branch pointer when needed
+    CError::EErrorCode renameBranch(const QString& sOldName, const QString& sNewName);
+
+    //! Lists local branch names into pNames, tags excluded, sorted case-insensitively
+    CError::EErrorCode listBranches(QStringList* pNames);
+
+    //! Lists local tag names into pNames, branches excluded, sorted case-insensitively
+    CError::EErrorCode listTags(QStringList* pNames);
+
     //! Sets the current branch to sName
     CError::EErrorCode switchToBranch(const QString& sName, bool bAllowFileDelete = false);
 

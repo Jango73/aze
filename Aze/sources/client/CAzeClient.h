@@ -71,6 +71,12 @@ public:
     //! Lists the tags
     Aze::CError::EErrorCode listTags();
 
+    //! Lists the branches, marking the current branch
+    Aze::CError::EErrorCode listBranches();
+
+    //! Renames a branch and moves the current branch pointer when needed
+    Aze::CError::EErrorCode renameBranch();
+
     //! Switches to a branch
     Aze::CError::EErrorCode switchToBranch();
 

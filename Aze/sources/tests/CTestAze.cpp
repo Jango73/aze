@@ -2,6 +2,7 @@
 // Application
 #include "CTestAze.h"
 #include "CTestWorkflow.h"
+#include "CTestBranch.h"
 #include "CTestMerge.h"
 #include "CTestDiffPatch.h"
 #include "CTestRemote.h"
@@ -38,6 +39,11 @@ int CTestAze::runAllTests()
 
     {
         CTestWorkflow oTest(m_sArgument0);
+        iStatus |= QTest::qExec(&oTest);
+    }
+
+    {
+        CTestBranch oTest(m_sArgument0);
         iStatus |= QTest::qExec(&oTest);
     }
 

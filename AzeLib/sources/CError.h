@@ -90,9 +90,10 @@ public:
         eCouldNotCreateTag                    = 0x3F,
         eCouldNotDeleteTag                    = 0x40,
         eNoTagNameGiven                       = 0x41,
-        eTagAlreadyExists                     = 0x42,
+        eTagAlreadyExists                       = 0x42,
         eTagDoesNotExist                      = 0x43,
-        eTagMoveRefused                       = 0x44
+        eTagMoveRefused                       = 0x44,
+        eCouldNotRenameBranch                 = 0x45
     };
 
     Q_ENUM(EErrorCode)

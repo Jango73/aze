@@ -66,8 +66,8 @@
 - [x] TODO-049 - Add a `prune` test which creates dangling commits and objects via force `delete-branch` or `amend` then verifies only unreachable files are removed with reachable tips and referenced objects preserved.
 
 ## Branch, tag and stash management
-- [ ] TODO-050 - Add a `list-branches` command which lists local branches with the current branch marked because `list-tags` exists and branches have no inventory command.
-- [ ] TODO-051 - Add a `rename-branch` command which renames the branch file and updates the current branch pointer because branches can only be created and deleted.
+- [x] TODO-050 - Add a `list-branches` command which lists local branches with the current branch marked because `list-tags` exists and branches have no inventory command.
+- [x] TODO-051 - Add a `rename-branch` command which renames the branch file and updates the current branch pointer because branches can only be created and deleted.
 
 ## History rewriting and inspection
 - [ ] TODO-057 - Implement a `reset` command which moves the current branch tip to an arbitrary commit with working folder update because `revert` and `clean-up` restore files only from the tip commit.

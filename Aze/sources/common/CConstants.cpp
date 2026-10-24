@@ -40,7 +40,9 @@ const char* CConstants::s_sSwitchSetRemoteHost              = "set-remote-host";
 const char* CConstants::s_sSwitchShowStatus                 = "status";
 const char* CConstants::s_sSwitchStage                      = "stage";
 const char* CConstants::s_sSwitchSwitchToBranch             = "set-branch";
+const char* CConstants::s_sSwitchListBranches              = "list-branches";
 const char* CConstants::s_sSwitchListTags                   = "list-tags";
+const char* CConstants::s_sSwitchRenameBranch              = "rename-branch";
 const char* CConstants::s_sSwitchUnstage                    = "unstage";
 
 //-------------------------------------------------------------------------------------------------
@@ -129,7 +131,9 @@ void CConstants::initCommandMap()
     s_mCommands[CConstants::s_sSwitchShowStatus]        = CConstants::eCommandShowStatus;
     s_mCommands[CConstants::s_sSwitchStage]             = CConstants::eCommandStage;
     s_mCommands[CConstants::s_sSwitchSwitchToBranch]    = CConstants::eCommandSwitchToBranch;
+    s_mCommands[CConstants::s_sSwitchListBranches]       = CConstants::eCommandListBranches;
     s_mCommands[CConstants::s_sSwitchListTags]          = CConstants::eCommandListTags;
+    s_mCommands[CConstants::s_sSwitchRenameBranch]      = CConstants::eCommandRenameBranch;
     s_mCommands[CConstants::s_sSwitchUnstage]           = CConstants::eCommandUnstage;
     s_mCommands[CConstants::s_sSwitchVoid]              = CConstants::eCommandNone;
 
@@ -162,6 +166,8 @@ void CConstants::initCommandMap()
     s_mHelp[CConstants::s_sSwitchShowStatus]            = tr("Shows status of files.");
     s_mHelp[CConstants::s_sSwitchStage]                 = tr("Adds some files to the staged.");
     s_mHelp[CConstants::s_sSwitchSwitchToBranch]        = tr("Switches to a branch.");
+    s_mHelp[CConstants::s_sSwitchListBranches]          = tr("Lists the branches, marking the current branch with an asterisk.");
     s_mHelp[CConstants::s_sSwitchListTags]              = tr("Lists the tags.");
+    s_mHelp[CConstants::s_sSwitchRenameBranch]          = tr("Renames a branch.");
     s_mHelp[CConstants::s_sSwitchUnstage]               = tr("Removes some files from the stage.");
 }

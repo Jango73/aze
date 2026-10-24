@@ -100,7 +100,9 @@ Aze::CError::EErrorCode CAzeClient::run()
     case CConstants::eCommandShowStatus:        return status();
     case CConstants::eCommandStage:             return stage();
     case CConstants::eCommandSwitchToBranch:    return switchToBranch();
+    case CConstants::eCommandListBranches:       return listBranches();
     case CConstants::eCommandListTags:          return listTags();
+    case CConstants::eCommandRenameBranch:      return renameBranch();
     case CConstants::eCommandUnstage:           return unstage();
 
     // Remote commands
