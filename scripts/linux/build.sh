@@ -6,14 +6,18 @@ PROJECT_ROOT_FOLDER="$(cd "${SCRIPT_FOLDER}/../.." && pwd)"
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
+VERBOSE_ENABLED=1
+VERBOSE_DISABLED=0
 
 BUILD_TYPE="Release"
+VERBOSE_BUILD="${VERBOSE_DISABLED}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./build.sh [--debug|--release] [-d|-r] [-c Debug|Release]
+Usage: ./build.sh [--debug|--release] [-d|-r] [--verbose|-v] [-c Debug|Release] [-h|--help]
   --debug,   -d  Build type Debug
   --release, -r  Build type Release (default)
+  --verbose, -v  Verbose build output
   -c             Build type (Debug or Release)
 USAGE
 }
@@ -26,6 +30,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --release|-r)
       BUILD_TYPE="Release"
+      shift
+      ;;
+    --verbose|-v)
+      VERBOSE_BUILD="${VERBOSE_ENABLED}"
       shift
       ;;
     -c)
@@ -66,8 +74,17 @@ if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
   exit "${EXIT_FAILURE}"
 fi
 
-if ! command -v qmake6 >/dev/null 2>&1; then
-  echo "[build] qmake6 not found, run ./scripts/linux/deps.sh first." >&2
+# Find qmake executable (prefer Qt6)
+QMAKE=""
+for candidate in qmake6 qmake-qt6 qmake; do
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    QMAKE="${candidate}"
+    break
+  fi
+done
+
+if [[ -z "${QMAKE}" ]]; then
+  echo "[build] qmake not found, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"
 fi
 
@@ -77,7 +94,11 @@ mkdir -p "${BUILD_DIR}"
 # reflect submodule or project file changes while keeping object files.
 rm -f "${BUILD_DIR}/Makefile" "${BUILD_DIR}/AzeLib/Makefile" "${BUILD_DIR}/Aze/Makefile"
 
-qmake6 -o "${BUILD_DIR}/Makefile" "${PROJECT_ROOT_FOLDER}/Aze.pro" "CONFIG+=${QMAKE_CONFIG}"
-make -C "${BUILD_DIR}" -j"$(nproc)"
+"${QMAKE}" -o "${BUILD_DIR}/Makefile" "${PROJECT_ROOT_FOLDER}/Aze.pro" "CONFIG+=${QMAKE_CONFIG}"
+if [ "${VERBOSE_BUILD}" -eq "${VERBOSE_ENABLED}" ]; then
+  make -C "${BUILD_DIR}" -j"$(nproc)" VERBOSE=1
+else
+  make -C "${BUILD_DIR}" -j"$(nproc)"
+fi
 
 printf '\nBuilt target in %s\n' "${BUILD_DIR}"

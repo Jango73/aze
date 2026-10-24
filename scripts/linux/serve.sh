@@ -210,7 +210,7 @@ fi
 
 SERVE_ARGS+=("${FORWARD_ARGS[@]}")
 
-mkdir -p "${PROJECT_ROOT_FOLDER}/tmp"
+mkdir -p "$(dirname "${LOG_FILE}")"
 echo "[serve] Logging to ${LOG_FILE}"
 LD_LIBRARY_PATH="${BUILD_FOLDER}/AzeLib/bin" \
   exec "${BINARY}" "${SERVE_ARGS[@]}" 2>&1 | tee "${LOG_FILE}"
