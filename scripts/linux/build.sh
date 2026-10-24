@@ -83,6 +83,15 @@ fi
 
 echo "Using cmake: $(command -v cmake)"
 
+# Build stamp: regenerated on every build so a running binary can always be identified
+# Written to the build folder (never to the source tree), consumed via the binary dir include path
+# main.cpp is touched so the new stamp is always compiled in
+BUILD_STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+mkdir -p "${BUILD_DIR}" "${BUILD_DIR}/Aze"
+printf '#pragma once\n#define BUILD_TIMESTAMP "%s"\n' "${BUILD_STAMP}" > "${BUILD_DIR}/Aze/BuildInfo.h"
+touch "${PROJECT_ROOT_FOLDER}/Aze/sources/main.cpp"
+echo "Build stamp: ${BUILD_STAMP}"
+
 echo "Running cmake with build type ${BUILD_TYPE}..."
 cmake -S "${PROJECT_ROOT_FOLDER}" -B "${BUILD_DIR}" -G Ninja -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 if [ "${VERBOSE_BUILD}" -eq "${VERBOSE_ENABLED}" ]; then
