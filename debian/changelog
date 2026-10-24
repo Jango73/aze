@@ -1,3 +1,42 @@
+aze (2.0.0) unstable; urgency=low
+
+  * Remote push transfers missing commits and unshared objects only after
+    an announce round-trip; rewritten or unknown tips are refused and
+    converged branches are no-ops.
+  * Remote pull carries the local tip and applies missing commits and
+    unshared objects only, with full-history fallback and three-way merge
+    on divergent tips.
+  * Tag support through branch specialization: create-tag, delete-tag,
+    list-tags, push-tag and pull-tag reuse the branch protocol with object
+    type attributes; tag moves are refused and tag names are rejected by
+    branch commands.
+  * New branch commands list-branches (current branch marked) and
+    rename-branch (current pointer moved), backed by engine list operations
+    in CRepository.
+  * Tag tip resolution moved into CRemoteRepository; client bypass of the
+    command layer is forbidden.
+  * Default branch renamed from master to main; branch listings no longer
+    truncate dotted names.
+  * Cache shard base renamed to cache with a centralized file base name.
+  * Documentation merged from FEATURES.md into Aze.md with a feature to
+    test coverage table and cache structure description; server security
+    report added.
+  * Server hardening: CAzeServerProcessor decoupled from CAzeServer,
+    explicit --bind-address and mandatory --base-path with canonical
+    resolution and traversal protection, POST body and push payload limits;
+    serve.sh binds 127.0.0.1 and serves the current folder explicitly.
+  * Mutual TLS for portal deployments: aze serve --ssl-verify-peer with
+    --ssl-ca over a TLS 1.2 floor, peers without a certificate dropped;
+    serve.sh gains --verify-peer and --ca on the hardened qt-plus
+    CHTTPServer.
+  * Packaging and release tooling: scripts/linux/package.sh and
+    scripts/linux/release-version.sh added; dead Qt5 deploy plumbing
+    removed.
+  * Tooling: perf-history.sh supports multi-file random history; the
+    massive test exercises intermittent pushes with remote verification.
+
+ -- Jango73 <guillaumed00@gmail.com>  Sat, 24 Oct 2026 19:51:56 +0200
+
 aze (1.0.0) unstable; urgency=low
 
   * Initial Debian packaging, single binary client and server.

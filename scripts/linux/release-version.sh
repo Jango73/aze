@@ -78,14 +78,22 @@ prompt_new_version() {
   printf '%s\n' "${candidate_version}"
 }
 
-ensure_tag_does_not_exist() {
+confirm_tag_overwrite() {
   local new_version="$1"
   local tag_name="v${new_version}"
+  local answer=""
 
-  if git -C "${PROJECT_ROOT_FOLDER}" rev-parse --verify --quiet "refs/tags/${tag_name}" >/dev/null; then
-    echo "Tag already exists: ${tag_name}" >&2
-    exit "${EXIT_FAILURE}"
+  if ! git -C "${PROJECT_ROOT_FOLDER}" rev-parse --verify --quiet "refs/tags/${tag_name}" >/dev/null; then
+    return 0
   fi
+
+  read -r -p "Tag ${tag_name} already exists. Overwrite? [y/N]: " answer
+  if [[ "${answer,,}" == "y" || "${answer,,}" == "yes" ]]; then
+    return 0
+  fi
+
+  echo "Operation cancelled." >&2
+  exit "${EXIT_SUCCESS}"
 }
 
 update_version_in_tracked_text_files() {
@@ -121,7 +129,7 @@ create_release_commit_and_tag() {
 
   git -C "${PROJECT_ROOT_FOLDER}" add -A
   git -C "${PROJECT_ROOT_FOLDER}" commit -m "Release ${new_version}"
-  git -C "${PROJECT_ROOT_FOLDER}" tag "${tag_name}"
+  git -C "${PROJECT_ROOT_FOLDER}" tag -f "${tag_name}"
 
   printf 'Created commit and tag %s\n' "${tag_name}"
 }
@@ -147,7 +155,7 @@ main() {
   current_version="$(read_current_version)"
   new_version="$(prompt_new_version "${current_version}")"
 
-  ensure_tag_does_not_exist "${new_version}"
+  confirm_tag_overwrite "${new_version}"
   update_version_in_tracked_text_files "${current_version}" "${new_version}"
   ensure_version_changed
   create_release_commit_and_tag "${new_version}"
