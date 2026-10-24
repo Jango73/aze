@@ -17,7 +17,7 @@ qmake for Qt6 (see `README.md`). Layout:
   build; the reference Linux build is qmake6 + make via `scripts/linux/`.
 
 ## Main rule
-**If the guidelines below are not followed, all modifications will be rejected.**
+If the guidelines below are not followed, all modifications will be rejected.
 
 ## Communication Guidelines
 - NEVER use emojis in responses.
@@ -27,12 +27,13 @@ qmake for Qt6 (see `README.md`). Layout:
 - NEVER create a commit unless the user explicitly asks for it in the current conversation.
 
 ## Architecture and Reuse Rules
-- Bidirectional coupling is **STRICTLY FORBIDDEN**, both when writing code from scratch and when delivering a fix. Keep dependencies unidirectional and break cycles instead of introducing or preserving them.
+- Bidirectional coupling is STRICTLY FORBIDDEN, both when writing code from scratch and when delivering a fix. Keep dependencies unidirectional and break cycles instead of introducing or preserving them.
 - `Aze` (client/server/tests) depends on `AzeLib`, never the reverse.
 - Any behavior likely to appear in multiple places MUST be implemented as a reusable module in `AzeLib` or `qt-plus`, not duplicated in the application.
-- **Container usage**: use Qt containers (`QVector`, `QMap`, `QStringList`) where they exist. Do not introduce custom linked-list infrastructure.
-- **Public headers**: keep `AzeLib` headers downstream-safe (no internals leaking into the include surface).
-- **No globals**: Before adding a global variable, **ALWAYS ASK** if permitted.
+- Container usage: use Qt containers (`QVector`, `QMap`, `QStringList`) where they exist. Do not introduce custom linked-list infrastructure.
+- Public headers: keep `AzeLib` headers downstream-safe (no internals leaking into the include surface).
+- No globals: Before adding a global variable, ALWAYS ASK if permitted.
+- Command pattern: every user-facing operation MUST go through a command class in `AzeLib` (`C*Command`, invoked via `CRepository` or `CRemoteRepository`). Bypassing the command layer from `Aze` (direct `database()` access, duplicated domain logic in the client) is STRICTLY FORBIDDEN, both when writing code from scratch and when delivering a fix. `CAzeClient` only parses arguments, orchestrates calls and formats output.
 
 ## Test Isolation Rules
 - `CTestAze` manipulates and DELETES files by design. It MUST run in an
@@ -46,24 +47,24 @@ qmake for Qt6 (see `README.md`). Layout:
 - `.aze` folders are generated test repositories: NEVER commit them.
 
 ## Coding Conventions
-- **Types**: Use Qt types (`QString`, `QMap`, ...) where they exist instead of introducing parallel raw-C representations.
-- **Dependencies**: This is a Qt user-space project. Qt and the STL are allowed. Do NOT add new third-party libraries/modules (vendored or system) without asking.
-- **TEXT literals**: Write log/UI messages directly as `QString`.
-- **Declaration order**: Group declarations by type. 1: macros / 2: type definitions / 3: inline functions / 4: external functions / 5: other
-- **Function order**: DO NOT OVERUSE forward declarations. Define functions before they are used.
-- **I18n**: Write comments, console output and technical doc in english.
-- **Naming**: PascalCase for classes/variables/members (`C`-prefixed classes, `m_`/`g_`/`p_` prefixes as in the existing code), SCREAMING_SNAKE_CASE for structs/defines.
-- **Naming clarity**: In addition to using full words, every name must express its intent clearly and without ambiguity.
-- **Comments**: For single-line comments, use `//`, not `/*`.
-- **Style**: 4-space indentation. Match surrounding code instead of reformatting whole files.
-- **Numbers**: Hexadecimal for constant numbers, except for sizes, vectors, points and time.
-- **Number suffixes**: Do not add numeric suffixes like `u` to constants; they are not wanted here.
-- **Documentation wording**: Use timeless technical wording. Do not use temporal terms like "now", "currently", "at this time" in documentation/comments.
-- **Languages**: C++ for the engine and the test suite, avoid Python.
-- **Unused parameters**: Use `Q_UNUSED()` to suppress the "unused parameter" warning.
-- **Functions**: Add a doxygen header to functions and separate all functions with a 75 character line such as : /************************************************************************/
-- **File size**: Keep source files under 1000 lines; split by responsibility before crossing this limit.
-- **Vocabulary**:
+- Types: Use Qt types (`QString`, `QMap`, ...) where they exist instead of introducing parallel raw-C representations.
+- Dependencies: This is a Qt user-space project. Qt and the STL are allowed. Do NOT add new third-party libraries/modules (vendored or system) without asking.
+- TEXT literals: Write log/UI messages directly as `QString`.
+- Declaration order: Group declarations by type. 1: macros / 2: type definitions / 3: inline functions / 4: external functions / 5: other
+- Function order: DO NOT OVERUSE forward declarations. Define functions before they are used.
+- I18n: Write comments, console output and technical doc in english.
+- Naming: PascalCase for classes/variables/members (`C`-prefixed classes, `m_`/`g_`/`p_` prefixes as in the existing code), SCREAMING_SNAKE_CASE for structs/defines.
+- Naming clarity: In addition to using full words, every name must express its intent clearly and without ambiguity.
+- Comments: For single-line comments, use `//`, not `/*`.
+- Style: 4-space indentation. Match surrounding code instead of reformatting whole files.
+- Numbers: Hexadecimal for constant numbers, except for sizes, vectors, points and time.
+- Number suffixes: Do not add numeric suffixes like `u` to constants; they are not wanted here.
+- Documentation wording: Use timeless technical wording. Do not use temporal terms like "now", "currently", "at this time" in documentation/comments.
+- Languages: C++ for the engine and the test suite, avoid Python.
+- Unused parameters: Use `Q_UNUSED()` to suppress the "unused parameter" warning.
+- Functions: Add a doxygen header to functions and separate all functions with a 75 character line such as : //
+- File size: Keep source files under 1000 lines; split by responsibility before crossing this limit.
+- Vocabulary:
   - NEVER use abbreviations; ALWAYS use full words (acronyms are OK).
   - No figurative language: respect the repository vocabulary, use every word
     in its primary (literal) sense. Name things for what they are, not for

@@ -9,7 +9,6 @@
 
 // Aze
 #include "CRemoteRepository.h"
-#include "objects/CBranch.h"
 
 // Application
 #include "CAzeClient.h"
@@ -104,16 +103,7 @@ Aze::CError::EErrorCode CAzeClient::pullTag()
 
     QString sTagName = m_tArguments.m_lFilesAndIds[0];
 
-    // The local tip travels when the tag exists, empty pulls everything
-    QString sLocalTipId;
-    Aze::CBranch* pLocalTag = m_pRepository->database()->getBranch(sTagName, this);
-
-    if (IS_NOT_NULL(pLocalTag) && pLocalTag->isTag())
-        sLocalTipId = pLocalTag->tipCommitId();
-
-    delete pLocalTag;
-
-    CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPullRequestFor(sTagName, sLocalTipId);
+    CXMLNode xRequest = Aze::CRemoteRepository(m_pRepository).getPullTagRequest(sTagName);
 
     postNetworkRequest(xRequest);
 
@@ -151,23 +141,19 @@ Aze::CError::EErrorCode CAzeClient::pushTag()
 
     QString sTagName = m_tArguments.m_lFilesAndIds[0];
 
-    Aze::CBranch* pLocalTag = m_pRepository->database()->getBranch(sTagName, this);
-
-    if (IS_NULL(pLocalTag) || not pLocalTag->isTag())
-    {
-        OUT_ERROR(Aze::CError::message(Aze::CError::eTagDoesNotExist, sTagName));
-        delete pLocalTag;
-        return Aze::CError::eTagDoesNotExist;
-    }
-
-    QString sRootId = pLocalTag->rootCommitId();
-    QString sTipId = pLocalTag->tipCommitId();
-    delete pLocalTag;
-
     Aze::CRemoteRepository oRemoteRepository(m_pRepository);
 
     // Phase 1: announce the tag tip so the server answers its own tip
-    CXMLNode xAnnounce = oRemoteRepository.getPushAnnounceFor(sTagName, sTipId);
+    CXMLNode xAnnounce;
+    QString sDetail;
+    Aze::CError::EErrorCode eAnnounceBuildCode = oRemoteRepository.getPushTagAnnounce(sTagName, xAnnounce, sDetail);
+
+    if (eAnnounceBuildCode != Aze::CError::eNone)
+    {
+        OUT_ERROR(Aze::CError::message(eAnnounceBuildCode, sDetail));
+
+        return eAnnounceBuildCode;
+    }
 
     postNetworkRequest(xAnnounce);
 
@@ -179,16 +165,23 @@ Aze::CError::EErrorCode CAzeClient::pushTag()
     // Old servers know push only, fall back to the full history request
     if (eAnnounceCode == Aze::CError::eUnknownAction)
     {
-        CXMLNode xFallback = oRemoteRepository.getPushRequestFor(sTagName, sRootId, sTipId, Aze::CEnums::eTag);
+        CXMLNode xFallback;
+        Aze::CError::EErrorCode eFallbackBuildCode = oRemoteRepository.getPushTagRequest(sTagName, xFallback, sDetail);
+
+        if (eFallbackBuildCode != Aze::CError::eNone)
+        {
+            OUT_ERROR(Aze::CError::message(eFallbackBuildCode, sDetail));
+
+            return eFallbackBuildCode;
+        }
 
         return postNetworkRequest(xFallback);
     }
 
     // Phase 2: send missing commits only
     CXMLNode xData;
-    QString sDetail;
-    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushDataRequestForAnnounceResponse(
-                sTagName, sRootId, sTipId, Aze::CEnums::eTag, m_xLastResponse, xData, sDetail);
+    Aze::CError::EErrorCode eBuildCode = oRemoteRepository.buildPushTagDataRequestFromAnnounceResponse(
+                sTagName, m_xLastResponse, xData, sDetail);
 
     if (eBuildCode != Aze::CError::eNone)
     {

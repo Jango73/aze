@@ -54,6 +54,21 @@ CXMLNode CRemoteRepository::getPullRequestFor(const QString& sName, const QStrin
     return xRequest;
 }
 
+/*!
+    Returns the pull request for \a sTagName. \br\br
+    The local tip is resolved internally, unknown tags carry an empty
+    tip so the server sends everything. \br
+*/
+CXMLNode CRemoteRepository::getPullTagRequest(const QString& sTagName)
+{
+    QString sRootId;
+    QString sTipId;
+
+    localTagEndpoints(sTagName, sRootId, sTipId);
+
+    return getPullRequestFor(sTagName, sTipId);
+}
+
 //-------------------------------------------------------------------------------------------------
 
 CXMLNode CRemoteRepository::getPushRequest()
@@ -126,6 +141,77 @@ CXMLNode CRemoteRepository::getPushAnnounceFor(const QString& sName, const QStri
     xAnnounce.attributes()[CStrings::s_sParamTip] = sTipId;
 
     return xAnnounce;
+}
+
+/*!
+    Returns the push announce for \a sTagName. \br\br
+    Root and tip are resolved internally, \a sDetail carries the tag
+    name when \a sTagName addresses no tag. \br
+*/
+CError::EErrorCode CRemoteRepository::getPushTagAnnounce(const QString& sTagName, CXMLNode& xAnnounce, QString& sDetail)
+{
+    QString sRootId;
+    QString sTipId;
+
+    CError::EErrorCode eErrorCode = localTagEndpoints(sTagName, sRootId, sTipId);
+
+    if (eErrorCode != CError::eNone)
+    {
+        sDetail = sTagName;
+
+        return eErrorCode;
+    }
+
+    xAnnounce = getPushAnnounceFor(sTagName, sTipId);
+
+    return CError::eNone;
+}
+
+/*!
+    Returns the push request for \a sTagName. \br\br
+    Root and tip are resolved internally, \a sDetail carries the tag
+    name when \a sTagName addresses no tag. \br
+*/
+CError::EErrorCode CRemoteRepository::getPushTagRequest(const QString& sTagName, CXMLNode& xRequest, QString& sDetail)
+{
+    QString sRootId;
+    QString sTipId;
+
+    CError::EErrorCode eErrorCode = localTagEndpoints(sTagName, sRootId, sTipId);
+
+    if (eErrorCode != CError::eNone)
+    {
+        sDetail = sTagName;
+
+        return eErrorCode;
+    }
+
+    xRequest = getPushRequestFor(sTagName, sRootId, sTipId, CEnums::eTag);
+
+    return CError::eNone;
+}
+
+/*!
+    Builds the push data request for \a sTagName from an announce response. \br\br
+    Root and tip are resolved internally so the announce and data phases
+    share one sequence, \a sDetail carries the tag name when \a sTagName
+    addresses no tag. \br
+*/
+CError::EErrorCode CRemoteRepository::buildPushTagDataRequestFromAnnounceResponse(const QString& sTagName, const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail)
+{
+    QString sRootId;
+    QString sTipId;
+
+    CError::EErrorCode eErrorCode = localTagEndpoints(sTagName, sRootId, sTipId);
+
+    if (eErrorCode != CError::eNone)
+    {
+        sDetail = sTagName;
+
+        return eErrorCode;
+    }
+
+    return buildPushDataRequestForAnnounceResponse(sTagName, sRootId, sTipId, CEnums::eTag, xAnnounceResponse, xDataRequest, sDetail);
 }
 
 /************************************************************************/
@@ -315,6 +401,32 @@ CError::EErrorCode CRemoteRepository::buildPushDataRequestForAnnounceResponse(co
     QString sServerTipId = xAnnounceResponse.attributes()[CStrings::s_sParamTip];
 
     return buildPushDataRequestFor(sName, sRootId, sTipId, eType, sServerTipId, xDataRequest, sDetail);
+}
+
+/************************************************************************/
+
+/*!
+    Resolves the root and tip commit identifiers of \a sTagName. \br\br
+    Returns eTagDoesNotExist when \a sTagName addresses no tag, the branch
+    storage is shared so the type check excludes branches. \br
+*/
+CError::EErrorCode CRemoteRepository::localTagEndpoints(const QString& sTagName, QString& sRootId, QString& sTipId) const
+{
+    CBranch* pLocalTag = m_pLocalRepository->database()->getBranch(sTagName, nullptr);
+
+    if (IS_NULL(pLocalTag) || not pLocalTag->isTag())
+    {
+        delete pLocalTag;
+
+        return CError::eTagDoesNotExist;
+    }
+
+    sRootId = pLocalTag->rootCommitId();
+    sTipId = pLocalTag->tipCommitId();
+
+    delete pLocalTag;
+
+    return CError::eNone;
 }
 
 /************************************************************************/

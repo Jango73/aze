@@ -55,6 +55,10 @@ public:
     //! Returns the pull request for a named branch or tag
     CXMLNode getPullRequestFor(const QString& sName, const QString& sTipId);
 
+    //! Returns the pull request for a tag, resolving the local tip internally
+    //! Unknown tags carry an empty tip so the server sends everything
+    CXMLNode getPullTagRequest(const QString& sTagName);
+
     //! Returns the request for push
     CXMLNode getPushRequest();
 
@@ -68,6 +72,18 @@ public:
 
     //! Returns the push announce for a named branch or tag
     CXMLNode getPushAnnounceFor(const QString& sName, const QString& sTipId);
+
+    //! Returns the push announce for a tag, resolving the local tip internally
+    //! Returns eTagDoesNotExist when sTagName addresses no tag, sDetail carries the tag name
+    CError::EErrorCode getPushTagAnnounce(const QString& sTagName, CXMLNode& xAnnounce, QString& sDetail);
+
+    //! Returns the push request for a tag, resolving root and tip internally
+    //! Returns eTagDoesNotExist when sTagName addresses no tag, sDetail carries the tag name
+    CError::EErrorCode getPushTagRequest(const QString& sTagName, CXMLNode& xRequest, QString& sDetail);
+
+    //! Builds the push data request for a tag from an announce response
+    //! Resolves root and tip internally, returns eTagDoesNotExist when sTagName addresses no tag
+    CError::EErrorCode buildPushTagDataRequestFromAnnounceResponse(const QString& sTagName, const CXMLNode& xAnnounceResponse, CXMLNode& xDataRequest, QString& sDetail);
 
     //! Returns the push announce response carrying the branch name and the server tip
     //! An unknown branch answers an empty tip so the data request carries everything
@@ -132,6 +148,10 @@ protected:
     //-------------------------------------------------------------------------------------------------
     // Protected payload methods
     //-------------------------------------------------------------------------------------------------
+
+    //! Resolves the root and tip commit identifiers of the local tag sTagName
+    //! Returns eTagDoesNotExist when sTagName addresses no tag
+    CError::EErrorCode localTagEndpoints(const QString& sTagName, QString& sRootId, QString& sTipId) const;
 
     //! Collects the tip and ancestor identifiers down to a stop commit
     //! Follows every parent so merge history is included
