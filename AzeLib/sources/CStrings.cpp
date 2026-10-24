@@ -71,6 +71,7 @@ const QString CStrings::s_sPathAzeCachePath                     = "cache";
 
 const QString CStrings::s_sGeneralInformationFileName           = "info." XMLC_EXTENSION;
 const QString CStrings::s_sStagingCommitFileName                = "stage";
+const QString CStrings::s_sCacheFileBaseName                    = "cache";
 
 const QString CStrings::s_sDefaultBranchName                    = "trunk";
 

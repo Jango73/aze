@@ -99,8 +99,8 @@ All identifiers are expressed using a SHA256 hex string.
 |  |- 9876543210fedbca
 |  \- ...
 \- cache
-   |- Aze::CShardFileStore.bin (.xmlc with --text-cache)
-   |- Aze::CShardFileStore-<prefix>.bin (.xmlc with --text-cache)
+   |- cache.bin (.xmlc with --text-cache)
+   |- cache-<prefix>.bin (.xmlc with --text-cache)
    \- ...
 ```
 
@@ -178,8 +178,8 @@ The working folder hash cache holds no file; it lives in memory only.
 
 Binary shards (`*.bin`) hold the node tree in binary form.
 Text shards (`*.xmlc` with `--text-cache`) hold compressed `XML` text.
-Shard files are named `Aze::CShardFileStore.bin` for the root shard and
-`Aze::CShardFileStore-<prefix>.bin` for the other shards, with `.xmlc`
+Shard files are named `cache.bin` for the root shard and
+`cache-<prefix>.bin` for the other shards, with `.xmlc`
 instead of `.bin` in text mode. The routing table is rebuilt from the
 folder listing. A missing cache resolves through commit files and warms
 the shards again.

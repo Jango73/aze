@@ -74,6 +74,7 @@ public:
 
     static const QString s_sGeneralInformationFileName;
     static const QString s_sStagingCommitFileName;
+    static const QString s_sCacheFileBaseName;
 
     static const QString s_sDefaultBranchName;
 };

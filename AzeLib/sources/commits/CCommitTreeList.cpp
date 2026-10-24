@@ -7,6 +7,7 @@
 
 // Application
 #include "CCommitTreeList.h"
+#include "../CStrings.h"
 
 namespace Aze {
 
@@ -17,7 +18,7 @@ CCommitTreeList::CCommitTreeList(CDatabase* pDatabase, QObject* parent, bool bSi
     , m_pDatabase(pDatabase)
     , m_bSilent(bSilent)
     , m_bDebug(bDebug)
-    , m_pShardStore(new CShardFileStore(m_pDatabase->cachePath(), "Aze::CShardFileStore", this, 2000, not bTextCache))
+    , m_pShardStore(new CShardFileStore(m_pDatabase->cachePath(), CStrings::s_sCacheFileBaseName, this, 2000, not bTextCache))
 {
 }
 

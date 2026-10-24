@@ -226,7 +226,7 @@ void CTestCache::testCommitTreeListBinaryCache()
     // file per shard, no legacy monolithic cache file
     QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
     QStringList lBinaries = tCacheDir.entryList(
-        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
+        QStringList() << QString("%1*%2").arg(Aze::CStrings::s_sCacheFileBaseName).arg(CXMLNode::sExtension_BIN), QDir::Files);
     QVERIFY(not lBinaries.isEmpty());
     QCOMPARE(tCacheDir.entryList(
         QStringList() << QString("*CCommitTreeList%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
@@ -300,7 +300,7 @@ void CTestCache::testCommitTreeListTextCache()
     // s_sCompressedXMLExtension is .xml in debug builds, so expect the former
     QDir tCacheDir(QString("%1/%2").arg(m_sDataPath).arg(Aze::CStrings::s_sPathAzeCachePath));
     QStringList lTextCaches = tCacheDir.entryList(
-        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_XMLC), QDir::Files);
+        QStringList() << QString("%1*%2").arg(Aze::CStrings::s_sCacheFileBaseName).arg(CXMLNode::sExtension_XMLC), QDir::Files);
     QVERIFY(not lTextCaches.isEmpty());
     QCOMPARE(tCacheDir.entryList(
         QStringList() << QString("*%1").arg(CXMLNode::sExtension_BIN), QDir::Files).count(), 0);
@@ -353,7 +353,7 @@ void CTestCache::testCommitTreeListCacheFallback()
     QVERIFY(sLogResult.contains("C2"));
 
     QStringList lBinaries = tCacheDir.entryList(
-        QStringList() << QString("Aze::CShardFileStore*%1").arg(CXMLNode::sExtension_BIN), QDir::Files);
+        QStringList() << QString("%1*%2").arg(Aze::CStrings::s_sCacheFileBaseName).arg(CXMLNode::sExtension_BIN), QDir::Files);
     QVERIFY(not lBinaries.isEmpty());
 }
 
