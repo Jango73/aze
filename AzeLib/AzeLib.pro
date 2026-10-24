@@ -8,7 +8,6 @@ DEFINES += AZE_LIBRARY
 
 # Dependencies
 INCLUDEPATH += $$PWD/../qt-plus/source/cpp
-INCLUDEPATH += $$PWD/sources/google
 
 # Sources
 include(AzeLib.pri)

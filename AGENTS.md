@@ -8,8 +8,8 @@ qmake for Qt6 (see `README.md`). Layout:
 - `Aze/` (application): `sources/client` (`CAzeClient`), `sources/server`
   (`CAzeServer`), `sources/common`, `sources/tests` (`CTestAze`).
 - `AzeLib/` (library): reusable versioning engine (`CRepository`, `CUtils`,
-  `CCommitFunctions`, ...), plus `sources/google` (diff-match-patch) and the
-  `dtl` git submodule (`AzeLib/sources/dtl`, branch `dev/conflict`).
+  `CCommitFunctions`, ...), plus the `dtl` git submodule
+  (`AzeLib/sources/dtl`, branch `dev/conflict`).
 - `qt-plus/` (git submodule, branch `master`): shared Qt utility library. Check
   here first before adding helpers. Build file consumed here:
   `qt-plus-nolib-web.pri` (subset without multimedia/image/geo modules).
