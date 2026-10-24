@@ -42,6 +42,12 @@ private slots:
 
     //! Tests repository path resolution across symlink swaps
     void testServeSymlinkSwap();
+
+    //! Tests portal client certificate enforcement on the HTTPS endpoint
+    void testServeMutualTls();
+
+    //! Tests --ssl-verify-peer and --ssl-ca option validation with fail-closed errors
+    void testServeVerifyPeerOptions();
 };
 
 //-------------------------------------------------------------------------------------------------

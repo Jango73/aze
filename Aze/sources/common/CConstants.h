@@ -128,6 +128,8 @@ public:
     static const char* s_sSwitchHttpsPort;
     static const char* s_sSwitchSslCert;
     static const char* s_sSwitchSslKey;
+    static const char* s_sSwitchSslVerifyPeer;
+    static const char* s_sSwitchSslCa;
     static const char* s_sSwitchBindAddress;
     static const char* s_sSwitchBasePath;
 

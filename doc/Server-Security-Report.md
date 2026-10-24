@@ -79,12 +79,14 @@
 // 4. Findings owned by `qt-plus`
 //-------------------------------------------------------------------------------------------------
 
-// --- Q1 (Medium): inner-hop TLS posture is opportunistic ---
-// Location: `qt-plus/source/cpp/Web/CHTTPServer.cpp:204-279`, `CHTTPRequestProcessor.cpp:52-77`, `CWebContext.cpp:71-74`
-// - Server certificate and RSA/ECDSA key load from PEM is validated. Failure returns false and `CAzeServer.cpp:54-58` refuses to run with a clear error. Positive.
-// - `setPeerVerifyMode(QSslSocket::VerifyNone)` means the portal client certificate is not verified. On the inner hop this forfeits mutual TLS as a portal-identity mechanism; protection then relies on network isolation instead of cryptographic peer identity.
-// - Protocol is `QSsl::SecureProtocols` (Qt version dependent, no explicit TLS 1.2 minimum in source). No HSTS header, no redirect from HTTP to HTTPS; when both listeners run, authorized payload stays readable on cleartext HTTP between portal and server if the portal selects the HTTP endpoint.
-// - Fix owner: `qt-plus` for protocol floor, cipher configuration surface, optional peer verification support for a portal client certificate. Operator for selecting the HTTPS endpoint for the inner hop. `Aze` for failing closed when HTTPS is requested but cannot bind.
+// --- Q1 (Medium): inner-hop TLS posture is enforced by configuration ---
+// Location: `qt-plus/source/cpp/Web/CHTTPServer.cpp:389-435`, `CHTTPRequestProcessor.cpp:55-100`, `Aze/sources/server/CAzeServer.cpp:63-125`
+// - Server certificate and RSA/ECDSA key load from PEM is validated. Failure returns false and `CAzeServer` refuses to run with a clear error. Positive, unchanged.
+// - Protocol floor is `QSsl::TlsV1_2OrLater` in `enableHttps`, no longer Qt-version dependent. HSTS is opt-in via `setHstsEnabled`/`setHstsMaxAge`.
+// - `setSslPeerVerifyMode` plus `setSslCaCertificates` expose portal client certificate verification. Wired to `aze serve` as `--ssl-verify-peer` (requires `--https-port` with certificate and key) and `--ssl-ca` (portal CA bundle, system store when absent). Misconfigurations fail closed with `eInvalidServerConfiguration`.
+// - Qt verifies a presented client certificate but tolerates a missing one, so `CHTTPRequestProcessor::run` drops peers without a certificate whenever the mode is above `QueryPeer`. `QueryPeer` keeps ask-without-refusing semantics.
+// - Cipher suite selection stays on Qt defaults under the TLS 1.2 floor, no operator knob by design.
+// - Fix owner: operator selects the HTTPS endpoint for split-host deployments and passes `--ssl-verify-peer --ssl-ca`; single-host loopback deployments keep plain HTTP loopback (A1).
 
 // --- Q2 (Medium): flood protection exists but is weak and partially bypassed ---
 // Location: `qt-plus/source/cpp/Web/CHTTPServer.h:41-104`, `CHTTPServer.cpp:361-422`, `CHTTPRequestProcessor.cpp:163-171,223-241`
@@ -120,7 +122,7 @@
 
 // | ID | Owner | Risk | Condition | Recommended action |
 // | A1 | Aze + operator | Medium | Port reachable past the portal | Bind to portal-only interface, firewall aperture, add `--bind-address` |
-// | Q1 | qt-plus + operator | Medium | Inner hop on HTTP or unverified peer | Use HTTPS inner endpoint, add TLS floor and optional portal client certificate |
+// | Q1 | qt-plus + Aze | Medium | Inner hop without peer verification | Done: --ssl-verify-peer/--ssl-ca, presence enforced, TLS 1.2 floor |
 // | Q2 | qt-plus | Medium | High concurrency from forwarder | Early blacklist reject, connection caps, tunable flood thresholds |
 // | Q3 | qt-plus + Aze | Medium | Large forwarded push body | Transport body cap in `qt-plus`, semantic push cap in `Aze` |
 // | A2 | Aze | Medium | Overbroad base path, symlink TOCTOU | Canonical base at startup, refuse `.` default, reverify after open |
@@ -135,6 +137,6 @@
 //-------------------------------------------------------------------------------------------------
 
 // 1. `Aze` + operator: make portal-only deployment the enforced default. Add `--bind-address`, document loopback or private-network binding, firewall the port to portal IPs, treat direct exposure as a fault.
-// 2. `qt-plus`: restore early blacklist rejection, add connection and body size caps, expose TLS floor and optional portal peer verification.
+// 2. `qt-plus` + `Aze`: done. Early blacklist rejection, connection and body caps, TLS 1.2 floor, portal peer verification wired (`--ssl-verify-peer`, `--ssl-ca`, presence enforced above `QueryPeer`). Operator selects the HTTPS endpoint for split-host deployments.
 // 3. `Aze`: harden storage handling (canonical base resolution, no `.` default in production guidance, reverify after open, semantic push limits, optional quiet error mode for portal passthrough).
-// 4. Tests: extend `CTestServe` with portal-bypass binding checks, oversized body rejection, concurrent connection cap, HTTPS inner-endpoint policy, and symlink swap coverage for `resolveRepositoryPath`.
+// 4. Tests: done. `CTestServe` covers portal-bypass binding checks, oversized body rejection, concurrent connection cap, symlink swap coverage, mutual TLS handshake (chained, missing and rogue client certificates) and `--ssl-verify-peer`/`--ssl-ca` validation with live enforcement.

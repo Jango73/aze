@@ -5,6 +5,8 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QHostAddress>
+#include <QSslCertificate>
+#include <QSslSocket>
 
 // qt-plus
 #include <CXMLNode.h>
@@ -61,8 +63,48 @@ CAzeServer::CAzeServer(int argc, char *argv[])
 
     m_sRepositoriesBasePath = sCanonicalBase;
 
+    const quint16 uiHttpsPort = static_cast<quint16>(m_tArguments.m_tParser.value(m_tArguments.m_oHttpsPort).toUInt());
+    const bool bVerifyPeer = m_tArguments.m_tParser.isSet(m_tArguments.m_oSslVerifyPeer);
+    const QString sCaPath = m_tArguments.m_tParser.value(m_tArguments.m_oSslCa);
+
+    if (bVerifyPeer && uiHttpsPort == 0)
+    {
+        m_eInitializationError = Aze::CError::eInvalidServerConfiguration;
+        m_sInitializationDetail = QStringLiteral("--ssl-verify-peer requires --https-port with --ssl-cert and --ssl-key");
+        return;
+    }
+
+    if (not bVerifyPeer && m_tArguments.m_tParser.isSet(m_tArguments.m_oSslCa))
+    {
+        m_eInitializationError = Aze::CError::eInvalidServerConfiguration;
+        m_sInitializationDetail = QStringLiteral("--ssl-ca requires --ssl-verify-peer");
+        return;
+    }
+
+    QList<QSslCertificate> lPortalCaCertificates;
+
+    if (bVerifyPeer && not sCaPath.isEmpty())
+    {
+        lPortalCaCertificates = QSslCertificate::fromPath(sCaPath, QSsl::Pem);
+
+        if (lPortalCaCertificates.isEmpty())
+        {
+            m_eInitializationError = Aze::CError::eInvalidServerConfiguration;
+            m_sInitializationDetail = QStringLiteral("--ssl-ca holds no valid certificate");
+            return;
+        }
+    }
+
     m_pProcessor = new CAzeServerProcessor(uiHttpPort, tBindAddress);
     m_pProcessor->setRepositoriesBasePath(m_sRepositoriesBasePath);
+
+    if (bVerifyPeer)
+    {
+        m_pProcessor->setSslPeerVerifyMode(QSslSocket::VerifyPeer);
+
+        if (not lPortalCaCertificates.isEmpty())
+            m_pProcessor->setSslCaCertificates(lPortalCaCertificates);
+    }
 
     m_pHousekeeper = new CAzeHousekeeper(m_sRepositoriesBasePath, this);
 
@@ -71,8 +113,6 @@ CAzeServer::CAzeServer(int argc, char *argv[])
     m_pProcessor->setPostServeHook([pHousekeeper](const QString& sRepositoryPath, const QString& sAction) {
         pHousekeeper->handleServedRepository(sRepositoryPath, sAction);
     });
-
-    const quint16 uiHttpsPort = static_cast<quint16>(m_tArguments.m_tParser.value(m_tArguments.m_oHttpsPort).toUInt());
 
     if (uiHttpsPort > 0)
     {

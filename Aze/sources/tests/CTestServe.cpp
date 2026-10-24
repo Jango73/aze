@@ -10,13 +10,18 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
+#include <QSslCertificate>
 #include <QSslConfiguration>
 #include <QSslError>
+#include <QSslKey>
 #include <QSslSocket>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTimer>
 #include <QUrl>
+
+// STL
+#include <vector>
 
 // AzeLib
 #include "CRepository.h"
@@ -27,6 +32,7 @@
 #include <CXMLNode.h>
 
 // Application
+#include "../server/CAzeServer.h"
 #include "../server/CAzeServerProcessor.h"
 #include "CTestServe.h"
 #include "CTestMacros.h"
@@ -95,6 +101,149 @@ static bool generateConnectivityCertificate(const QString& sCertPath, const QStr
         return false;
 
     return tProcess.exitCode() == 0 && QFile::exists(sCertPath) && QFile::exists(sKeyPath);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Runs one openssl command in a folder, true when it exits with code 0.
+* \param sWorkingFolder Folder the command runs in, keeps serial files next to the certificates.
+* \param lArguments Command line arguments passed to openssl.
+* \return True when openssl exits with code 0 before the timeout.
+*/
+/***************************************************************************/
+static bool runOpensslCommand(const QString& sWorkingFolder, const QStringList& lArguments)
+{
+    QProcess tProcess;
+    tProcess.setWorkingDirectory(sWorkingFolder);
+    tProcess.start(QStringLiteral("openssl"), lArguments);
+
+    if (not tProcess.waitForFinished(60000))
+        return false;
+
+    return tProcess.exitCode() == 0;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Generates a portal CA with a server and a portal client certificate chained to it.
+* \param sFolder Output folder, created when missing, holds every generated file.
+* \param sCaPath Receives the portal CA certificate file in PEM format.
+* \param sServerCertPath Receives the server certificate file in PEM format.
+* \param sServerKeyPath Receives the server private key file in PEM format.
+* \param sClientCertPath Receives the portal client certificate file in PEM format.
+* \param sClientKeyPath Receives the portal client private key file in PEM format.
+* \return True when openssl wrote every file.
+*/
+/***************************************************************************/
+static bool generateMutualTlsCertificates(const QString& sFolder, QString& sCaPath, QString& sServerCertPath, QString& sServerKeyPath, QString& sClientCertPath, QString& sClientKeyPath)
+{
+    QDir oFolder(sFolder);
+
+    if (oFolder.exists() && not oFolder.removeRecursively())
+        return false;
+
+    if (not QDir().mkpath(sFolder))
+        return false;
+
+    sCaPath = oFolder.absoluteFilePath("portal-ca.crt");
+    sServerCertPath = oFolder.absoluteFilePath("server.crt");
+    sServerKeyPath = oFolder.absoluteFilePath("server.key");
+    sClientCertPath = oFolder.absoluteFilePath("portal-client.crt");
+    sClientKeyPath = oFolder.absoluteFilePath("portal-client.key");
+
+    const QString sCaKey = oFolder.absoluteFilePath("portal-ca.key");
+    const QString sServerCsr = oFolder.absoluteFilePath("server.csr");
+    const QString sClientCsr = oFolder.absoluteFilePath("portal-client.csr");
+    const QString sSanPath = oFolder.absoluteFilePath("server-san.ext");
+
+    QFile fSan(sSanPath);
+
+    if (not fSan.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+
+    fSan.write("subjectAltName=DNS:localhost,IP:127.0.0.1\n");
+    fSan.close();
+
+    if (not runOpensslCommand(sFolder, QStringList()
+        << QStringLiteral("req") << QStringLiteral("-x509")
+        << QStringLiteral("-newkey") << QStringLiteral("rsa:2048")
+        << QStringLiteral("-nodes")
+        << QStringLiteral("-keyout") << sCaKey
+        << QStringLiteral("-out") << sCaPath
+        << QStringLiteral("-days") << QStringLiteral("2")
+        << QStringLiteral("-subj") << QStringLiteral("/CN=test-portal-ca")))
+        return false;
+
+    if (not runOpensslCommand(sFolder, QStringList()
+        << QStringLiteral("req")
+        << QStringLiteral("-newkey") << QStringLiteral("rsa:2048")
+        << QStringLiteral("-nodes")
+        << QStringLiteral("-keyout") << sServerKeyPath
+        << QStringLiteral("-out") << sServerCsr
+        << QStringLiteral("-subj") << QStringLiteral("/CN=localhost")))
+        return false;
+
+    if (not runOpensslCommand(sFolder, QStringList()
+        << QStringLiteral("x509") << QStringLiteral("-req")
+        << QStringLiteral("-in") << sServerCsr
+        << QStringLiteral("-CA") << sCaPath
+        << QStringLiteral("-CAkey") << sCaKey
+        << QStringLiteral("-CAcreateserial")
+        << QStringLiteral("-out") << sServerCertPath
+        << QStringLiteral("-days") << QStringLiteral("2")
+        << QStringLiteral("-extfile") << sSanPath))
+        return false;
+
+    if (not runOpensslCommand(sFolder, QStringList()
+        << QStringLiteral("req")
+        << QStringLiteral("-newkey") << QStringLiteral("rsa:2048")
+        << QStringLiteral("-nodes")
+        << QStringLiteral("-keyout") << sClientKeyPath
+        << QStringLiteral("-out") << sClientCsr
+        << QStringLiteral("-subj") << QStringLiteral("/CN=test-portal")))
+        return false;
+
+    if (not runOpensslCommand(sFolder, QStringList()
+        << QStringLiteral("x509") << QStringLiteral("-req")
+        << QStringLiteral("-in") << sClientCsr
+        << QStringLiteral("-CA") << sCaPath
+        << QStringLiteral("-CAkey") << sCaKey
+        << QStringLiteral("-CAcreateserial")
+        << QStringLiteral("-out") << sClientCertPath
+        << QStringLiteral("-days") << QStringLiteral("2")))
+        return false;
+
+    return QFile::exists(sCaPath) && QFile::exists(sServerCertPath) && QFile::exists(sServerKeyPath)
+        && QFile::exists(sClientCertPath) && QFile::exists(sClientKeyPath);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Builds a mutable argv array from a string list for in-process server construction.
+* \param lArguments Command line tokens, the first one is the binary path.
+* \param lStorage Receives the token buffers, keeps the pointers valid.
+* \param vArgv Receives the null-terminated pointer array entries.
+* \return The argument count.
+*/
+/***************************************************************************/
+static int buildServerArguments(const QStringList& lArguments, QList<QByteArray>& lStorage, std::vector<char*>& vArgv)
+{
+    lStorage.clear();
+    vArgv.clear();
+
+    for (const QString& sArgument : lArguments)
+        lStorage.append(sArgument.toLocal8Bit());
+
+    for (QByteArray& baArgument : lStorage)
+        vArgv.push_back(baArgument.data());
+
+    return static_cast<int>(vArgv.size());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -971,6 +1120,299 @@ void CTestServe::testServeSymlinkSwap()
 
     QVERIFY(QDir(sBase).removeRecursively());
     QVERIFY(QDir(sOutside).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests portal client certificate enforcement on the HTTPS endpoint.
+*
+* A processor trusting a portal CA with peer verification answers a client
+* presenting a chained certificate in both directions, refuses a client
+* without a certificate and a client with a certificate outside the chain.
+* A processor without peer verification answers the same uncertified client,
+* which proves the verification mode is the gate.
+*/
+void CTestServe::testServeMutualTls()
+{
+    quint16 uiHttpPort = connectivityFreePort();
+    quint16 uiHttpsPort = connectivityFreePort();
+    QVERIFY(uiHttpPort != 0);
+    QVERIFY(uiHttpsPort != 0);
+    QVERIFY(uiHttpPort != uiHttpsPort);
+
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sCertFolder = oParent.absoluteFilePath("aze-tests-mutual-tls");
+
+    // Network stacks need an event dispatcher, see testServeConnectivity
+    int iArgc = 1;
+    QByteArray baBinaryPath = m_sArgument0.toLocal8Bit();
+    char* sBinaryPath = baBinaryPath.data();
+    char* lArgv[1] = { sBinaryPath };
+    QCoreApplication tApplication(iArgc, lArgv);
+
+    QString sCaPath;
+    QString sServerCertPath;
+    QString sServerKeyPath;
+    QString sClientCertPath;
+    QString sClientKeyPath;
+
+    if (not generateMutualTlsCertificates(sCertFolder, sCaPath, sServerCertPath, sServerKeyPath, sClientCertPath, sClientKeyPath))
+    {
+        QVERIFY(QDir(sCertFolder).removeRecursively());
+        QSKIP("openssl is unavailable, cannot generate the mutual TLS test certificates");
+    }
+
+    QList<QSslCertificate> lCaCertificates = QSslCertificate::fromPath(sCaPath);
+    QVERIFY(not lCaCertificates.isEmpty());
+
+    QList<QSslCertificate> lClientCertificates = QSslCertificate::fromPath(sClientCertPath);
+    QVERIFY(not lClientCertificates.isEmpty());
+
+    QFile fClientKey(sClientKeyPath);
+    QVERIFY(fClientKey.open(QIODevice::ReadOnly));
+    QSslKey tClientKey(fClientKey.readAll(), QSsl::Rsa, QSsl::Pem);
+    fClientKey.close();
+    QVERIFY(not tClientKey.isNull());
+
+    // A rogue client certificate stays self-signed, outside the portal chain
+    QString sRogueCertPath = QString("%1/rogue.crt").arg(sCertFolder);
+    QString sRogueKeyPath = QString("%1/rogue.key").arg(sCertFolder);
+    QVERIFY(generateConnectivityCertificate(sRogueCertPath, sRogueKeyPath));
+
+    QList<QSslCertificate> lRogueCertificates = QSslCertificate::fromPath(sRogueCertPath);
+    QVERIFY(not lRogueCertificates.isEmpty());
+
+    QFile fRogueKey(sRogueKeyPath);
+    QVERIFY(fRogueKey.open(QIODevice::ReadOnly));
+    QSslKey tRogueKey(fRogueKey.readAll(), QSsl::Rsa, QSsl::Pem);
+    fRogueKey.close();
+    QVERIFY(not tRogueKey.isNull());
+
+    CAzeServerProcessor tServer(uiHttpPort, QHostAddress::LocalHost);
+    tServer.setSslCaCertificates(lCaCertificates);
+    tServer.setSslPeerVerifyMode(QSslSocket::VerifyPeer);
+    QCOMPARE(tServer.sslPeerVerifyMode(), QSslSocket::VerifyPeer);
+    QCOMPARE(tServer.sslCaCertificates().size(), lCaCertificates.size());
+    QVERIFY(tServer.enableHttps(sServerCertPath, sServerKeyPath, uiHttpsPort));
+    QVERIFY(tServer.isHttpsEnabled());
+
+    QSslConfiguration tCertifiedClient = QSslConfiguration::defaultConfiguration();
+    tCertifiedClient.setCaCertificates(lCaCertificates);
+    tCertifiedClient.setPeerVerifyMode(QSslSocket::VerifyPeer);
+    tCertifiedClient.setLocalCertificate(lClientCertificates.first());
+    tCertifiedClient.setPrivateKey(tClientKey);
+
+    QSslConfiguration tUncertifiedClient = QSslConfiguration::defaultConfiguration();
+    tUncertifiedClient.setCaCertificates(lCaCertificates);
+    tUncertifiedClient.setPeerVerifyMode(QSslSocket::VerifyPeer);
+
+    QSslConfiguration tRogueClient = QSslConfiguration::defaultConfiguration();
+    tRogueClient.setCaCertificates(lCaCertificates);
+    tRogueClient.setPeerVerifyMode(QSslSocket::VerifyPeer);
+    tRogueClient.setLocalCertificate(lRogueCertificates.first());
+    tRogueClient.setPrivateKey(tRogueKey);
+
+    QNetworkAccessManager tCertifiedManager;
+    QNetworkAccessManager tUncertifiedManager;
+    QNetworkAccessManager tRogueManager;
+    QByteArray baBody;
+    QString sError;
+
+    // A portal client with a chained certificate is served over verified TLS in both directions
+    // Each identity uses its own manager so no keep-alive connection is shared between handshakes
+    QNetworkRequest tCertifiedRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+    tCertifiedRequest.setSslConfiguration(tCertifiedClient);
+    QVERIFY2(fetchConnectivityResponse(&tCertifiedManager, tCertifiedRequest,
+        QByteArray(), baBody, sError), qPrintable(sError));
+    QVERIFY(isEmptyRequestResponse(baBody));
+
+    // A client without a certificate fails the handshake
+    QNetworkRequest tUncertifiedRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+    tUncertifiedRequest.setSslConfiguration(tUncertifiedClient);
+    QVERIFY(not fetchConnectivityResponse(&tUncertifiedManager, tUncertifiedRequest,
+        QByteArray(), baBody, sError));
+
+    // A client with a certificate outside the portal chain fails the handshake
+    QNetworkRequest tRogueRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+    tRogueRequest.setSslConfiguration(tRogueClient);
+    QVERIFY(not fetchConnectivityResponse(&tRogueManager, tRogueRequest,
+        QByteArray(), baBody, sError));
+
+    tServer.close();
+
+    // Without peer verification the same uncertified client is served, the mode is the gate
+    quint16 uiPlainHttpPort = connectivityFreePort();
+    quint16 uiPlainHttpsPort = connectivityFreePort();
+    QVERIFY(uiPlainHttpPort != 0);
+    QVERIFY(uiPlainHttpsPort != 0);
+    QVERIFY(uiPlainHttpPort != uiPlainHttpsPort);
+
+    CAzeServerProcessor tOpenServer(uiPlainHttpPort, QHostAddress::LocalHost);
+    QVERIFY(tOpenServer.enableHttps(sServerCertPath, sServerKeyPath, uiPlainHttpsPort));
+
+    QNetworkRequest tOpenRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiPlainHttpsPort)));
+    tOpenRequest.setSslConfiguration(tUncertifiedClient);
+    QVERIFY2(fetchConnectivityResponse(&tUncertifiedManager, tOpenRequest,
+        QByteArray(), baBody, sError), qPrintable(sError));
+    QVERIFY(isEmptyRequestResponse(baBody));
+
+    tOpenServer.close();
+
+    QVERIFY(QDir(sCertFolder).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests --ssl-verify-peer and --ssl-ca option validation with fail-closed errors.
+*
+* Peer verification without an HTTPS endpoint, a CA file without peer
+* verification, and a CA file holding no valid certificate all refuse to
+* initialize. A complete portal configuration initializes and serves a
+* chained portal client while refusing an uncertified one, which proves the
+* command line wiring reaches the TLS layer.
+*/
+void CTestServe::testServeVerifyPeerOptions()
+{
+    QDir oParent(m_sRootPath);
+    QVERIFY(oParent.cdUp());
+    QString sCertFolder = oParent.absoluteFilePath("aze-tests-verify-peer");
+
+    // Certificate generation needs an event dispatcher, the servers below
+    // bring their own application object and must be built after it is gone
+    {
+        int iArgc = 1;
+        QByteArray baBinaryPath = m_sArgument0.toLocal8Bit();
+        char* sBinaryPath = baBinaryPath.data();
+        char* lArgv[1] = { sBinaryPath };
+        QCoreApplication tApplication(iArgc, lArgv);
+
+        QString sCaPath;
+        QString sServerCertPath;
+        QString sServerKeyPath;
+        QString sClientCertPath;
+        QString sClientKeyPath;
+
+        if (not generateMutualTlsCertificates(sCertFolder, sCaPath, sServerCertPath, sServerKeyPath, sClientCertPath, sClientKeyPath))
+        {
+            QVERIFY(QDir(sCertFolder).removeRecursively());
+            QSKIP("openssl is unavailable, cannot generate the peer verification test certificates");
+        }
+    }
+
+    const QString sCaPath = QString("%1/portal-ca.crt").arg(sCertFolder);
+    const QString sServerCertPath = QString("%1/server.crt").arg(sCertFolder);
+    const QString sServerKeyPath = QString("%1/server.key").arg(sCertFolder);
+    const QString sClientCertPath = QString("%1/portal-client.crt").arg(sCertFolder);
+    const QString sClientKeyPath = QString("%1/portal-client.key").arg(sCertFolder);
+
+    QList<QByteArray> lStorage;
+    std::vector<char*> vArgv;
+
+    // Peer verification without an HTTPS endpoint refuses to initialize
+    {
+        int iArgc = buildServerArguments(QStringList()
+            << m_sArgument0 << QStringLiteral("serve")
+            << QStringLiteral("--base-path") << m_sRootPath
+            << QStringLiteral("--ssl-verify-peer"), lStorage, vArgv);
+        CAzeServer tServer(iArgc, vArgv.data());
+        QCOMPARE(tServer.initializationError(), Aze::CError::eInvalidServerConfiguration);
+        QVERIFY(tServer.initializationErrorDetail().contains(QStringLiteral("--ssl-verify-peer")));
+    }
+
+    // A CA file without peer verification refuses to initialize
+    {
+        int iArgc = buildServerArguments(QStringList()
+            << m_sArgument0 << QStringLiteral("serve")
+            << QStringLiteral("--base-path") << m_sRootPath
+            << QStringLiteral("--ssl-ca") << sCaPath, lStorage, vArgv);
+        CAzeServer tServer(iArgc, vArgv.data());
+        QCOMPARE(tServer.initializationError(), Aze::CError::eInvalidServerConfiguration);
+        QVERIFY(tServer.initializationErrorDetail().contains(QStringLiteral("--ssl-ca")));
+    }
+
+    // A CA file holding no valid certificate refuses to initialize
+    {
+        const quint16 uiHttpsPort = connectivityFreePort();
+        QVERIFY(uiHttpsPort != 0);
+
+        int iArgc = buildServerArguments(QStringList()
+            << m_sArgument0 << QStringLiteral("serve")
+            << QStringLiteral("--base-path") << m_sRootPath
+            << QStringLiteral("--https-port") << QString::number(uiHttpsPort)
+            << QStringLiteral("--ssl-cert") << sServerCertPath
+            << QStringLiteral("--ssl-key") << sServerKeyPath
+            << QStringLiteral("--ssl-verify-peer")
+            << QStringLiteral("--ssl-ca") << QString("%1/portal-ca.srl").arg(sCertFolder), lStorage, vArgv);
+        CAzeServer tServer(iArgc, vArgv.data());
+        QCOMPARE(tServer.initializationError(), Aze::CError::eInvalidServerConfiguration);
+        QVERIFY(tServer.initializationErrorDetail().contains(QStringLiteral("--ssl-ca")));
+    }
+
+    // A complete portal configuration initializes and enforces the client certificate live
+    {
+        const quint16 uiHttpPort = connectivityFreePort();
+        const quint16 uiHttpsPort = connectivityFreePort();
+        QVERIFY(uiHttpPort != 0);
+        QVERIFY(uiHttpsPort != 0);
+        QVERIFY(uiHttpPort != uiHttpsPort);
+
+        int iArgc = buildServerArguments(QStringList()
+            << m_sArgument0 << QStringLiteral("serve")
+            << QStringLiteral("--port") << QString::number(uiHttpPort)
+            << QStringLiteral("--https-port") << QString::number(uiHttpsPort)
+            << QStringLiteral("--ssl-cert") << sServerCertPath
+            << QStringLiteral("--ssl-key") << sServerKeyPath
+            << QStringLiteral("--ssl-verify-peer")
+            << QStringLiteral("--ssl-ca") << sCaPath
+            << QStringLiteral("--base-path") << m_sRootPath, lStorage, vArgv);
+        CAzeServer tServer(iArgc, vArgv.data());
+        QCOMPARE(tServer.initializationError(), Aze::CError::eNone);
+
+        QList<QSslCertificate> lCaCertificates = QSslCertificate::fromPath(sCaPath);
+        QVERIFY(not lCaCertificates.isEmpty());
+
+        QList<QSslCertificate> lClientCertificates = QSslCertificate::fromPath(sClientCertPath);
+        QVERIFY(not lClientCertificates.isEmpty());
+
+        QFile fClientKey(sClientKeyPath);
+        QVERIFY(fClientKey.open(QIODevice::ReadOnly));
+        QSslKey tClientKey(fClientKey.readAll(), QSsl::Rsa, QSsl::Pem);
+        fClientKey.close();
+        QVERIFY(not tClientKey.isNull());
+
+        QNetworkAccessManager tCertifiedManager;
+        QNetworkAccessManager tUncertifiedManager;
+        QByteArray baBody;
+        QString sError;
+
+        QSslConfiguration tCertifiedClient = QSslConfiguration::defaultConfiguration();
+        tCertifiedClient.setCaCertificates(lCaCertificates);
+        tCertifiedClient.setPeerVerifyMode(QSslSocket::VerifyPeer);
+        tCertifiedClient.setLocalCertificate(lClientCertificates.first());
+        tCertifiedClient.setPrivateKey(tClientKey);
+
+        QNetworkRequest tCertifiedRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+        tCertifiedRequest.setSslConfiguration(tCertifiedClient);
+        QVERIFY2(fetchConnectivityResponse(&tCertifiedManager, tCertifiedRequest,
+            QByteArray(), baBody, sError), qPrintable(sError));
+        QVERIFY(isEmptyRequestResponse(baBody));
+
+        QSslConfiguration tUncertifiedClient = QSslConfiguration::defaultConfiguration();
+        tUncertifiedClient.setCaCertificates(lCaCertificates);
+        tUncertifiedClient.setPeerVerifyMode(QSslSocket::VerifyPeer);
+
+        QNetworkRequest tUncertifiedRequest(QUrl(QString("https://127.0.0.1:%1/").arg(uiHttpsPort)));
+        tUncertifiedRequest.setSslConfiguration(tUncertifiedClient);
+        QVERIFY(not fetchConnectivityResponse(&tUncertifiedManager, tUncertifiedRequest,
+            QByteArray(), baBody, sError));
+    }
+
+    QVERIFY(QDir(sCertFolder).removeRecursively());
 }
 
 //-------------------------------------------------------------------------------------------------

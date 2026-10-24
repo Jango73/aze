@@ -22,6 +22,8 @@ public:
     QCommandLineOption      m_oHttpsPort;
     QCommandLineOption      m_oSslCert;
     QCommandLineOption      m_oSslKey;
+    QCommandLineOption      m_oSslVerifyPeer;
+    QCommandLineOption      m_oSslCa;
     QCommandLineOption      m_oBindAddress;
     QCommandLineOption      m_oBasePath;
 };

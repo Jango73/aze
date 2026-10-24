@@ -15,14 +15,17 @@ CERT_FILE=""
 KEY_FILE=""
 CERT_SET=0
 KEY_SET=0
+VERIFY_PEER=0
+CA_FILE=""
 
 DEFAULT_CERT_DIR="${PROJECT_ROOT_FOLDER}/tmp/certs"
 
 usage() {
   cat <<'USAGE'
 Usage: ./serve.sh [--debug|--release] [-d|-r] [-c Debug|Release] [--http-only]
-                  [--port <http>] [--https-port <https>] [--cert <file>] [--key <file>]
-                  [-- <extra aze serve args>]
+                   [--port <http>] [--https-port <https>] [--cert <file>] [--key <file>]
+                   [--verify-peer] [--ca <file>]
+                   [-- <extra aze serve args>]
   --debug,   -d  Build type Debug
   --release, -r  Build type Release (default)
   -c             Build type (Debug or Release)
@@ -31,11 +34,16 @@ Usage: ./serve.sh [--debug|--release] [-d|-r] [-c Debug|Release] [--http-only]
   --https-port   HTTPS listening port (default: 8443)
   --cert         SSL certificate file in PEM format (default: tmp/certs/localhost.crt)
   --key          SSL private key file in PEM format (default: tmp/certs/localhost.key)
+  --verify-peer  Require the portal client certificate on the HTTPS endpoint
+  --ca           Portal CA file in PEM format for peer verification
+                 (default: system store)
   Extra arguments after -- are forwarded to "aze serve".
   The server binds 127.0.0.1 and serves the current folder explicitly:
   pass --bind-address <ip> and --base-path <folder> after -- to override.
   Without --cert/--key, a self-signed dev certificate is generated in
   tmp/certs when missing. Never use it in production.
+  Production (portal on another host): use the HTTPS endpoint with
+  --verify-peer --ca <portal-ca>, and firewall the port to portal IPs.
 USAGE
 }
 
@@ -99,6 +107,19 @@ while [[ $# -gt 0 ]]; do
       fi
       KEY_FILE="$2"
       KEY_SET=1
+      shift 2
+      ;;
+    --verify-peer)
+      VERIFY_PEER=1
+      shift
+      ;;
+    --ca)
+      if [[ -z "${2:-}" ]]; then
+        echo "Option --ca requires an argument." >&2
+        usage >&2
+        exit "${EXIT_FAILURE}"
+      fi
+      CA_FILE="$2"
       shift 2
       ;;
     --)
@@ -177,6 +198,14 @@ SERVE_ARGS=(serve --port "${HTTP_PORT}" --bind-address "127.0.0.1" --base-path "
 
 if [[ "${HTTP_ONLY}" -eq 0 ]]; then
   SERVE_ARGS+=(--https-port "${HTTPS_PORT}" --ssl-cert "${CERT_FILE}" --ssl-key "${KEY_FILE}")
+fi
+
+if [[ "${VERIFY_PEER}" -eq 1 ]]; then
+  SERVE_ARGS+=(--ssl-verify-peer)
+fi
+
+if [[ -n "${CA_FILE}" ]]; then
+  SERVE_ARGS+=(--ssl-ca "${CA_FILE}")
 fi
 
 SERVE_ARGS+=("${FORWARD_ARGS[@]}")
