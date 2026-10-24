@@ -18,3 +18,20 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS Core Xml Network Test)
 
 add_subdirectory(AzeLib)
 add_subdirectory(Aze)
+
+set(CPACK_PACKAGE_NAME "aze")
+set(CPACK_PACKAGE_VENDOR "Aze")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "distributed versioning system (client and server)")
+set(CPACK_PACKAGE_VERSION "${AZE_APPLICATION_VERSION}")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
+if(UNIX AND NOT APPLE)
+    set(CPACK_GENERATOR "DEB;TGZ")
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jango73 <guillaumed00@gmail.com>")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "vcs")
+    set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6network6, libqt6test6, libqt6xml6")
+endif()
+
+include(CPack)
