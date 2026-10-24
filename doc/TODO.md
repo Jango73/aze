@@ -96,5 +96,5 @@
 
 ## Documentation, test coverage and platform support
 - [ ] TODO-077 - Document `clone`, `prune`, `serve` and `run-tests` in `README.md` because implemented commands remain absent from the client command reference.
-- [ ] TODO-078 - Add dedicated tests for status filter flags, log pagination, named stashes, `set-remote-host`, network `push` and `pull` through `CAzeClient`, automatic housekeeper prune and global help and version flags because `doc/FEATURES.md` marks each area as indirect coverage only.
+- [ ] TODO-078 - Add dedicated tests for status filter flags, log pagination, named stashes, `set-remote-host`, network `push` and `pull` through `CAzeClient`, automatic housekeeper prune and global help and version flags because `doc/Aze.md` marks each area as indirect coverage only.
 - [ ] TODO-079 - Provide build and service scripts beyond `scripts/linux` with continuous integration coverage because Linux shell scripts are the only supported build, test and serve path.
