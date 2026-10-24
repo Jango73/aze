@@ -6,12 +6,12 @@ This file provides guidance to agents when working with code in this repository.
 `aze` is a versioning tool (git-like, custom `.aze` repositories), built with
 qmake for Qt6 (see `README.md`). Layout:
 - `Aze/` (application): `sources/client` (`CAzeClient`), `sources/server`
-  (`CAzeServer`), `sources/common`, `sources/tests` (`CTestAze`), `deploy/`.
+  (`CAzeServer`), `sources/common`, `sources/tests` (`CTestAze`).
 - `AzeLib/` (library): reusable versioning engine (`CRepository`, `CUtils`,
   `CCommitFunctions`, ...), plus `sources/google` (diff-match-patch) and the
   `dtl` git submodule (`AzeLib/sources/dtl`, branch `dev/conflict`).
 - `qt-plus/` (git submodule, branch `master`): shared Qt utility library. Check
-  here first before adding helpers. Build files consumed here: `functions.pri`,
+  here first before adding helpers. Build file consumed here:
   `qt-plus-nolib-web.pri` (subset without multimedia/image/geo modules).
 - `Aze.pro` is the `subdirs` project (`AzeLib`, then `Aze`). There is no CMake
   build; the reference Linux build is qmake6 + make via `scripts/linux/`.

@@ -60,8 +60,7 @@ if [[ "${BUILD_TYPE}" == "Debug" ]]; then
   QMAKE_CONFIG="debug"
 fi
 
-if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/functions.pri" ] \
-  || [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
+if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
   || [ ! -f "${PROJECT_ROOT_FOLDER}/AzeLib/sources/dtl/dtl/dtl.hpp" ]; then
   echo "[build] Submodules missing, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"

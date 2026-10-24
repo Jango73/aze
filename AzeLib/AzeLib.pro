@@ -14,9 +14,6 @@ INCLUDEPATH += $$PWD/sources/google
 include(AzeLib.pri)
 include($$PWD/../qt-plus/qt-plus-nolib-web.pri)
 
-# Functions
-include($$PWD/../qt-plus/functions.pri)
-
 # Directories
 DESTDIR = $$OUT_PWD/bin
 

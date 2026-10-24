@@ -13,9 +13,6 @@ INCLUDEPATH += $$PWD/../AzeLib/sources
 DEPENDPATH += $$PWD/../qt-plus
 DEPENDPATH += $$PWD/../AzeLib
 
-# Functions
-include($$PWD/../qt-plus/functions.pri)
-
 # Directories
 DESTDIR = $$OUT_PWD/bin
 
@@ -34,30 +31,6 @@ CONFIG(debug, debug|release) {
     LIBS += -L$$OUT_PWD/../AzeLib/bin -laze-dbg
 } else {
     LIBS += -L$$OUT_PWD/../AzeLib/bin -laze
-}
-
-# Deployment
-# In order to activate deployment, add "deploy=1" to qmake arguments
-QT_BASE_PATH = $$[QT_INSTALL_PREFIX]
-QT_BIN_PATH = $$[QT_INSTALL_BINS]
-QT_LIB_PATH = $$[QT_INSTALL_LIBS]
-QT_PLUGIN_PATH = $$[QT_INSTALL_PLUGINS]
-
-!isEmpty(deploy) {
-    message("Deployment files will be copied after linkage, from $${QT_BASE_PATH}.")
-    message("Binary files will be copied from: $${QT_BIN_PATH}.")
-    message("Library files will be copied from: $${QT_LIB_PATH}.")
-
-    QMAKE_POST_LINK += $$copyFilesWithPathToDir($$QT_LIB_PATH, $$QT_LIB_NAMES, $$DESTDIR)
-    QMAKE_POST_LINK += $$copyFilesWithPathToDir($$QT_BIN_PATH, $$QT_BIN_NAMES, $$DESTDIR)
-    QMAKE_POST_LINK += $$copyFilesWithPathToDir($$QT_PLUGIN_PATH, $$QT_PLUGIN_NAMES, $$DESTDIR)
-    QMAKE_POST_LINK += $$copyFilesToDir($$PWD, $$DEPLOY_NAMES, $$DESTDIR)
-    QMAKE_POST_LINK += $$copyFilesToDir($$OUT_PWD, $$LIB_COPY_NAMES, $$DESTDIR)
-    # QMAKE_POST_LINK += $$copyDirsToDir($$QT_BASE_PATH, $$QT_QML_NAMES, $$DESTDIR)
-
-    unix {
-        QMAKE_POST_LINK += $$makeExecutable($$EXEC_NAMES, $$DESTDIR)
-    }
 }
 
 # Installation (make install, used by the .deb package)
