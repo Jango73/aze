@@ -84,6 +84,8 @@ QString CError::message(EErrorCode eCode)
     case eTagDoesNotExist: return tr("Tag does not exist.");
     case eTagMoveRefused: return tr("Cannot move tag.");
     case eCouldNotRenameBranch: return tr("Could not rename branch.");
+    case eRequestTooLarge: return tr("Request payload exceeds the server limit: %1.");
+    case eInvalidServerConfiguration: return tr("Invalid server configuration: %1.");
     }
 
     return tr("Generic error.");
@@ -176,7 +178,7 @@ CError::EErrorCode CError::fromResultNode(const CXMLNode& xNode)
     if (bOk == false)
         return eGeneric;
 
-    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eCouldNotRenameBranch))
+    if (iCode >= static_cast<int>(eNone) && iCode <= static_cast<int>(eInvalidServerConfiguration))
         return static_cast<EErrorCode>(iCode);
 
     return eGeneric;

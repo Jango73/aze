@@ -33,6 +33,15 @@ private slots:
 
     //! Tests HTTP and HTTPS connectivity against a live server processor
     void testServeConnectivity();
+
+    //! Tests loopback binding and invalid address refusal
+    void testServeBindAddress();
+
+    //! Tests POST body and push payload limit enforcement
+    void testServePayloadLimits();
+
+    //! Tests repository path resolution across symlink swaps
+    void testServeSymlinkSwap();
 };
 
 //-------------------------------------------------------------------------------------------------

@@ -32,6 +32,8 @@ Usage: ./serve.sh [--debug|--release] [-d|-r] [-c Debug|Release] [--http-only]
   --cert         SSL certificate file in PEM format (default: tmp/certs/localhost.crt)
   --key          SSL private key file in PEM format (default: tmp/certs/localhost.key)
   Extra arguments after -- are forwarded to "aze serve".
+  The server binds 127.0.0.1 and serves the current folder explicitly:
+  pass --bind-address <ip> and --base-path <folder> after -- to override.
   Without --cert/--key, a self-signed dev certificate is generated in
   tmp/certs when missing. Never use it in production.
 USAGE
@@ -171,7 +173,7 @@ if [ ! -f "${BINARY}" ]; then
   exit "${EXIT_FAILURE}"
 fi
 
-SERVE_ARGS=(serve --port "${HTTP_PORT}")
+SERVE_ARGS=(serve --port "${HTTP_PORT}" --bind-address "127.0.0.1" --base-path "${PWD}")
 
 if [[ "${HTTP_ONLY}" -eq 0 ]]; then
   SERVE_ARGS+=(--https-port "${HTTPS_PORT}" --ssl-cert "${CERT_FILE}" --ssl-key "${KEY_FILE}")

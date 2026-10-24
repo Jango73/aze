@@ -128,6 +128,8 @@ public:
     static const char* s_sSwitchHttpsPort;
     static const char* s_sSwitchSslCert;
     static const char* s_sSwitchSslKey;
+    static const char* s_sSwitchBindAddress;
+    static const char* s_sSwitchBasePath;
 
     // Text strings
     static const QString s_sAllFilesAreClean;

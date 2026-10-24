@@ -3,6 +3,7 @@
 
 // Qt
 #include <QObject>
+#include <QHostAddress>
 
 // Standard
 #include <functional>
@@ -17,8 +18,6 @@
 #include "../common/CConstants.h"
 
 //-------------------------------------------------------------------------------------------------
-
-class CAzeServer;
 
 class CAzeServerProcessor : public CDynamicHTTPServer
 {
@@ -40,8 +39,11 @@ public:
     // Constructor & destructor
     //-------------------------------------------------------------------------------------------------
 
-    //! Constructor
-    CAzeServerProcessor(CAzeServer* parent, quint16 iPort = DEFAULT_HTTP_PORT);
+    //! Constructor, binds all interfaces
+    explicit CAzeServerProcessor(quint16 iPort = DEFAULT_HTTP_PORT);
+
+    //! Constructor, binds tListenAddress only so portal-only deployments never listen on all interfaces
+    CAzeServerProcessor(quint16 iPort, const QHostAddress& tListenAddress);
 
     //! Destructor
     virtual ~CAzeServerProcessor() override;
@@ -56,6 +58,21 @@ public:
     //! Sets the post-serve hook invoked after each served repository request
     void setPostServeHook(const PostServeHook& tHook);
 
+    //! Sets the canonical base folder served repositories resolve under
+    void setRepositoriesBasePath(const QString& sBasePath);
+
+    //! Returns the canonical base folder served repositories resolve under
+    QString repositoriesBasePath() const;
+
+    //! Sets the largest accepted POST body in bytes, rejected before parsing
+    void setMaxPostBodyBytes(qint64 iMax);
+
+    //! Sets the largest accepted commit node count in a push payload
+    void setMaxCommitsPerPush(int iMax);
+
+    //! Sets the largest accepted decoded object size in bytes in a push payload
+    void setMaxObjectBytes(qint64 iMax);
+
 protected:
 
     //-------------------------------------------------------------------------------------------------
@@ -67,6 +84,12 @@ protected:
 
     //! Resolves request path segments under sBasePath, returns false on traversal attempt
     static bool resolveRepositoryPath(const QString& sBasePath, const QStringList& lSegments, QString& sResolvedPath);
+
+    //! Checks push payload node counts and object sizes against the limits, returns eNone when accepted
+    static Aze::CError::EErrorCode checkPushPayloadLimits(const CXMLNode& xRequest, int iMaxCommits, qint64 iMaxObjectBytes, QString& sDetail);
+
+    //! Returns true when sCandidate equals sBasePath or stays under it
+    static bool pathStaysUnderBase(const QString& sBasePath, const QString& sCandidate);
 
     //!
     static CXMLNode servePull(Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
@@ -91,9 +114,12 @@ protected:
 
     typedef CXMLNode (*RequestServing) (Aze::CRepository* pRepository, CWebContext& tContext, const CXMLNode& xRequest);
 
-    CAzeServer*                     m_pServer;
     QMap<QString, RequestServing>   m_mRequestFunctionMap;
     PostServeHook                   m_tPostServeHook;
+    QString                         m_sBasePath;
+    qint64                          m_iMaxPostBodyBytes;
+    int                             m_iMaxCommitsPerPush;
+    qint64                          m_iMaxObjectBytes;
 };
 
 //-------------------------------------------------------------------------------------------------

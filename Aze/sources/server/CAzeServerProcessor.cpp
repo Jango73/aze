@@ -11,10 +11,9 @@
 
 // Application
 #include "CAzeServerProcessor.h"
-#include "CAzeServer.h"
 
 /*!
-    \class CAzeServer
+    \class CAzeServerProcessor
     \inmodule Aze
     \section1 General
 */
@@ -53,10 +52,22 @@
 
 //-------------------------------------------------------------------------------------------------
 
-CAzeServerProcessor::CAzeServerProcessor(CAzeServer* parent, quint16 iPort)
-    : CDynamicHTTPServer(iPort)
-    , m_pServer(parent)
+CAzeServerProcessor::CAzeServerProcessor(quint16 iPort)
+    : CAzeServerProcessor(iPort, QHostAddress::Any)
 {
+}
+
+//-------------------------------------------------------------------------------------------------
+
+CAzeServerProcessor::CAzeServerProcessor(quint16 iPort, const QHostAddress& tListenAddress)
+    : CDynamicHTTPServer(iPort, tListenAddress)
+    , m_sBasePath(QDir::currentPath())
+    , m_iMaxPostBodyBytes(32 * 1024 * 1024)
+    , m_iMaxCommitsPerPush(100000)
+    , m_iMaxObjectBytes(64 * 1024 * 1024)
+{
+    setRepositoriesBasePath(QDir::currentPath());
+
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPull] = servePull;
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPush] = servePush;
     m_mRequestFunctionMap[Aze::CStrings::s_sParamPushAnnounce] = servePushAnnounce;
@@ -82,6 +93,124 @@ void CAzeServerProcessor::setPostServeHook(const PostServeHook& tHook)
 
 //-------------------------------------------------------------------------------------------------
 
+/*!
+    Sets the canonical base folder served repositories resolve under. \br\br
+    The folder is stored in canonical absolute form so later containment
+    checks compare canonical paths only. An empty canonical form keeps the
+    previous setting. \br
+    \a sBasePath is the folder holding the served repositories \br
+*/
+void CAzeServerProcessor::setRepositoriesBasePath(const QString& sBasePath)
+{
+    const QString sAbsolute = QDir::cleanPath(QDir(sBasePath).absolutePath());
+    const QString sCanonical = QFileInfo(sAbsolute).canonicalFilePath();
+
+    if (sCanonical.isEmpty())
+        return;
+
+    m_sBasePath = sCanonical;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Returns the canonical base folder served repositories resolve under.
+*/
+QString CAzeServerProcessor::repositoriesBasePath() const
+{
+    return m_sBasePath;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Sets the largest accepted POST body in bytes. \br\br
+    Larger bodies are refused before JSON parsing. Non-positive values keep
+    the previous setting. \br
+    \a iMax is the body size limit in bytes \br
+*/
+void CAzeServerProcessor::setMaxPostBodyBytes(qint64 iMax)
+{
+    if (iMax > 0)
+        m_iMaxPostBodyBytes = iMax;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Sets the largest accepted commit node count in a push payload. \br\br
+    Non-positive values keep the previous setting. \br
+    \a iMax is the commit node limit \br
+*/
+void CAzeServerProcessor::setMaxCommitsPerPush(int iMax)
+{
+    if (iMax > 0)
+        m_iMaxCommitsPerPush = iMax;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Sets the largest accepted decoded object size in bytes in a push payload. \br\br
+    Non-positive values keep the previous setting. \br
+    \a iMax is the object size limit in bytes \br
+*/
+void CAzeServerProcessor::setMaxObjectBytes(qint64 iMax)
+{
+    if (iMax > 0)
+        m_iMaxObjectBytes = iMax;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Checks push payload node counts and object sizes against the limits. \br\br
+    Counts commit and object nodes, estimates decoded object sizes from the
+    base64 text length, sets \a sDetail and returns eRequestTooLarge on the
+    first exceeded limit, eNone when the payload fits. \br
+    \a xRequest is the parsed push payload, \a iMaxCommits bounds commit nodes,
+    \a iMaxObjectBytes bounds decoded object bytes \br
+*/
+Aze::CError::EErrorCode CAzeServerProcessor::checkPushPayloadLimits(const CXMLNode& xRequest, int iMaxCommits, qint64 iMaxObjectBytes, QString& sDetail)
+{
+    CXMLNodeList lCommits = xRequest.getNodesByTagName(Aze::CStrings::s_sParamCommit);
+
+    if (lCommits.count() > iMaxCommits)
+    {
+        sDetail = QStringLiteral("push payload holds %1 commits, limit is %2").arg(lCommits.count()).arg(iMaxCommits);
+        return Aze::CError::eRequestTooLarge;
+    }
+
+    CXMLNodeList lObjects = xRequest.getNodesByTagName(Aze::CStrings::s_sParamObject);
+
+    for (const CXMLNode& xObject : lObjects)
+    {
+        const QString sContent = xObject.value();
+        const qint64 iDecodedBytes = (sContent.length() * 3) / 4;
+
+        if (iDecodedBytes > iMaxObjectBytes)
+        {
+            sDetail = QStringLiteral("push object exceeds %1 bytes").arg(iMaxObjectBytes);
+            return Aze::CError::eRequestTooLarge;
+        }
+    }
+
+    return Aze::CError::eNone;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/*!
+    Returns true when \a sCandidate equals \a sBasePath or stays under it. \br\br
+    Both paths must be canonical absolute forms sharing the same root. \br
+*/
+bool CAzeServerProcessor::pathStaysUnderBase(const QString& sBasePath, const QString& sCandidate)
+{
+    return sCandidate == sBasePath || sCandidate.startsWith(sBasePath + QLatin1Char('/'));
+}
+
+//-------------------------------------------------------------------------------------------------
+
 CAzeServerProcessor::~CAzeServerProcessor()
 {
 }
@@ -97,10 +226,19 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
     {
         if (tContext.m_sContentType == MIME_Content_JSON)
         {
+            // Refuse oversized bodies before JSON parsing and repository work
+            if (tContext.m_baPostContent.size() > m_iMaxPostBodyBytes)
+            {
+                sCustomResponse = Aze::CError::toResultNode(Aze::CError::eRequestTooLarge,
+                    QStringLiteral("POST body holds %1 bytes, limit is %2").arg(tContext.m_baPostContent.size()).arg(m_iMaxPostBodyBytes)).toJsonString();
+                sCustomResponseMIME = MIME_Content_JSON;
+                return;
+            }
+
             // Confine the requested repository under the base folder
             QString sRepositoryPath;
 
-            if (not resolveRepositoryPath(m_pServer->repositoriesBasePath(), tContext.m_lPath, sRepositoryPath))
+            if (not resolveRepositoryPath(m_sBasePath, tContext.m_lPath, sRepositoryPath))
             {
                 sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, tContext.m_lPath.join(Aze::CStrings::s_sPathSep)).toJsonString();
                 sCustomResponseMIME = MIME_Content_JSON;
@@ -109,16 +247,40 @@ void CAzeServerProcessor::getContent(CWebContext& tContext, QString& sHead, QStr
 
             CXMLNode xRequest = CXMLNode::parseJSON(QString(tContext.m_baPostContent));
 
+            // Bound push payloads before storing anything
+            if (xRequest.attributes()[Aze::CStrings::s_sParamRequest] == Aze::CStrings::s_sParamPush)
+            {
+                QString sLimitDetail;
+
+                if (checkPushPayloadLimits(xRequest, m_iMaxCommitsPerPush, m_iMaxObjectBytes, sLimitDetail) != Aze::CError::eNone)
+                {
+                    sCustomResponse = Aze::CError::toResultNode(Aze::CError::eRequestTooLarge, sLimitDetail).toJsonString();
+                    sCustomResponseMIME = MIME_Content_JSON;
+                    return;
+                }
+            }
+
             Aze::CRepository repository(sRepositoryPath);
 
             if (repository.ok())
             {
-                CXMLNode xResponse = serveRequest(tContext, xRequest, &repository);
+                // Reverify containment after open so a swapped symlink between
+                // resolution and open cannot redirect the served folder
+                const QString sCanonicalServed = QFileInfo(sRepositoryPath).canonicalFilePath();
 
-                sCustomResponse = xResponse.toJsonString();
+                if (sCanonicalServed.isEmpty() || not pathStaysUnderBase(m_sBasePath, sCanonicalServed))
+                {
+                    sCustomResponse = Aze::CError::toResultNode(Aze::CError::eNotARepository, tContext.m_lPath.join(Aze::CStrings::s_sPathSep)).toJsonString();
+                }
+                else
+                {
+                    CXMLNode xResponse = serveRequest(tContext, xRequest, &repository);
 
-                if (m_tPostServeHook)
-                    m_tPostServeHook(sRepositoryPath, xRequest.attributes()[Aze::CStrings::s_sParamRequest]);
+                    sCustomResponse = xResponse.toJsonString();
+
+                    if (m_tPostServeHook)
+                        m_tPostServeHook(sRepositoryPath, xRequest.attributes()[Aze::CStrings::s_sParamRequest]);
+                }
             }
             else
             {
@@ -168,7 +330,7 @@ bool CAzeServerProcessor::resolveRepositoryPath(const QString& sBasePath, const 
     const QString sBaseAbsolute = QDir::cleanPath(QDir(sBasePath).absolutePath());
     const QString sCandidate = QDir::cleanPath(sBaseAbsolute + QLatin1Char('/') + lSegments.join(QLatin1Char('/')));
 
-    if (sCandidate != sBaseAbsolute && not sCandidate.startsWith(sBaseAbsolute + QLatin1Char('/')))
+    if (not pathStaysUnderBase(sBaseAbsolute, sCandidate))
         return false;
 
     const QString sCanonicalBase = QFileInfo(sBaseAbsolute).canonicalFilePath();
@@ -176,7 +338,7 @@ bool CAzeServerProcessor::resolveRepositoryPath(const QString& sBasePath, const 
 
     if (not sCanonicalBase.isEmpty() && not sCanonicalCandidate.isEmpty())
     {
-        if (sCanonicalCandidate != sCanonicalBase && not sCanonicalCandidate.startsWith(sCanonicalBase + QLatin1Char('/')))
+        if (not pathStaysUnderBase(sCanonicalBase, sCanonicalCandidate))
             return false;
 
         sResolvedPath = sCanonicalCandidate;

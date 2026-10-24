@@ -93,7 +93,9 @@ public:
         eTagAlreadyExists                       = 0x42,
         eTagDoesNotExist                      = 0x43,
         eTagMoveRefused                       = 0x44,
-        eCouldNotRenameBranch                 = 0x45
+        eCouldNotRenameBranch                 = 0x45,
+        eRequestTooLarge                      = 0x46,
+        eInvalidServerConfiguration           = 0x47
     };
 
     Q_ENUM(EErrorCode)

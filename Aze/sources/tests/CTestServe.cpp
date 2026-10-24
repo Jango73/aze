@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
+#include <QFileInfo>
 #include <QHostAddress>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -13,6 +14,7 @@
 #include <QSslError>
 #include <QSslSocket>
 #include <QTcpServer>
+#include <QTcpSocket>
 #include <QTimer>
 #include <QUrl>
 
@@ -40,6 +42,8 @@ public:
     using CAzeServerProcessor::servePull;
     using CAzeServerProcessor::serveDeleteBranch;
     using CAzeServerProcessor::resolveRepositoryPath;
+    using CAzeServerProcessor::checkPushPayloadLimits;
+    using CAzeServerProcessor::pathStaysUnderBase;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -779,7 +783,7 @@ void CTestServe::testServeConnectivity()
 
     // A null parent server is enough: pathless requests are refused
     // before the repositories base path is resolved
-    CAzeServerProcessor tServer(nullptr, uiHttpPort);
+    CAzeServerProcessor tServer(uiHttpPort);
     QVERIFY(tServer.isListening());
     QVERIFY(tServer.enableHttps(sCertPath, sKeyPath, uiHttpsPort));
     QVERIFY(tServer.isHttpsEnabled());
@@ -813,6 +817,160 @@ void CTestServe::testServeConnectivity()
     tServer.close();
 
     QVERIFY(QDir(sCertFolder).removeRecursively());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests loopback binding and invalid address refusal.
+*
+* A loopback-bound processor listens on 127.0.0.1 and answers loopback TCP
+* connections, an invalid bind address refuses to listen.
+*/
+void CTestServe::testServeBindAddress()
+{
+    quint16 uiPort = connectivityFreePort();
+    QVERIFY(uiPort != 0);
+
+    CAzeServerProcessor tLoopback(uiPort, QHostAddress::LocalHost);
+    QVERIFY(tLoopback.isListening());
+    QCOMPARE(tLoopback.listenAddress(), QHostAddress(QHostAddress::LocalHost));
+
+    QTcpSocket tSocket;
+    tSocket.connectToHost(QHostAddress::LocalHost, uiPort);
+    QVERIFY(tSocket.waitForConnected(5000));
+    tSocket.disconnectFromHost();
+
+    tLoopback.close();
+
+    quint16 uiBadPort = connectivityFreePort();
+    QVERIFY(uiBadPort != 0);
+    QVERIFY(uiBadPort != uiPort);
+
+    CAzeServerProcessor tInvalid(uiBadPort, QHostAddress(QStringLiteral("192.0.2.1")));
+    QVERIFY(not tInvalid.isListening());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests POST body and push payload limit enforcement.
+*
+* The static checker refuses commit counts and object sizes past the limits,
+* a live processor refuses oversized bodies before JSON parsing and refuses
+* push payloads past the commit count before opening any repository.
+*/
+void CTestServe::testServePayloadLimits()
+{
+    CXMLNode xPush("");
+    xPush.attributes()[Aze::CStrings::s_sParamRequest] = Aze::CStrings::s_sParamPush;
+
+    for (int iIndex = 0; iIndex < 3; iIndex++)
+    {
+        CXMLNode xCommit(Aze::CStrings::s_sParamCommit);
+        xCommit.attributes()[Aze::CStrings::s_sParamId] = QString::number(iIndex);
+        xPush << xCommit;
+    }
+
+    QString sDetail;
+    QCOMPARE(CServePushProbe::checkPushPayloadLimits(xPush, 2, 1024 * 1024, sDetail), Aze::CError::eRequestTooLarge);
+    QVERIFY(sDetail.contains(QStringLiteral("commit")));
+
+    sDetail.clear();
+    QCOMPARE(CServePushProbe::checkPushPayloadLimits(xPush, 3, 1024 * 1024, sDetail), Aze::CError::eNone);
+
+    CXMLNode xPushObject("");
+    xPushObject.attributes()[Aze::CStrings::s_sParamRequest] = Aze::CStrings::s_sParamPush;
+
+    CXMLNode xObject(Aze::CStrings::s_sParamObject);
+    xObject.attributes()[Aze::CStrings::s_sParamId] = QStringLiteral("object");
+    xObject.setValue(Aze::CStrings::s_sBase64Marker + QString(100, QLatin1Char('x')));
+    xPushObject << xObject;
+
+    sDetail.clear();
+    QCOMPARE(CServePushProbe::checkPushPayloadLimits(xPushObject, 100000, 10, sDetail), Aze::CError::eRequestTooLarge);
+    QVERIFY(sDetail.contains(QStringLiteral("object")));
+
+    sDetail.clear();
+    QCOMPARE(CServePushProbe::checkPushPayloadLimits(xPushObject, 100000, 1024 * 1024, sDetail), Aze::CError::eNone);
+
+    // Network stacks need an event dispatcher, see testServeConnectivity
+    int iArgc = 1;
+    QByteArray baBinaryPath = m_sArgument0.toLocal8Bit();
+    char* sBinaryPath = baBinaryPath.data();
+    char* lArgv[1] = { sBinaryPath };
+    QCoreApplication tApplication(iArgc, lArgv);
+
+    quint16 uiPort = connectivityFreePort();
+    QVERIFY(uiPort != 0);
+
+    CAzeServerProcessor tServer(uiPort, QHostAddress::LocalHost);
+    tServer.setRepositoriesBasePath(m_sRootPath);
+    tServer.setMaxPostBodyBytes(512);
+    tServer.setMaxCommitsPerPush(1);
+    QVERIFY(tServer.isListening());
+
+    QNetworkAccessManager tManager;
+    QByteArray baBody;
+    QString sError;
+
+    // An oversized body is refused before JSON parsing, whatever the path holds
+    QNetworkRequest tBodyRequest(QUrl(QString("http://127.0.0.1:%1/repo").arg(uiPort)));
+    tBodyRequest.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    QVERIFY2(fetchConnectivityResponse(&tManager, tBodyRequest,
+        QByteArray(2048, 'a'), baBody, sError), qPrintable(sError));
+    QCOMPARE(Aze::CError::fromResultNode(CXMLNode::parseJSON(QString::fromUtf8(baBody))), Aze::CError::eRequestTooLarge);
+
+    // A push payload past the commit count is refused before any repository opens
+    tServer.setMaxPostBodyBytes(32 * 1024 * 1024);
+
+    QNetworkRequest tPushRequest(QUrl(QString("http://127.0.0.1:%1/repo").arg(uiPort)));
+    tPushRequest.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    QVERIFY2(fetchConnectivityResponse(&tManager, tPushRequest,
+        QByteArray("{\"request\":\"push\",\"branch\":\"branch\",\"tip\":\"tip\",\"commit\":[{\"id\":\"1\"},{\"id\":\"2\"}]}"), baBody, sError), qPrintable(sError));
+    QCOMPARE(Aze::CError::fromResultNode(CXMLNode::parseJSON(QString::fromUtf8(baBody))), Aze::CError::eRequestTooLarge);
+
+    tServer.close();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/***************************************************************************/
+/*!
+* \brief Tests repository path resolution across symlink swaps.
+*
+* A symlink pointing inside the base folder resolves to the canonical target,
+* swapping it to an outside folder makes the same segments resolve to a
+* refusal.
+*/
+void CTestServe::testServeSymlinkSwap()
+{
+    QDir oRoot(m_sRootPath);
+
+    const QString sBase = oRoot.absoluteFilePath("symlink-base");
+    const QString sOutside = oRoot.absoluteFilePath("symlink-outside");
+
+    QDir(sBase).removeRecursively();
+    QDir(sOutside).removeRecursively();
+
+    QVERIFY(QDir().mkpath(sBase + "/real"));
+    QVERIFY(QDir().mkpath(sOutside));
+
+    QVERIFY(QFile::link(sBase + "/real", sBase + "/link"));
+
+    QString sResolved;
+    QVERIFY(CServePushProbe::resolveRepositoryPath(sBase, QStringList() << "link", sResolved));
+    QCOMPARE(sResolved, QFileInfo(sBase + "/real").canonicalFilePath());
+
+    QVERIFY(QFile::remove(sBase + "/link"));
+    QVERIFY(QFile::link(sOutside, sBase + "/link"));
+
+    QVERIFY(not CServePushProbe::resolveRepositoryPath(sBase, QStringList() << "link", sResolved));
+
+    QVERIFY(QDir(sBase).removeRecursively());
+    QVERIFY(QDir(sOutside).removeRecursively());
 }
 
 //-------------------------------------------------------------------------------------------------
