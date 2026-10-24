@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.16)
+
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" AZE_APPLICATION_VERSION LIMIT_COUNT 1)
+string(STRIP "${AZE_APPLICATION_VERSION}" AZE_APPLICATION_VERSION)
+
+if(NOT AZE_APPLICATION_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+([.-][0-9A-Za-z.-]+)?$")
+    message(FATAL_ERROR "Invalid VERSION value: '${AZE_APPLICATION_VERSION}'")
+endif()
+
+project(Aze VERSION ${AZE_APPLICATION_VERSION} LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+include(GNUInstallDirs)
+
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Xml Network Test)
+
+add_subdirectory(AzeLib)
+add_subdirectory(Aze)

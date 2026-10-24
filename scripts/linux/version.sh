@@ -16,7 +16,7 @@ Usage: ./version.sh [--get] [<new-version>]
   <new-version>  Set version (format: major.minor.patch, e.g. 0.1.0)
   -h, --help     Show this help
 Version is read from the VERSION file at the repository root.
-Aze.pro and AzeLib.pro read that file at qmake time, so no other
+CMakeLists.txt reads that file at configure time, so no other
 file needs editing when the version changes.
 USAGE
 }

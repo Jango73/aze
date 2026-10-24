@@ -6,10 +6,10 @@ A versioning system
 
 ## Dependencies
 
-* Qt 6 (modules `core`, `xml`, `network`, `testlib`), `qmake6`, C++ compiler, `git`
-  * Debian/Ubuntu: `build-essential git qt6-base-dev qt6-base-dev-tools`
-  * Fedora: `gcc-c++ git qt6-qtbase-devel`
-  * Arch: `base-devel git qt6-base`
+* Qt 6 (modules `core`, `xml`, `network`, `testlib`), `cmake`, `ninja`, C++ compiler, `git`
+  * Debian/Ubuntu: `build-essential cmake git ninja-build qt6-base-dev qt6-base-dev-tools`
+  * Fedora: `cmake gcc-c++ git ninja-build qt6-qtbase-devel`
+  * Arch: `base-devel cmake git ninja qt6-base`
   * Reference list per package manager: `scripts/linux/deps.sh`
 * Submodules (fetched by `scripts/linux/deps.sh` via `git submodule update --init --recursive`)
   * qt-plus (`master`)
@@ -23,7 +23,7 @@ A versioning system
 ```
     ./scripts/linux/deps.sh
 ```
-* Build (shadow build with `qmake6` + `make`)
+* Build (shadow build with `cmake` + `ninja`)
 ```
     ./scripts/linux/build.sh [--debug|--release]
 ```

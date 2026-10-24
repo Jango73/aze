@@ -4,17 +4,18 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 `aze` is a versioning tool (git-like, custom `.aze` repositories), built with
-qmake for Qt6 (see `README.md`). Layout:
+CMake + Ninja for Qt6 (see `README.md`). Layout:
 - `Aze/` (application): `sources/client` (`CAzeClient`), `sources/server`
   (`CAzeServer`), `sources/common`, `sources/tests` (`CTestAze`).
 - `AzeLib/` (library): reusable versioning engine (`CRepository`, `CUtils`,
   `CCommitFunctions`, ...), plus the `dtl` git submodule
   (`AzeLib/sources/dtl`, branch `dev/conflict`).
 - `qt-plus/` (git submodule, branch `master`): shared Qt utility library. Check
-  here first before adding helpers. Build file consumed here:
-  `qt-plus-nolib-web.pri` (subset without multimedia/image/geo modules).
-- `Aze.pro` is the `subdirs` project (`AzeLib`, then `Aze`). There is no CMake
-  build; the reference Linux build is qmake6 + make via `scripts/linux/`.
+  here first before adding helpers. Its `source/cpp` subset (same file list as
+  the former `qt-plus-nolib-web.pri`, without multimedia/image/geo modules)
+  is compiled into `AzeLib`.
+- `CMakeLists.txt` is the root project (`AzeLib`, then `Aze`). There is no
+  qmake build; the reference Linux build is CMake + Ninja via `scripts/linux/`.
 
 ## Main rule
 If the guidelines below are not followed, all modifications will be rejected.
@@ -94,8 +95,8 @@ Never leave a blank line in the commit message: lines follow each other directly
 - Dependencies: `./scripts/linux/deps.sh` (submodules + apt/dnf/pacman packages;
   needs `sudo`, which prompts for a password here)
 - Build (shadow): `./scripts/linux/build.sh [--debug|--release]`
-  (`qmake6 Aze.pro CONFIG+=<debug|release>` in `build-<debug|release>`, then `make`).
-  Builds `AzeLib` (`libaze[d].so`), then `Aze` (`aze[d]`).
+  (`cmake -S . -B build-<debug|release> -G Ninja` in `build-<debug|release>`,
+  then `cmake --build`). Builds `AzeLib` (`libaze[d].so`), then `Aze` (`aze[d]`).
 - Local CI: `./scripts/linux/ci-local.sh [--debug|--release]`
   (local mirror of the GitHub CI: builds, then runs the unit tests via
   `aze run-tests`, logs to `tmp/ci-local.log`). This is the only supported

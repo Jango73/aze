@@ -89,12 +89,12 @@ QString CTestFixture::testDirectoryPath()
 {
     // Locate the repository root from the binary folder, then use tmp/
     QDir tFolder(QCoreApplication::applicationDirPath());
-    while (not tFolder.exists("Aze.pro") and tFolder.cdUp())
+    while (not tFolder.exists("CMakeLists.txt") and tFolder.cdUp())
     {
     }
 
-    if (not tFolder.exists("Aze.pro"))
-        qFatal("CTestAze: repository root (Aze.pro) not found, tests refuse to run outside a repository checkout");
+    if (not tFolder.exists("CMakeLists.txt"))
+        qFatal("CTestAze: repository root (CMakeLists.txt) not found, tests refuse to run outside a repository checkout");
 
     QString sTestPath = QString("%1/tmp/aze-tests").arg(tFolder.absolutePath());
     QDir().mkpath(sTestPath);

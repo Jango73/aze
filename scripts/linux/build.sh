@@ -63,42 +63,28 @@ if [[ "${BUILD_TYPE}" != "Debug" && "${BUILD_TYPE}" != "Release" ]]; then
 fi
 
 BUILD_DIR="${PROJECT_ROOT_FOLDER}/build-${BUILD_TYPE,,}"
-QMAKE_CONFIG="release"
-if [[ "${BUILD_TYPE}" == "Debug" ]]; then
-  QMAKE_CONFIG="debug"
-fi
 
-if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
+if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/source/cpp/CXMLNode.h" ] \
   || [ ! -f "${PROJECT_ROOT_FOLDER}/AzeLib/sources/dtl/dtl/dtl.hpp" ]; then
   echo "[build] Submodules missing, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"
 fi
 
-# Find qmake executable (prefer Qt6)
-QMAKE=""
-for candidate in qmake6 qmake-qt6 qmake; do
-  if command -v "${candidate}" >/dev/null 2>&1; then
-    QMAKE="${candidate}"
-    break
-  fi
-done
-
-if [[ -z "${QMAKE}" ]]; then
-  echo "[build] qmake not found, run ./scripts/linux/deps.sh first." >&2
+if ! command -v cmake >/dev/null 2>&1; then
+  echo "[build] cmake not found, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"
 fi
 
-mkdir -p "${BUILD_DIR}"
+if ! command -v ninja >/dev/null 2>&1; then
+  echo "[build] ninja not found, run ./scripts/linux/deps.sh first." >&2
+  exit "${EXIT_FAILURE}"
+fi
 
-# Sub Makefiles are only generated when missing, so regenerate them to
-# reflect submodule or project file changes while keeping object files.
-rm -f "${BUILD_DIR}/Makefile" "${BUILD_DIR}/AzeLib/Makefile" "${BUILD_DIR}/Aze/Makefile"
-
-"${QMAKE}" -o "${BUILD_DIR}/Makefile" "${PROJECT_ROOT_FOLDER}/Aze.pro" "CONFIG+=${QMAKE_CONFIG}"
+cmake -S "${PROJECT_ROOT_FOLDER}" -B "${BUILD_DIR}" -G Ninja -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 if [ "${VERBOSE_BUILD}" -eq "${VERBOSE_ENABLED}" ]; then
-  make -C "${BUILD_DIR}" -j"$(nproc)" VERBOSE=1
+  cmake --build "${BUILD_DIR}" --verbose
 else
-  make -C "${BUILD_DIR}" -j"$(nproc)"
+  cmake --build "${BUILD_DIR}"
 fi
 
 printf '\nBuilt target in %s\n' "${BUILD_DIR}"

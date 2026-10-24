@@ -1,10 +1,8 @@
 #!/bin/bash
 # Builds Release packages from an isolated build folder, then copies the
 # versioned artifacts into dist/.
-# Produces a .deb (dpkg-deb staging of "make install") and a .tar.gz of the
-# staged install tree. qmake is used instead of CMake/CPack because Aze is
-# a qmake project; switching build systems for packaging alone would break
-# the project architecture.
+# Produces a .deb (dpkg-deb staging of "cmake --install") and a .tar.gz of
+# the staged install tree.
 set -euo pipefail
 
 SCRIPT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,14 +32,19 @@ if [[ $# -ne 0 ]]; then
   exit "${EXIT_FAILURE}"
 fi
 
-if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/qt-plus-nolib-web.pri" ] \
+if [ ! -f "${PROJECT_ROOT_FOLDER}/qt-plus/source/cpp/CXMLNode.h" ] \
   || [ ! -f "${PROJECT_ROOT_FOLDER}/AzeLib/sources/dtl/dtl/dtl.hpp" ]; then
   echo "[package] Submodules missing, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"
 fi
 
-if ! command -v qmake6 >/dev/null 2>&1; then
-  echo "[package] qmake6 not found, run ./scripts/linux/deps.sh first." >&2
+if ! command -v cmake >/dev/null 2>&1; then
+  echo "[package] cmake not found, run ./scripts/linux/deps.sh first." >&2
+  exit "${EXIT_FAILURE}"
+fi
+
+if ! command -v ninja >/dev/null 2>&1; then
+  echo "[package] ninja not found, run ./scripts/linux/deps.sh first." >&2
   exit "${EXIT_FAILURE}"
 fi
 
@@ -58,12 +61,12 @@ TARBALL_FILE="aze-${VERSION}-linux-${ARCHITECTURE}.tar.gz"
 mkdir -p "${BUILD_FOLDER}" "${OUTPUT_FOLDER}"
 rm -f "${BUILD_FOLDER}/"*.deb "${BUILD_FOLDER}/"*.tar.gz 2>/dev/null || true
 
-qmake6 -o "${BUILD_FOLDER}/Makefile" "${PROJECT_ROOT_FOLDER}/Aze.pro" "CONFIG+=release"
-make -C "${BUILD_FOLDER}" -j"$(nproc)"
+cmake -S "${PROJECT_ROOT_FOLDER}" -B "${BUILD_FOLDER}" -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build "${BUILD_FOLDER}"
 
 rm -rf "${STAGE_FOLDER}"
 mkdir -p "${STAGE_FOLDER}/DEBIAN"
-make -C "${BUILD_FOLDER}" install INSTALL_ROOT="${STAGE_FOLDER}"
+DESTDIR="${STAGE_FOLDER}" cmake --install "${BUILD_FOLDER}" --prefix /usr
 
 INSTALLED_SIZE="$(du -sk "${STAGE_FOLDER}/usr" | cut -f1)"
 

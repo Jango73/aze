@@ -1,18 +1,16 @@
 #!/usr/bin/make -f
-export QT_SELECT := qt6
 
 %:
 	dh $@
 
 override_dh_auto_configure:
-	mkdir -p build-deb
-	cd build-deb && qmake6 ../Aze.pro CONFIG+=release
+	cmake -S . -B build-deb -G Ninja -DCMAKE_BUILD_TYPE=Release
 
 override_dh_auto_build:
-	make -C build-deb -j$(nproc)
+	cmake --build build-deb
 
 override_dh_auto_install:
-	make -C build-deb install INSTALL_ROOT=$(CURDIR)/debian/aze
+	DESTDIR=$(CURDIR)/debian/aze cmake --install build-deb --prefix /usr
 
 override_dh_auto_test:
 	LD_LIBRARY_PATH=$(CURDIR)/build-deb/AzeLib/bin $(CURDIR)/build-deb/Aze/bin/aze run-tests

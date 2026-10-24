@@ -9,20 +9,26 @@ EXIT_FAILURE=1
 
 APT_PACKAGES=(
   build-essential
+  cmake
   git
+  ninja-build
   qt6-base-dev
   qt6-base-dev-tools
 )
 
 DNF_PACKAGES=(
+  cmake
   gcc-c++
   git
+  ninja-build
   qt6-qtbase-devel
 )
 
 PACMAN_PACKAGES=(
   base-devel
+  cmake
   git
+  ninja
   qt6-base
 )
 

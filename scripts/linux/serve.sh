@@ -180,7 +180,7 @@ NEEDS_BUILD=0
 if [ ! -f "${BINARY}" ]; then
   echo "[serve] Binary not found, running build first..."
   NEEDS_BUILD=1
-elif [ -n "$(find "${PROJECT_ROOT_FOLDER}/Aze" "${PROJECT_ROOT_FOLDER}/AzeLib" "${PROJECT_ROOT_FOLDER}/qt-plus" -path "*/.git" -prune -o -path "${PROJECT_ROOT_FOLDER}/build-*" -prune -o \( -name '*.pro' -o -name '*.pri' -o -name '*.cpp' -o -name '*.h' \) -newer "${BINARY}" -print -quit 2>/dev/null)" ]; then
+elif [ -n "$(find "${PROJECT_ROOT_FOLDER}/Aze" "${PROJECT_ROOT_FOLDER}/AzeLib" "${PROJECT_ROOT_FOLDER}/qt-plus" -path "*/.git" -prune -o -path "${PROJECT_ROOT_FOLDER}/build-*" -prune -o \( -name 'CMakeLists.txt' -o -name '*.cmake' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -newer "${BINARY}" -print -quit 2>/dev/null)" ]; then
   echo "[serve] Sources changed, running build first..."
   NEEDS_BUILD=1
 fi

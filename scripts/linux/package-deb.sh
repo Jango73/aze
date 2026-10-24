@@ -65,7 +65,7 @@ build_with_staging() {
   OUTPUT_FILE="${PROJECT_ROOT_FOLDER}/tmp/aze_${VERSION}_${ARCHITECTURE}.deb"
 
   # Clean build: incremental builds do not recompile objects when only
-  # .pro settings or VERSION change, which would embed stale data.
+  # CMake settings or VERSION change, which would embed stale data.
   echo "[package-deb] Cleaning previous build..."
   "${SCRIPT_FOLDER}/clean.sh" --release
 
@@ -75,7 +75,7 @@ build_with_staging() {
   echo "[package-deb] Staging files..."
   rm -rf "${STAGE_FOLDER}"
   mkdir -p "${STAGE_FOLDER}/DEBIAN" "${PROJECT_ROOT_FOLDER}/tmp"
-  make -C "${PROJECT_ROOT_FOLDER}/build-release" install INSTALL_ROOT="${STAGE_FOLDER}"
+  DESTDIR="${STAGE_FOLDER}" cmake --install "${PROJECT_ROOT_FOLDER}/build-release" --prefix /usr
 
   INSTALLED_SIZE="$(du -sk "${STAGE_FOLDER}/usr" | cut -f1)"
 
